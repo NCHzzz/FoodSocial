@@ -71,6 +71,10 @@ Service-owned databases improve boundary clarity, but they make feed assembly, r
 
 Provider flexibility improves resilience and future routing options, but it introduces output inconsistency, prompt portability issues, cost control needs, and observability burden.
 
+### R-11B Polyglot AI services increase operational and contract complexity
+
+Using Python for AI-oriented services is a strong technical fit, but it adds another runtime, packaging flow, observability path, and contract boundary to the platform.
+
 ### R-12 Self-hosted Keycloak increases operational burden for MVP
 
 Choosing self-hosted Keycloak improves control and reduces vendor dependency, but it adds deployment, upgrade, backup, and operational complexity for a solo builder.
@@ -91,13 +95,35 @@ Choosing multi-tenant architecture adds complexity to identity, authorization, d
 
 Allowing external AI agents to perform wider system actions in the long term increases the need for strong authorization, action scoping, auditability, and abuse prevention.
 
+### R-17 Media lifecycle complexity is easy to underestimate
+
+Media-heavy user-generated products require more than upload support. Storage cleanup, derivative handling, moderation visibility, and deletion behavior can create hidden scope if not documented early.
+
+### R-18 Async messaging correctness can fail silently without explicit reliability rules
+
+RabbitMQ is a practical MVP choice, but event publication, retries, dead-letter behavior, and replay expectations must stay explicit or the architecture may look simpler on paper than it is in production.
+
+### R-19 Geo-discovery expectations may exceed the current search definition
+
+The product promise includes dish, place, and location-aware discovery. If nearby relevance is important, the MVP search model must still define practical geo-query behavior even without a dedicated geo/search platform.
+
+### R-20 Beta operations may remain underdefined
+
+The current docs acknowledge monitoring, backups, and graceful degradation, but a limited beta still needs a clearer minimum operator model for outages, queue backlog, degraded AI behavior, and restore confidence.
+
 ## Unknowns
 
 - timeline
 - budget
-- budget
 - exact meaning of "AI-native" in MVP scope
 - exact production hardening plan after limited beta stage
+- exact threshold for introducing dedicated cache, vector, or heavier search infrastructure
+
+## Current Clarifications
+
+- dish identity is required at publish time for food posts
+- saved content in MVP includes posts, dishes, and places
+- MVP agent-facing APIs use private or controlled-access exposure
 
 ## Release Readiness Direction
 
@@ -139,6 +165,8 @@ Allowing external AI agents to perform wider system actions in the long term inc
 - manual-review-first moderation is acceptable for MVP only if future automation hooks remain possible
 - Vietnam-first launch scope is acceptable for MVP and reduces geographic modeling ambiguity
 - limited mixing in Following feed is acceptable only if UX and ranking keep the follower-priority clear
+- MVP can defer vector-search infrastructure unless real semantic retrieval needs or proven search-quality gaps justify it
+- selective caching is sufficient for MVP if cache ownership and invalidation stay explicit per use case rather than becoming an implicit platform crutch
 
 ## Decision Log Candidates
 
@@ -148,4 +176,7 @@ Allowing external AI agents to perform wider system actions in the long term inc
 - platform rollout strategy
 - search implementation strategy
 - discover feed ranking strategy
+- media storage and delivery strategy
+- event reliability strategy
+- deletion and retention strategy
 - AI-native implementation depth for MVP

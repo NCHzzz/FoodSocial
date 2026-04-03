@@ -1,179 +1,220 @@
-# 07_domain_model.md
+# Data Model & Domain Overview
 
 ## Status
 
 - Working draft
+- Last updated: 2026-04-02
 
-## Main Entities
+## Overview
 
-- Tenant
-- User
-- Profile
-- Post
-- Food Post (primary content type in MVP, exact modeling TBD)
-- Restaurant / Place Post (secondary content type, exact modeling TBD)
-- Recipe Post (secondary content type, exact modeling TBD)
-- Comment
-- Like
-- Save
-- Share
-- Repost / Reshare (Need confirmation on final modeling shape)
-- Follow
-- Report
-- Recommendation Signal (Assumption)
-- Place (first-class MVP entity)
-- Dish (first-class MVP entity)
+This document consolidates the detailed **Data Model** (previously in `07_data_model.md`) with the high‑level **Domain Model** (previously in this file). It defines the core entities, their attributes, relationships, and the MVP modeling direction for FoodSocial.
 
-## Recommended MVP modeling direction
+---
 
-Use a shared `Post` entity with a `contentType` field, plus content-type-specific detail records or optional metadata sections.
+### Core Entities (Detailed)
 
-Approved MVP direction for places:
+#### User
+```json
+{
+  "id": "uuid",
+  "username": "string",
+  "email": "string",
+  "displayName": "string",
+  "avatarUrl": "string",
+  "bio": "string",
+  "tasteProfile": {
+    "preferredCuisines": ["string"],
+    "dislikedIngredients": ["string"],
+    "dietaryRestrictions": ["string"]
+  },
+  "role": "enum: guest | user | admin",
+  "status": "enum: active | suspended | deleted",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
 
-- `Place` is a first-class entity from day one
-- food posts may reference a canonical `Place`
-- place-centric discovery should be built on top of this entity
+#### Post (base)
+```json
+{
+  "id": "uuid",
+  "type": "enum: food | restaurant | recipe",
+  "authorId": "uuid",
+  "caption": "string",
+  "media": [{
+    "type": "enum: image | video",
+    "url": "string",
+    "thumbnailUrl": "string",
+    "caption": "string"
+  }],
+  "tags": ["string"],
+  "location": {
+    "latitude": "float",
+    "longitude": "float",
+    "address": "string",
+    "city": "string",
+    "country": "string"
+  },
+  "engagement": {
+    "likes": "integer",
+    "comments": "integer",
+    "shares": "integer",
+    "saves": "integer"
+  },
+  "status": "enum: published | hidden | deleted",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
 
-Approved MVP direction for dishes:
+#### FoodPost (extends Post)
+```json
+{
+  "id": "uuid", // References Post.id
+  "dishName": "string",
+  "dishId": "uuid", // References Dish.id
+  "restaurantId": "uuid", // References Restaurant.id
+  "rating": "integer (1-5)",
+  "priceRange": "enum: $ | $$ | $$$ | $$$$",
+  "tasteNotes": ["string"]
+}
+```
 
-- `Dish` is a first-class entity from day one
-- food posts should reference a canonical `Dish` when possible
-- dish-centric discovery and recommendation should be built on top of this entity
+#### Restaurant
+```json
+{
+  "id": "uuid",
+  "name": "string",
+  "description": "string",
+  "address": "string",
+  "location": {"latitude": "float", "longitude": "float"},
+  "cuisineTypes": ["string"],
+  "priceRange": "enum: $ | $$ | $$$ | $$$$",
+  "operatingHours": {"monday": {"open": "time", "close": "time"}, "tuesday": {"open": "time", "close": "time"}},
+  "contact": {"phone": "string", "website": "string", "email": "string"},
+  "rating": {"average": "float", "count": "integer"},
+  "status": "enum: active | closed | suspended",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
 
-For a food-first post, recommended MVP fields are:
+#### Dish
+```json
+{
+  "id": "uuid",
+  "name": "string",
+  "description": "string",
+  "category": "string",
+  "cuisine": "string",
+  "ingredients": ["string"],
+  "dietaryInfo": {"isVegetarian": "boolean", "isVegan": "boolean", "isGlutenFree": "boolean", "isSpicy": "boolean"},
+  "nutrition": {"calories": "integer", "protein": "float", "carbs": "float", "fat": "float"},
+  "status": "enum: active | deprecated",
+  "createdAt": "datetime"
+}
+```
 
-- `primaryMediaUrl` (required)
-- `dishId` (preferred when the dish is known)
-- `dishName` (fallback text when a canonical dish is unavailable)
-- `caption` (required)
-- `placeId` (preferred when the place is known)
-- `restaurantName` (fallback text only when a canonical place is unavailable)
-- `locationText` or `area` (optional supplemental data)
-- `rating` (optional)
-- `priceRange` (optional)
-- `tags` (optional)
+#### Recipe (extends Post)
+```json
+{
+  "id": "uuid", // References Post.id
+  "servings": "integer",
+  "prepTime": "integer (minutes)",
+  "cookTime": "integer (minutes)",
+  "ingredients": [{"item": "string", "quantity": "string", "unit": "string", "notes": "string"}],
+  "instructions": [{"step": "integer", "instruction": "string", "mediaUrl": "string"}],
+  "difficulty": "enum: easy | medium | hard",
+  "tags": ["string"]
+}
+```
 
-This approach is recommended because it is simple enough for a solo MVP while keeping room for structured discovery.
+#### Comment
+```json
+{
+  "id": "uuid",
+  "postId": "uuid",
+  "parentId": "uuid",
+  "authorId": "uuid",
+  "content": "string",
+  "status": "enum: visible | hidden | deleted",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
 
-### Place entity direction
+#### Report
+```json
+{
+  "id": "uuid",
+  "reporterId": "uuid",
+  "targetType": "enum: post | user | comment",
+  "targetId": "uuid",
+  "reason": "enum: spam | inauthentic | abuse | illegal | other",
+  "description": "string",
+  "status": "enum: submitted | under_review | resolved_no_action | resolved_content_action | resolved_user_action",
+  "moderatorId": "uuid",
+  "resolution": "string",
+  "createdAt": "datetime",
+  "resolvedAt": "datetime"
+}
+```
 
-Recommended initial `Place` fields:
+#### Notification
+```json
+{
+  "id": "uuid",
+  "userId": "uuid",
+  "type": "enum: like | comment | follow | share | save | system",
+  "title": "string",
+  "message": "string",
+  "data": "json",
+  "isRead": "boolean",
+  "createdAt": "datetime"
+}
+```
 
-- `id`
-- `name`
-- `normalizedName`
-- `addressText`
-- `area`
-- `city`
-- `latitude` (Need confirmation)
-- `longitude` (Need confirmation)
-- `status`
-- `createdAt`
-- `updatedAt`
+---
 
-Initial geographic modeling should support Vietnam-first location and place data.
+### High‑Level Domain Model (MVP Direction)
 
-### Dish entity direction
+- **Post** is the central aggregate with a `contentType` field (`food`, `restaurant`, `recipe`).
+- **Dish** and **Place** are first‑class entities from day 1; food posts must reference a canonical `Dish`, and may reference a canonical `Place` when known.
+- **User** owns posts, likes, comments, follows, and saved items.
+- **Tenant** isolation is enforced at the service layer (not a separate domain entity for MVP).
+- Aggregates:
+  - `User/Profile`
+  - `Post` (including `FoodPost`, `RecipePost`)
+  - `Dish`
+  - `Place`
+  - `Moderation` (reports, actions)
 
-Recommended initial `Dish` fields:
+---
 
-- `id`
-- `name`
-- `normalizedName`
-- `aliases` (Need confirmation)
-- `cuisineType` (Need confirmation)
-- `category`
-- `status`
-- `createdAt`
-- `updatedAt`
+### Entity Relationships (Mermaid ER Diagram)
 
-## Relationships
+```mermaid
+erDiagram
+    User ||--o{ Post : creates
+    User ||--o{ Comment : writes
+    User ||--o{ Report : submits
+    User ||--o{ Notification : receives
+    Post ||--o{ FoodPost : extends
+    Post ||--o{ Recipe : extends
+    FoodPost }o--|| Dish : references
+    FoodPost }o--|| Restaurant : references
+    Comment ||--o{ Comment : nested
+    Restaurant ||--o{ FoodPost : location
+```
 
-- Tenant 1 -> many Users
-- Tenant 1 -> many Profiles
-- Tenant 1 -> many Posts
-- Tenant 1 -> many Dishes
-- Tenant 1 -> many Places
-- User 1 -> many Posts
-- User 1 -> many Comments
-- User many-to-many User through Follow
-- Post 1 -> many Comments
-- Post 1 -> many Likes
-- Post 1 -> many Saves
-- Save can target Post, Dish, or Place
-- Post many-to-1 Dish (dish link preferred for food posts)
-- Post many-to-1 Place (place link preferred for food/place posts)
-- Report targets Post, User, or Comment
+---
 
-## Domain Rules
+### Indexing Strategy (summary)
+- Primary keys: `id` (UUID) for all tables.
+- Unique indexes: `User.username`, `User.email`.
+- Search indexes: full‑text on `Post.caption`, `Restaurant.name`, `Dish.name`.
+- Foreign‑key indexes as described in the original `08_database_design.md`.
 
-### DR-01 Place is canonical in MVP
+---
 
-If a restaurant or place is known, the system should prefer linking content to a canonical `Place` entity instead of storing only free text.
-
-### DR-02 Unresolved place fallback may still be needed
-
-The system may allow fallback text when a place cannot be matched immediately, but canonical place linking remains the preferred direction.
-
-### DR-03 Place discovery is a product capability
-
-Because `Place` is a first-class entity, the platform can support place-centric search, aggregation, and future recommendation logic.
-
-### DR-04 Dish is canonical in MVP
-
-If a dish is known, the system should prefer linking content to a canonical `Dish` entity instead of storing only free text.
-
-### DR-05 Dish discovery is a primary product capability
-
-Because the product is Food-first and `Dish` is first-class, the platform should support dish-centric search, aggregation, and recommendation.
-
-### DR-06 Tenant isolation is a first-class architectural concern
-
-Because the platform is multi-tenant, domain data and access patterns must respect tenant boundaries across identity, content, discovery, moderation, and analytics.
-
-## Suggested Aggregate Boundaries
-
-### Recommended initial aggregate direction
-
-- `User/Profile` aggregate
-  - user identity mapping
-  - profile data
-  - taste preferences
-
-- `Post` aggregate
-  - post core data
-  - media references
-  - caption/review content
-  - engagement counters or summaries (implementation-dependent)
-
-- `Dish` aggregate
-  - canonical dish identity
-  - naming and normalization metadata
-
-- `Place` aggregate
-  - canonical place identity
-  - location metadata
-
-- `Moderation` aggregate
-  - report record
-  - target reference
-  - moderation outcome
-
-These boundaries should remain aligned to service ownership and should avoid cross-service transactional coupling.
-
-## Need Confirmation
-
-## Publish-Time Canonicalization Direction
-
-- Dish should be treated more strictly at publish time
-- Place may still use fallback text when canonical matching is unavailable
-
-## Need Confirmation
-
-- Whether food-first posting requires mandatory dish tagging in MVP
-
-## Recipe Modeling Direction
-
-- Recipe should exist in MVP as a structured post type
-- Basic recipe structure should include ingredients, steps, and media
-- Recipe remains secondary to the Food-first discovery model and is not a deep standalone module yet
+*This unified document replaces both `07_data_model.md` and the previous `07_domain_model.md`. The original `07_data_model.md` can be removed as its content is now incorporated here.*

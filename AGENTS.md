@@ -14,7 +14,7 @@ Agents must use the following context order:
 2. `docs/ai/repo-map.md`
 3. relevant files in `docs/project-discovery/`
 4. `docs/ai/workflows.md`
-5. `docs/ai/templates.md` when prompt shaping is needed
+5. relevant files in `docs/ai/stack-rules/` when the task is stack-specific
 
 ## Instruction Priority
 
@@ -39,6 +39,7 @@ Agents must use the following context order:
 ## Working Rules
 
 - All Markdown documentation must remain in English
+- Interviews or working discussions may happen in Vietnamese, but repository Markdown deliverables must remain in English
 - Prefer reading existing docs and code patterns before proposing changes
 - Do not invent missing business rules when discovery docs still mark them as future or TBD
 - Keep implementation aligned with the approved MVP direction in `docs/project-discovery/`
@@ -46,6 +47,23 @@ Agents must use the following context order:
 - Keep recommendation medium-depth in MVP, but preserve a path to stronger personalization later
 - Keep moderation manual-review-first in MVP
 - Preserve future extensibility for monetization, appeals, stronger recommendation, and broader agent actions
+
+## Clean Code Rules
+
+- Prefer small, composable units over large multi-purpose files or classes
+- Keep naming explicit and domain-driven
+- Avoid hidden behavior and surprising side effects
+- Favor straightforward control flow over clever abstractions
+- Keep business rules out of UI glue and transport glue where possible
+- Keep service boundaries clear and contract-first
+- Avoid duplication of business logic across services or layers
+- Write code so a follow-up AI agent can understand intent quickly from local context
+
+## Engineering Rules
+
+- Use `docs/ai/engineering-rules.md` for repo-wide engineering expectations beyond generic clean code
+- Use `docs/ai/stack-rules/dotnet.md` for backend .NET 10 implementation rules
+- Use `docs/ai/stack-rules/angular-tailwind.md` for Angular and TailwindCSS implementation rules
 
 ## Definition of Done
 
@@ -63,7 +81,7 @@ Use this repository as a living AI workspace:
 
 - `docs/project-discovery/` = product and architecture truth
 - `docs/ai/` = agent operating layer
-- root adapters like `CLAUDE.md` = tool-specific entrypoints
+- `AGENTS.md` = canonical entrypoint for agents working in this repo
 
 ## Guardrails
 
@@ -77,8 +95,7 @@ Use this repository as a living AI workspace:
 1. Load `docs/ai/repo-map.md`
 2. Load only the relevant `docs/project-discovery/` files
 3. Use `docs/ai/workflows.md` for task execution patterns
-4. Use `docs/ai/templates.md` to shape ambiguous work requests
-5. Update or create code/docs without breaking existing source-of-truth structure
+4. Update or create code/docs without breaking existing source-of-truth structure
 
 ## Future Expansion Rule
 

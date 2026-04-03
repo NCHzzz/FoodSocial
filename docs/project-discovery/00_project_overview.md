@@ -103,7 +103,10 @@ Initial architectural interpretation:
 - core entities and actions should be predictable and well-defined
 - search and recommendation outputs should be explainable enough for agent consumption
 
-Need confirmation is still required for the exact meaning and scope of "AI agents work well with it".
+Current clarified direction:
+
+- MVP priority: AI for end users plus controlled agent consumption
+- later direction: broader external agent actions with proper authorization and audit controls
 
 ## Approved MVP AI Direction
 
@@ -126,6 +129,7 @@ Long-term agent direction:
 ## Chosen Technology Stack
 
 - Backend: .NET 10
+- AI-oriented services: Python is allowed where model-heavy capabilities justify it
 - Service orchestration and local composition: .NET Aspire
 - Frontend: Angular
 - Data storage: PostgreSQL with ownership per service
@@ -134,6 +138,20 @@ Long-term agent direction:
 - External identity provider: self-hosted Keycloak
 - Deployment direction: Kubernetes-based deployment
 - Tenant model: multi-tenant
+
+For MVP implementation, tenant should be treated primarily as an architectural isolation concern rather than a rich product-facing workflow driver.
+
+## Architecture Snapshot for MVP
+
+- Edge pattern: API Gateway / BFF
+- Internal communication: Hybrid REST + async events
+- Async backbone: RabbitMQ
+- Search model: PostgreSQL-first lexical search with structured filtering and typo tolerance
+- Geo-discovery model: practical nearby and area-aware retrieval without dedicated geo infrastructure in MVP
+- Media model: object-style storage plus explicit derivative and cleanup lifecycle
+- AI strategy: provider-agnostic integration with graceful deterministic fallback
+- Rollout safety: lightweight runtime feature controls instead of heavyweight experimentation infrastructure
+- Deferred by default: vector-first retrieval, heavyweight dedicated search, platform-wide cache dependency
 
 ## Platform Direction
 
@@ -158,13 +176,14 @@ Long-term agent direction:
 - Multiple AI providers will be supported through a provider-agnostic internal integration layer
 - Recommendation priority in MVP is Food-first: dishes first, then places
 - Recommendation personalization in MVP will be medium-depth, with a deliberate upgrade path toward stronger personalization later
+- Selective caching is sufficient for MVP if explicit ownership and invalidation remain visible per use case
+- Vector-search infrastructure is not a default MVP dependency unless semantic retrieval needs become real enough to justify it
+- Media lifecycle and deletion behavior must be treated as architecture concerns, not only implementation details
 
 ## Need Confirmation
 
-- Exact MVP depth for AI recommendation
-- Exact moderation model and anti-seeding strategy
+- Exact MVP depth for recommendation heuristics and signal weighting
 - Budget constraints
-- Whether recipe is a full module or a post type in MVP
 
 ## Launch Scope
 

@@ -1,0 +1,58 @@
+# Local external source checkouts
+/elasticsearch-src/
+/pgvector-src/
+
+# IDE and editor files
+/.vs/
+**/.vs/
+/.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.pid
+
+# .NET build outputs
+**/bin/
+**/obj/
+**/TestResults/
+*.nupkg
+*.snupkg
+
+# Node/Angular build outputs
+**/node_modules/
+**/dist/
+**/.angular/cache/
+**/coverage/
+**/.sass-cache/
+**/tmp/
+**/out-tsc/
+**/bazel-out/
+**/.history/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test and visual artifacts
+**/__screenshots__/

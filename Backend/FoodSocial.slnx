@@ -1,0 +1,60 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FoodSocial.AppHost/FoodSocial.AppHost.csproj" />
+    <Project Path="src/FoodSocial.Bff/FoodSocial.Bff.csproj" />
+    <Project Path="src/FoodSocial.Contracts/FoodSocial.Contracts.csproj" />
+    <Project Path="src/FoodSocial.ServiceDefaults/FoodSocial.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/Dish/" />
+  <Folder Name="/src/Dish/Api/">
+    <Project Path="src/Dish/Api/FoodSocial.Dish.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Dish/Application/">
+    <Project Path="src/Dish/Application/FoodSocial.Dish.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Dish/Domain/">
+    <Project Path="src/Dish/Domain/FoodSocial.Dish.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Dish/Infrastructure/">
+    <Project Path="src/Dish/Infrastructure/FoodSocial.Dish.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Identity/" />
+  <Folder Name="/src/Identity/Api/">
+    <Project Path="src/Identity/Api/FoodSocial.Identity.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Identity/Application/">
+    <Project Path="src/Identity/Application/FoodSocial.Identity.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Identity/Domain/">
+    <Project Path="src/Identity/Domain/FoodSocial.Identity.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Identity/Infrastructure/">
+    <Project Path="src/Identity/Infrastructure/FoodSocial.Identity.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Post/" />
+  <Folder Name="/src/Post/Api/">
+    <Project Path="src/Post/Api/FoodSocial.Post.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Post/Application/">
+    <Project Path="src/Post/Application/FoodSocial.Post.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Post/Domain/">
+    <Project Path="src/Post/Domain/FoodSocial.Post.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Post/Infrastructure/">
+    <Project Path="src/Post/Infrastructure/FoodSocial.Post.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/UserProfile/" />
+  <Folder Name="/src/UserProfile/Api/">
+    <Project Path="src/UserProfile/Api/FoodSocial.UserProfile.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/UserProfile/Application/">
+    <Project Path="src/UserProfile/Application/FoodSocial.UserProfile.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/UserProfile/Domain/">
+    <Project Path="src/UserProfile/Domain/FoodSocial.UserProfile.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/UserProfile/Infrastructure/">
+    <Project Path="src/UserProfile/Infrastructure/FoodSocial.UserProfile.Infrastructure.csproj" />
+  </Folder>
+</Solution>

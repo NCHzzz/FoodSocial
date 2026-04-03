@@ -1,0 +1,6 @@
+@FoodSocial.Identity.Api_HostAddress = http://localhost:5147
+
+GET {{FoodSocial.Identity.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

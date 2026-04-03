@@ -8,20 +8,33 @@
 
 Approved MVP direction: microservices.
 
+## Backend Decision Summary
+
+- API edge stays at the Gateway / BFF layer
+- Internal services use Hybrid REST + async events
+- RabbitMQ remains the MVP async backbone
+- Event handling must remain idempotent and recovery-aware
+- Binary media stays outside PostgreSQL and needs explicit lifecycle orchestration
+- Geo-discovery stays PostgreSQL-friendly before separate infra is introduced
+- Runtime feature control should stay lightweight and operationally explicit
+- Deletion and retention behavior must be treated as backend capabilities, not accidental side effects
+
 Recommended initial service boundaries:
 
 - identity and auth
-- profiles and social graph
+- user/profile graph
 - posts and media
 - dishes
 - places
-- feed and discovery
+- feed
 - search and recommendation
+- notifications
 - moderation and trust
 
 ## Chosen backend technology direction
 
 - service implementation: .NET 10
+- AI-oriented services may use Python where model-heavy execution is a better fit
 - orchestration and local composition: .NET Aspire
 - datastore model: PostgreSQL owned by each service
 - search model: PostgreSQL-first search with derived read models where required
@@ -47,11 +60,23 @@ Moderation/trust responsibilities should include:
 Additional cross-service responsibility notes:
 
 - identity/auth should own authentication and account-level authorization primitives
+- user/profile graph should own profile data, taste preferences, saved-item ownership, and follow relationships
 - posts/media should own publishing and content retrieval primitives
 - dish and place services should own canonical entity records and normalization rules
 - feed should assemble user-facing feed results from source services
 - search/recommendation should provide AI-assisted discovery and recommendation outputs
+- notifications should own notification center state and notification retrieval
 - AI integration should be hidden behind internal contracts, not spread ad hoc across services
+
+Boundary clarification:
+
+- feed owns feed-serving projections and timeline assembly
+- search/recommendation owns retrieval, ranking, recommendation, and AI-assisted discovery logic
+
+AI runtime direction:
+
+- keep public business-facing contracts and orchestration in .NET
+- allow Python services behind internal contracts for model-heavy AI execution such as query understanding, enrichment, or reranking
 
 ## Validation
 
@@ -108,6 +133,13 @@ Implications:
 - async events should be used for background workflows, read-model updates, and non-blocking cross-service reactions
 - clean architecture boundaries should keep transport concerns outside application core logic
 
+### MVP event reliability expectations
+
+- workflows that publish user-trust-sensitive events should use a reliability pattern that avoids silent write-then-publish loss
+- retry, dead-letter, and replay behavior should be defined for moderation, projection refresh, and enrichment flows that affect user-visible outcomes
+- event handlers must be idempotent and safe under duplicate delivery
+- additive event evolution is preferred so service boundaries do not become brittle as the platform grows
+
 ## Job Queue / Scheduler
 
 Likely needed for:
@@ -117,10 +149,60 @@ Likely needed for:
 - media processing
 - canonical dish/place enrichment if implemented asynchronously
 - search projection refresh and enrichment pipelines
+- cleanup or retention workflows such as derived media cleanup, stale upload handling, or deferred deletion tasks
 
 Messaging backbone for MVP:
 
 - RabbitMQ
+
+## Media and Asset Handling Direction
+
+Approved direction:
+
+- application services should treat binary media as external object-style storage concerns rather than PostgreSQL blob concerns
+- posts/media should own attachment validation, media metadata, lifecycle orchestration, and cleanup signaling
+- derived assets such as thumbnails should be treated as secondary artifacts that may be regenerated or cleaned up independently of the original asset when the design allows it
+
+Implications:
+
+- media-serving URLs and access rules should be bounded by the platform's delivery model rather than left fully implicit
+- media-processing work should stay off the critical publish path whenever possible
+- deletion semantics must account for both metadata records and stored media objects
+
+## Geo-Discovery Backend Direction
+
+Approved direction:
+
+- nearby and area-aware discovery should be supported through PostgreSQL-friendly location querying before introducing a separate search or map infrastructure layer
+- place retrieval should combine canonical place identity with city, area, and coordinates when available
+
+Implications:
+
+- the Search/Recommendation boundary may consume geo-relevant read models, but Place ownership of canonical location data should remain explicit
+- geo relevance should remain one ranking signal among several rather than fully replacing food relevance or lexical relevance in MVP
+
+## Feature Control and Runtime Configuration
+
+Approved direction:
+
+- backend capabilities should support lightweight runtime controls for AI assistance, provider routing, rollout gating, and kill switches
+
+Implications:
+
+- feature controls should be explicit enough that operators can disable degraded or risky capabilities without requiring coordinated full redeploys
+- config-driven behavior should not become a hidden business-logic layer; important rules must still remain visible in contracts and service code
+
+## Data Lifecycle and Deletion Direction
+
+Approved direction:
+
+- soft-delete, hard-delete, and cleanup behavior should be intentionally differentiated for posts, comments, media references, and moderation-sensitive records
+- retention-sensitive workflows should be treated as backend capabilities, not only database housekeeping
+
+Implications:
+
+- user deletion and content deletion must be compatible with auditability, moderation history, and storage cleanup expectations
+- rebuildable read models should not become an excuse to leave deletion side effects undefined
 
 ## Initial Notes
 
@@ -134,3 +216,4 @@ Messaging backbone for MVP:
 - recommendation-related signals and contracts should be stored in a way that allows later expansion toward stronger personalization without breaking existing APIs
 - moderation decision records should be stored in a way that allows future appeal and secondary review workflows without redesigning core moderation entities
 - agent-exposed actions should eventually support broader capabilities, but only under explicit authorization, auditing, and policy enforcement boundaries
+- beta-stage backend operations benefit from a small number of explicit runbook-worthy failure modes rather than an implicit assumption that infrastructure defaults will be sufficient

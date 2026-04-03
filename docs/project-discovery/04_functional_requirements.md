@@ -32,7 +32,11 @@ Users must have profile pages that represent their identity and activity.
 
 #### Acceptance criteria
 
-- TBD
+- Profiles show authored posts
+- Profiles show saved items
+- Profiles show follow counts
+- Profiles support a basic bio or taste profile
+- MVP supports basic manual taste-profile editing
 
 ### FR-03 Food / Restaurant / Recipe Post Creation
 
@@ -55,7 +59,7 @@ Users must be able to create posts related to food, restaurants, and recipes.
 Required fields:
 
 - primary photo
-- dish selection or dish name that resolves toward a canonical dish
+- canonical dish identity
 - short caption / review text
 - content type = food post
 
@@ -84,6 +88,8 @@ Deferred from default MVP posting flow unless proven necessary:
 #### Updated architectural direction
 
 Because `Dish` is now approved as a first-class MVP entity, the publishing flow should prefer canonical dish linkage when possible.
+
+For the current MVP, food-post publishing should require canonical dish identity before publish completes.
 
 ### FR-04 Discovery Feed
 
@@ -139,6 +145,7 @@ Advanced discovery search.
 - discovery-oriented suggestions
 - relevance beyond exact text match
 - support for AI-assisted food exploration
+- practical nearby and area-aware discovery behavior when location context is available
 
 #### Recommended implementation interpretation for MVP
 
@@ -147,6 +154,7 @@ The product experience should feel AI-native, but the first implementation can s
 - structured filtering
 - ranking heuristics
 - lightweight AI assistance for query understanding or suggestion generation
+- PostgreSQL-friendly geo-aware ranking or filtering where nearby discovery materially improves the result
 
 This is recommended to keep the product feasible for a solo 2-month build while preserving the intended user experience.
 
@@ -160,7 +168,6 @@ The platform should recommend food-related content or suggestions to users.
 
 #### Need confirmation
 
-- Recommend dishes only, or dishes + restaurants + posts?
 - Input signals and scope of personalization are TBD
 
 #### Current product direction
@@ -193,6 +200,7 @@ Moderate trust system.
 - no end-user appeal flow in MVP, but moderation records should preserve a future path to appeal workflows
 - report reasons should cover spam/seeding, false or inauthentic content, abusive or harassing content, and illegal or sensitive content
 - moderation remains manual-review-first in MVP with no automatic content hiding
+- moderation outcomes and evidence should remain auditable enough that later appeal or secondary review design does not require redesigning core moderation records
 
 #### Later-phase direction
 
@@ -211,7 +219,7 @@ TBD
 1. User starts a new post
 2. User selects or defaults to food post type
 3. User uploads a primary food photo
-4. User selects or enters a dish that can resolve to a canonical `Dish`
+4. User selects canonical dish identity
 5. User adds a short caption or review
 6. User may optionally add restaurant/place, location, rating, price range, and tags
 7. User publishes the post
@@ -233,7 +241,7 @@ TBD
 #### Acceptance criteria
 
 - The Following feed is visually and behaviorally distinct from Discover
-- The Following feed only or primarily shows posts from followed users
+- The Following feed primarily shows posts from followed users, with limited mixed content allowed
 
 ### UC-03 Browse Discover feed
 
@@ -258,6 +266,7 @@ TBD
 
 - Search should support more than exact keyword lookup
 - Users should be able to discover relevant food content through structured signals and AI-assisted relevance
+- If AI assistance is unavailable, users should still be able to reach useful deterministic discovery results without a blocking failure
 
 ### UC-05 Report suspicious or low-quality content
 
@@ -281,9 +290,9 @@ The default food post creation flow must minimize required inputs to reduce post
 
 ### BR-02 Dish identity is mandatory for food-first posts
 
-Food posts must include a dish name so the system can support food-centric search and recommendation.
+Food posts must include canonical dish identity so the system can support food-centric search and recommendation.
 
-Where possible, the system should resolve dish identity to a canonical `Dish` entity.
+Dish resolution should happen before publish completes in the current MVP direction.
 
 ### BR-03 Place linkage is optional in MVP
 
@@ -304,6 +313,14 @@ The search experience should help users explore food options and not behave like
 ### BR-07 MVP moderation must support rule-based anti-spam and anti-seeding controls
 
 The first release should include lightweight system-enforced rules to reduce obvious spam or seeding behavior.
+
+### BR-08 MVP architecture must preserve safe degradation of AI-assisted behavior
+
+AI-assisted discovery and recommendation features must fail back to deterministic retrieval or ranking behavior rather than becoming a hard dependency for the core user journey.
+
+### BR-09 MVP media handling must preserve cleanup and derivative expectations
+
+Media upload support is not sufficient by itself. The platform must preserve enough metadata and lifecycle control to support derivative assets, deletion cleanup, and moderation-sensitive review needs.
 
 ## Edge Cases / Exception Flows
 

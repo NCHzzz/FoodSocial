@@ -8,6 +8,8 @@
 
 Initial recommended direction for MVP:
 
+These tables represent a logical data model and service-owned storage direction, not a single shared physical database schema for all services.
+
 - tenants
 - users
 - profiles
@@ -17,7 +19,9 @@ Initial recommended direction for MVP:
 - post_media
 - comments
 - likes
-- saves
+- saved_posts
+- saved_dishes
+- saved_places
 - follows
 - reports
 
@@ -35,6 +39,8 @@ Because `Place` is a first-class entity in MVP, the schema should support canoni
 
 Because `Dish` is also a first-class entity in MVP, the schema should support canonical dish storage and post-to-dish linkage from the start.
 
+Service-owned persistence should keep these models within the owning service boundary and use projections or replicated read models where cross-domain reads are needed.
+
 ## Primary Keys / Foreign Keys
 
 Recommended direction:
@@ -50,8 +56,12 @@ Recommended direction:
 - `comments.author_id -> users.id`
 - `likes.post_id -> posts.id`
 - `likes.user_id -> users.id`
-- `saves.post_id -> posts.id`
-- `saves.user_id -> users.id`
+- `saved_posts.post_id -> posts.id`
+- `saved_posts.user_id -> users.id`
+- `saved_dishes.dish_id -> dishes.id`
+- `saved_dishes.user_id -> users.id`
+- `saved_places.place_id -> places.id`
+- `saved_places.user_id -> users.id`
 - `follows.follower_id -> users.id`
 - `follows.following_id -> users.id`
 - `reports.reporter_id -> users.id`
@@ -67,7 +77,6 @@ Recommended important post fields for MVP:
 - primary_media_url
 - caption
 - dish_id
-- dish_name_fallback
 - place_id
 - restaurant_name_fallback
 - location_text
@@ -114,7 +123,6 @@ Recommended initial indexes:
 - `posts(dish_id, created_at desc)`
 - `posts(place_id, created_at desc)`
 - `posts(author_id, created_at desc)`
-- `posts(dish_name_fallback)`
 - `dishes(normalized_name)`
 - `places(normalized_name)`
 - `dishes(tenant_id, normalized_name)`
@@ -122,7 +130,9 @@ Recommended initial indexes:
 - `places(city, area)`
 - `follows(follower_id, following_id)` unique
 - `likes(user_id, post_id)` unique
-- `saves(user_id, post_id)` unique
+- `saved_posts(user_id, post_id)` unique
+- `saved_dishes(user_id, dish_id)` unique
+- `saved_places(user_id, place_id)` unique
 
 ## Soft Delete / Audit Fields
 

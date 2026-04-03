@@ -14,10 +14,12 @@ Use when implementing or refining a user-visible feature.
 2. Read `04_functional_requirements.md` and `06_user_flows.md`
 3. Read the relevant architecture file:
    - frontend work -> `11_frontend_structure.md`
-   - backend work -> `09_api_and_integration_design.md` and `12_backend_structure.md`
-4. Check `13_backlog_mvp.md` for story direction
-5. Implement only the approved MVP shape
-6. Validate behavior and summarize what changed
+   - backend work -> `08_api_spec.md` and `12_backend_structure.md`
+4. Read `docs/ai/engineering-rules.md`
+5. Read the relevant stack rules file when needed
+6. Check `13_backlog_mvp.md` for story direction
+7. Implement only the approved MVP shape
+8. Validate behavior and summarize what changed
 
 ## Workflow 2: Backend/API change
 
@@ -25,15 +27,17 @@ Use when touching services, APIs, contracts, persistence, or messaging.
 
 ### Steps
 
-1. Read `09_api_and_integration_design.md`
+1. Read `08_api_spec.md`
 2. Read `10_architecture.md` and `12_backend_structure.md`
 3. Read `07_domain_model.md` and `08_database_design.md`
-4. Preserve these invariants:
+4. Read `docs/ai/engineering-rules.md`
+5. Read `docs/ai/stack-rules/dotnet.md`
+6. Preserve these invariants:
    - API Gateway / BFF at the edge
    - Hybrid REST + async events internally
    - RabbitMQ for async messaging
    - PostgreSQL per service
-5. Keep future extensibility for broader agent actions, stronger recommendation, and monetization
+7. Keep future extensibility for broader agent actions, stronger recommendation, and monetization
 
 ## Workflow 3: Frontend/UI change
 
@@ -44,12 +48,14 @@ Use when touching Angular routes, UX flows, profile, notifications, or feed beha
 1. Read `11_frontend_structure.md`
 2. Read `06_user_flows.md`
 3. Read `04_functional_requirements.md`
-4. Preserve user-facing truths:
+4. Read `docs/ai/engineering-rules.md`
+5. Read `docs/ai/stack-rules/angular-tailwind.md`
+6. Preserve user-facing truths:
    - Food-first UI
    - Discover feed is the primary recommendation surface
    - Following feed is follower-prioritized but may include limited mixed content
    - Notification center exists in MVP
-5. Keep flows understandable and not misleading
+7. Keep flows understandable and not misleading
 
 ## Workflow 4: Recommendation or AI change
 
@@ -59,7 +65,7 @@ Use when touching search, recommendation, personalization, AI explanation, or ag
 
 1. Read `00_project_overview.md`
 2. Read `04_functional_requirements.md`
-3. Read `09_api_and_integration_design.md`
+3. Read `08_api_spec.md`
 4. Read `10_architecture.md`
 5. Preserve these constraints:
    - medium personalization in MVP
@@ -94,7 +100,7 @@ Use when improving docs, prompts, planning, or AI operating files.
 2. Keep `AGENTS.md` minimal and operational
 3. Put factual product/system truth in `docs/project-discovery/`
 4. Put agent-operating guidance in `docs/ai/`
-5. Keep tool-specific adapters thin
+5. Prefer fewer canonical files over many thin wrappers
 
 ## Common Footguns to Avoid
 
@@ -103,3 +109,12 @@ Use when improving docs, prompts, planning, or AI operating files.
 - Ignoring the operational burden of Keycloak + Kubernetes + microservices
 - Making Discover and Following feel indistinguishable
 - Adding heavy recommendation or moderation automation too early
+- Creating too many markdown files that restate the same guidance in different words
+
+## Clean Code Expectations
+
+- Prefer explicit, readable, domain-aligned code
+- Keep functions, classes, and modules focused on one clear responsibility
+- Preserve clear boundaries between UI, transport, application logic, and persistence
+- Avoid duplication and accidental divergence across services
+- Favor maintainability and local clarity over premature abstraction

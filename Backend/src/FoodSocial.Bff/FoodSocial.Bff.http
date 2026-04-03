@@ -1,0 +1,6 @@
+@FoodSocial.Bff_HostAddress = http://localhost:5276
+
+GET {{FoodSocial.Bff_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

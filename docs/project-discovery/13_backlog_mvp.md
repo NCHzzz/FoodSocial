@@ -29,6 +29,7 @@ Potential stories:
 - As a user, I can optionally attach canonical or fallback place information to a post
 - As a user, I can create a recipe post with ingredients, steps, and media
 - As a user, I can repost or reshare content with an optional short caption
+- As the system, I can manage uploaded media, derived assets, and cleanup expectations without blocking the entire product on heavyweight media infrastructure
 
 ### Epic 3: Discovery feed and engagement
 
@@ -47,6 +48,7 @@ Potential stories:
 - As a user, I can search by dish, place, and location
 - As a user, I can receive AI-assisted query suggestions and relevant retrieval results
 - As a user, I can navigate from discovery results into dish, place, and post details
+- As a user, I can discover useful nearby or area-based food options without requiring a dedicated map-first experience in MVP
 
 ### Epic 5: Follow graph and personalization
 
@@ -57,6 +59,10 @@ Additional MVP direction:
 - follow, like, and comment actions should create notifications visible in a dedicated notification center
 - notification design should preserve a future path toward moderation or account-level notifications
 - repost or reshare actions should also create notifications in MVP
+
+Execution emphasis:
+
+- profile ownership, follow graph, taste preferences, and saved-item ownership should stay together in the same service boundary in MVP
 
 ### Epic 6: AI recommendation
 
@@ -88,6 +94,7 @@ Potential stories:
 - As an admin, I can review reports and take moderation actions
 - As an admin, I can dismiss, hide/delete content, warn a user, and suspend/restrict a user
 - As the system, I can flag basic spam or suspicious posting patterns using rules
+- As the system, I can preserve moderation evidence and outcome history well enough to support later appeal-ready workflows without exposing appeals in MVP
 
 Future direction:
 
@@ -111,6 +118,10 @@ Potential stories:
 - As a developer, I can run the MVP services locally with a reproducible setup
 - As a developer, I can define and validate service contracts between core domains
 - As the system, I can degrade gracefully when a downstream service is unavailable
+- As the system, I can keep .NET-owned platform contracts stable even when some AI capabilities are executed by Python services
+- As the system, I can publish and consume critical async events with explicit reliability expectations for retries, dead-letter handling, and replay-sensitive workflows
+- As an operator, I can disable high-risk beta capabilities such as AI assistance or provider routing paths without a full coordinated redeploy
+- As the system, I can support retention and cleanup workflows for media and user-generated content where deletion side effects matter
 
 ## User Stories
 
@@ -133,6 +144,8 @@ Initial MVP-level examples:
 - Saved content supports posts, dishes, and places
 - Notification center supports follow, like, comment, and repost notifications
 - Reports can target posts, users, and comments
+- Search and discovery remain useful when AI assistance is unavailable
+- MVP rollout can disable degraded high-risk capabilities without redefining core product flows
 
 ## Priority
 
@@ -149,3 +162,5 @@ Initial dependency direction:
 - feed and recommendation depend on content creation plus interaction signals
 - moderation depends on reporting plus admin-facing review capabilities
 - notification center depends on follow and interaction event generation
+- media handling depends on a clear object-storage and cleanup direction even if the underlying tooling stays lightweight
+- reliable read-model refresh and non-blocking workflows depend on explicit async delivery expectations rather than transport choice alone

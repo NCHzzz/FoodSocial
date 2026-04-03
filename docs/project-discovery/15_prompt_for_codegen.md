@@ -20,12 +20,15 @@ The platform must support:
 - AI-based food recommendation
 - moderation and reporting
 
-Use the project documentation files in this folder as the source of truth.
+Use `AGENTS.md`, `docs/ai/repo-map.md`, and the approved project-discovery documents as source material.
+
+This file is an implementation bootstrap helper, not primary product truth.
 
 ## Stack
 
 - Frontend: Angular
 - Backend: .NET 10 microservices
+- AI-oriented services: Python where model-heavy execution is a better fit
 - Local orchestration/composition: .NET Aspire
 - Datastores: PostgreSQL with ownership per service
 - Search: PostgreSQL-first search using full-text search, trigram similarity, and structured filters
@@ -54,6 +57,8 @@ Use the project documentation files in this folder as the source of truth.
 - dish service skeleton
 - place service skeleton
 - search/recommendation service skeleton
+- notification service skeleton
+- Python AI capability service skeleton for query understanding or enrichment
 - moderation/trust service skeleton
 
 ## Suggested Build Order
@@ -61,10 +66,11 @@ Use the project documentation files in this folder as the source of truth.
 1. Define shared contracts, service templates, and Aspire composition
 2. Implement identity/auth and Angular app shell
 3. Implement posts/media plus canonical dish and place services
-4. Implement feed and profile flows
+4. Implement feed, saved-content, notification, and profile flows
 5. Implement PostgreSQL-first search and AI-assisted query handling
-6. Implement moderation/reporting and basic trust rules
-7. Add multi-provider AI routing and fallback hardening
+6. Add a Python AI capability service behind stable .NET-facing contracts
+7. Implement moderation/reporting and basic trust rules
+8. Add multi-provider AI routing and fallback hardening
 
 ## Need Confirmation
 

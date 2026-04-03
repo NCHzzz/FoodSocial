@@ -51,7 +51,7 @@ Currently a secondary persona in MVP.
 #### Needs
 
 - Recipe posting support
-- Structured recipe content depth (TBD)
+- Structured recipe content with ingredients, steps, and media
 
 ## Role Priority for MVP
 
@@ -88,12 +88,13 @@ Currently a secondary persona in MVP.
 
 - authenticated through an external identity provider
 - application profile data remains owned by the platform
+- identity mapping and profile ownership should not be treated as the same backend concern
 
 ### Admin / Moderator
 
 - Review reports
 - Moderate users and content
-- Handle abuse / seeding / spam (Need confirmation)
+- Handle abuse / seeding / spam
 
 ## Permissions Overview
 
@@ -103,6 +104,11 @@ Currently a secondary persona in MVP.
 - View basic post details
 - Browse public profiles at a limited level (Assumption)
 - Cannot post, like, comment, save, follow, report, or manage profile data
+
+### MVP visibility direction
+
+- basic feed, post, and limited profile content should be public in MVP
+- private accounts or private posts are not part of the current MVP direction
 
 ### Registered User
 

@@ -35,7 +35,7 @@ The ideal posting flow should likely begin with the dish or food item, then opti
 1. User taps create post
 2. User selects food post
 3. User uploads a primary photo
-4. User enters dish name
+4. User selects or resolves dish identity
 5. User writes a short caption or review
 6. User optionally adds restaurant/place, area, rating, price range, and tags
 7. User publishes the post
@@ -70,10 +70,11 @@ The approved direction is advanced discovery search rather than basic text-only 
 
 Recommended MVP flow:
 
-1. User saves a post, dish, or place
-2. The system stores the saved item under the user account
+1. User follows another user or saves a post, dish, or place
+2. The system stores the follow relationship or saved item under the user account
 3. The user revisits saved items later from the saved area
-4. The user can navigate from saved items back into post, dish, or place detail contexts
+4. The user receives follow and interaction notifications in the notification center
+5. The user can navigate from saved items or notifications back into relevant content/detail contexts
 
 Follow-notification direction:
 
@@ -127,7 +128,7 @@ Priority direction:
 ### AF-01 Dish cannot be matched canonically at publish time
 
 - The system should guide the user to resolve dish identity more strictly than place identity
-- If fallback handling is allowed for the current publishing path, it should remain clearly marked for later cleanup (Need confirmation on exact UX)
+- The current MVP direction should block publish until canonical dish identity is resolved
 
 ### AF-02 Place cannot be matched canonically at publish time
 

@@ -6,7 +6,7 @@
 
 ## In Scope for MVP
 
-- user registration and authentication (Assumption)
+- user registration and authentication through self-hosted Keycloak
 - user profile
 - create posts about food, restaurants, and recipes
 - discovery feed
@@ -18,6 +18,9 @@
 - responsive web experience
 - AI-assisted user discovery and decision support
 - agent-friendly platform contracts and APIs
+- practical nearby and area-aware food/place discovery
+- explicit media lifecycle support for upload, derivative handling, and deletion cleanup expectations
+- lightweight runtime feature controls for beta rollout and safety fallback behavior
 
 ## Out of Scope for MVP
 
@@ -28,6 +31,10 @@
 - complex ad platform (Assumption)
 - deep internal multi-agent product behavior
 - active monetization features in MVP
+- heavyweight dedicated search infrastructure beyond the approved PostgreSQL-first approach
+- vector-search infrastructure as a default MVP dependency
+- platform-wide cache dependency introduced before measured bottlenecks justify it
+- heavyweight experimentation platform
 
 ## MVP Boundary
 
@@ -48,6 +55,8 @@ The likely risk areas are:
 - search quality
 - content modeling across food posts, place posts, and recipe posts
 - solo delivery capacity versus current MVP breadth
+- media lifecycle and deletion complexity
+- async messaging correctness and operator response clarity
 
 ## Possible Phase 2 / Future Ideas
 
@@ -60,10 +69,16 @@ The likely risk areas are:
 
 ## Need Confirmation
 
-- Whether authentication is email/password, social login, or both
 - Whether all listed MVP features are equally mandatory for first launch or whether some can be staged within MVP
 
 ## Recipe Scope Direction
 
 - Recipe is included in MVP as a structured post type with basic ingredients, steps, and media
 - Recipe is not yet treated as a deep standalone module
+
+## MVP Delivery Constraints to Preserve
+
+- Search remains PostgreSQL-first in MVP even if later hybrid or vector retrieval becomes attractive
+- Caching remains selective and evidence-driven rather than an assumed platform requirement
+- Moderation remains manual-review-first even if later automation hooks are preserved
+- Feature rollout safety should remain lightweight and practical for a limited beta
