@@ -10,6 +10,8 @@ This file helps AI agents navigate the repository quickly without guessing.
 - `Frontend/` — Angular frontend implementation area
 - `docs/project-discovery/` — product, domain, architecture, API, and backlog source-of-truth docs
 - `docs/ai/` — AI operating layer for repository-native vibecoding workflows
+- `docs/context/` — current implementation state, blockers, and milestone context
+- `docs/delivery/` — approved specs, active plans, and archived delivery artifacts
 - `AGENTS.md` — canonical agent contract
 
 ## AI Engineering Docs
@@ -39,7 +41,7 @@ This file helps AI agents navigate the repository quickly without guessing.
 - `06_user_flows.md` — core user journeys and alternate flow direction
 - `07_domain_model.md` — domain entities, relationships, aggregate directions
 - `08_database_design.md` — database shape, keys, indexes, persistence direction
-- `08_api_spec.md` — API surfaces, request/response shapes, auth model, and event direction
+- `08_api_spec.md` — current API and integration specification file for request/response shapes, auth model, and event direction
 - `10_architecture.md` — macro architecture, trade-offs, deployment, tenant direction
 - `11_frontend_structure.md` — Angular-facing page/module/UX structure
 - `12_backend_structure.md` — service boundaries, auth, messaging, contracts
@@ -69,6 +71,7 @@ This file helps AI agents navigate the repository quickly without guessing.
 - `04_functional_requirements.md`
 - `06_user_flows.md`
 - `13_backlog_mvp.md`
+- `docs/context/current_build_status.md` when current implementation progress matters
 
 ### Backend/API work
 
@@ -79,6 +82,7 @@ This file helps AI agents navigate the repository quickly without guessing.
 - `07_domain_model.md`
 - `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/dotnet.md`
+- `docs/context/current_build_status.md` when implementation sequence matters
 
 ### Frontend/UI work
 
@@ -87,6 +91,7 @@ This file helps AI agents navigate the repository quickly without guessing.
 - `04_functional_requirements.md`
 - `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/angular-tailwind.md`
+- `docs/context/current_build_status.md` when implementation sequence matters
 
 ### Risk/trade-off checks
 
@@ -105,3 +110,16 @@ This repository intentionally keeps the AI operating layer minimal to reduce mod
 - `docs/ai/repo-map.md` is the navigation layer
 - `docs/ai/workflows.md` is the execution layer
 - `docs/project-discovery/` is the factual product and architecture layer
+- `docs/context/` is the current-state layer only
+- `docs/delivery/` is the execution-artifact layer for specs and plans
+
+## Context Files
+
+- `docs/context/current_build_status.md` — current setup state, blockers, and current priority
+- `docs/context/progress_log.md` — chronological implementation progress log
+
+## Delivery Files
+
+- `docs/delivery/specs/` — approved or active design specs for non-trivial work
+- `docs/delivery/plans/` — implementation-ready plans derived from approved specs
+- `docs/delivery/archive/` — inactive delivery artifacts kept for reference

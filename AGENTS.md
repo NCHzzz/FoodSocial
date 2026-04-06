@@ -14,7 +14,9 @@ Agents must use the following context order:
 2. `docs/ai/repo-map.md`
 3. relevant files in `docs/project-discovery/`
 4. `docs/ai/workflows.md`
-5. relevant files in `docs/ai/stack-rules/` when the task is stack-specific
+5. relevant files in `docs/delivery/specs/` and `docs/delivery/plans/` when the task already has approved delivery artifacts
+6. relevant files in `docs/ai/stack-rules/` when the task is stack-specific
+7. `docs/context/current_build_status.md` when current implementation status or project-state context matters
 
 ## Instruction Priority
 
@@ -75,12 +77,21 @@ A task is complete only when all applicable items are satisfied:
 - the feature is manually exercised when behavior changed
 - summary clearly states what changed, where, and any follow-up required
 
+## Hard Workflow Gates
+
+- Do not implement before loading the relevant discovery docs for the task
+- Do not treat assumptions as facts when the repo already contains a more authoritative source
+- Do not claim a change is complete before verification is actually performed
+- Do not leave material implementation or setup changes undocumented in `docs/context/` when current state or next steps change
+
 ## Repo Working Model
 
 Use this repository as a living AI workspace:
 
 - `docs/project-discovery/` = product and architecture truth
 - `docs/ai/` = agent operating layer
+- `docs/context/` = current project state and milestone context only
+- `docs/delivery/` = approved specs, active plans, and archived delivery artifacts
 - `AGENTS.md` = canonical entrypoint for agents working in this repo
 
 ## Guardrails
@@ -92,10 +103,78 @@ Use this repository as a living AI workspace:
 
 ## Recommended Task Loop
 
-1. Load `docs/ai/repo-map.md`
-2. Load only the relevant `docs/project-discovery/` files
-3. Use `docs/ai/workflows.md` for task execution patterns
-4. Update or create code/docs without breaking existing source-of-truth structure
+1. Read `docs/ai/repo-map.md`
+2. Read only the relevant `docs/project-discovery/` files for the task
+3. Read `docs/ai/workflows.md` for the execution pattern
+4. Read `docs/context/current_build_status.md` if the task depends on current setup status, active skeleton state, or current priority signals
+5. Read `docs/context/progress_log.md` when recent implementation history matters
+6. Read relevant active specs or plans in `docs/delivery/` when they exist for the task
+7. Read relevant stack rules when the task is stack-specific
+8. Implement or update code/docs without breaking source-of-truth boundaries
+
+## AI Agent Workflow
+
+### Phase 1: Load context
+
+- load repo rules from `AGENTS.md`
+- load navigation from `docs/ai/repo-map.md`
+- load only the relevant discovery docs
+- load current build context when implementation status matters
+
+### Phase 2: Decide task type
+
+- product or feature work
+- backend/API work
+- frontend/UI work
+- AI/recommendation work
+- moderation/trust work
+- repo/docs/workflow work
+
+Exit gate for this phase:
+
+- the task has a clear interpretation, clear scope boundary, and clear task type
+
+### Phase 3: Follow the matching workflow
+
+- use `docs/ai/workflows.md`
+- use stack-specific rules only when needed
+- keep product truth in `docs/project-discovery/`
+- keep project-state context in `docs/context/`
+- keep specs and implementation plans in `docs/delivery/`
+
+Exit gate for this phase:
+
+- the task has a clear implementation path and the relevant constraints are loaded
+
+### Phase 4: Preserve repo truth boundaries
+
+- product and architecture facts belong in `docs/project-discovery/`
+- AI operating guidance belongs in `docs/ai/`
+- current implementation status belongs in `docs/context/`
+- approved specs and plans belong in `docs/delivery/`
+- do not duplicate the same truth in multiple layers without a strong reason
+
+### Phase 5: Maintain current context
+
+- update `docs/context/current_build_status.md` when setup state, blockers, or current priority materially change
+- append to `docs/context/progress_log.md` when implementation progress materially changes
+- keep `current_build_status.md` as a short overwrite-only snapshot
+- keep `progress_log.md` milestone-only and archive older entries when it grows too large
+- archive completed or superseded delivery artifacts under `docs/delivery/archive/`
+
+Exit gate for this phase:
+
+- repo context still reflects current reality after the change
+
+### Phase 6: Self-review before completion
+
+- check for contradictions against discovery docs
+- check for scope creep beyond the approved MVP direction
+- check for placeholders, stale assumptions, or incomplete follow-through
+
+Exit gate for this phase:
+
+- the change is internally consistent and supported by verification evidence
 
 ## Future Expansion Rule
 
