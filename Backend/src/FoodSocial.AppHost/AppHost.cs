@@ -7,12 +7,17 @@ var postgres = builder
 
 var identityDb = postgres.AddDatabase("identitydb");
 var userprofileDb = postgres.AddDatabase("userprofiledb");
-var disDb = postgres.AddDatabase("disdb");
+var dishDb = postgres.AddDatabase("dishdb");
 var postDb = postgres.AddDatabase("postdb");
 
 //RabbitMQ
 var rabbitMq = builder
     .AddRabbitMQ("rabbitmq")
+    .WithDataVolume();
+
+// Redis
+var redis = builder
+    .AddRedis("redis")
     .WithDataVolume();
 
 // Services
@@ -31,11 +36,11 @@ var userProfileApi = builder
     .WaitFor(userprofileDb)
     .WaitFor(rabbitMq);
 
-var disApi = builder
-    .AddProject<Projects.FoodSocial_Dis_Api>("dis-api")
-    .WithReference(disDb)
+var dishApi = builder
+    .AddProject<Projects.FoodSocial_Dish_Api>("dish-api")
+    .WithReference(dishDb)
     .WithReference(rabbitMq)
-    .WaitFor(disDb)
+    .WaitFor(dishDb)
     .WaitFor(rabbitMq);
 
 var postApi = builder
@@ -47,11 +52,12 @@ var postApi = builder
 
 bff.WithReference(identityApi)
     .WithReference(userProfileApi)
-    .WithReference(disApi)
+    .WithReference(dishApi)
     .WithReference(postApi)
+    .WithReference(redis)
     .WaitFor(identityApi)
     .WaitFor(userProfileApi)
-    .WaitFor(disApi)
+    .WaitFor(dishApi)
     .WaitFor(postApi);
 
 builder.Build().Run();

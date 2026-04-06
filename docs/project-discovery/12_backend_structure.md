@@ -2,7 +2,7 @@
 
 ## Status
 
-- Working draft
+- Reviewed working source
 
 ## Service Boundaries
 
@@ -37,6 +37,7 @@ Recommended initial service boundaries:
 - AI-oriented services may use Python where model-heavy execution is a better fit
 - orchestration and local composition: .NET Aspire
 - datastore model: PostgreSQL owned by each service
+- Redis may be used selectively for cache or short-lived state where justified
 - search model: PostgreSQL-first search with derived read models where required
 - AI provider support: internal provider-agnostic abstraction over multiple external providers
 
@@ -217,3 +218,4 @@ Implications:
 - moderation decision records should be stored in a way that allows future appeal and secondary review workflows without redesigning core moderation entities
 - agent-exposed actions should eventually support broader capabilities, but only under explicit authorization, auditing, and policy enforcement boundaries
 - beta-stage backend operations benefit from a small number of explicit runbook-worthy failure modes rather than an implicit assumption that infrastructure defaults will be sufficient
+- Redis should be treated as an optimization or ephemeral state tool, not as a replacement for PostgreSQL or RabbitMQ

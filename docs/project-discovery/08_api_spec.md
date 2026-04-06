@@ -131,14 +131,14 @@ This document defines the API specification for the FoodSocial platform. It cons
   "id": "uuid",
   "dishName": "string",
   "dishId": "uuid",
-  "restaurantId": "uuid",
+  "placeId": "uuid",
   "rating": "integer (1-5)",
   "priceRange": "enum: $ | $$ | $$$ | $$$$",
   "tasteNotes": ["string"]
 }
 ```
 
-### Restaurant
+### Place
 ```json
 {
   "id": "uuid",
@@ -210,7 +210,7 @@ This document defines the API specification for the FoodSocial platform. It cons
 2. **JSON Format**: All request and response bodies use JSON format.
 3. **Authentication**: All endpoints (except auth endpoints) require a valid JWT token in the Authorization header.
 4. **Error Handling**: Standard HTTP status codes are used with detailed error messages in the response body.
-5. **Versioning**: APIs are versioned using URL path (e.g., /api/v1/endpoint).
+5. **Versioning**: The current MVP examples consistently use `/api/...` paths. If explicit path versioning is introduced later, it should be applied consistently across the full API surface.
 6. **Pagination**: All list endpoints implement cursor-based pagination.
 7. **Filtering and Sorting**: Endpoints that return lists support filtering and sorting via query parameters.
 

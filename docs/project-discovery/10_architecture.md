@@ -2,7 +2,7 @@
 
 ## Status
 
-- Working draft
+- Reviewed working source
 
 ## Proposed Architecture
 
@@ -37,6 +37,7 @@ Chosen stack direction:
 - multiple AI providers behind an internal abstraction layer
 - self-hosted Keycloak as the external identity provider for MVP
 - Kubernetes-based deployment target
+- Redis is allowed as a selective cache and short-lived state layer, not a source-of-truth replacement
 
 ## Main Components
 

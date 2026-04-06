@@ -2,7 +2,7 @@
 
 ## Status
 
-- Working draft
+- Reviewed working source
 - Documentation language: English only
 - Interview language may be Vietnamese
 

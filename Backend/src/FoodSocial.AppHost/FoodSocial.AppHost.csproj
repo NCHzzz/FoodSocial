@@ -11,6 +11,15 @@
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.2.1" />
     <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.2.1" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="13.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FoodSocial.Bff\FoodSocial.Bff.csproj" />
+    <ProjectReference Include="..\Identity\Api\FoodSocial.Identity.Api.csproj" />
+    <ProjectReference Include="..\UserProfile\Api\FoodSocial.UserProfile.Api.csproj" />
+    <ProjectReference Include="..\Dish\Api\FoodSocial.Dish.Api.csproj" />
+    <ProjectReference Include="..\Post\Api\FoodSocial.Post.Api.csproj" />
   </ItemGroup>
 
 </Project>

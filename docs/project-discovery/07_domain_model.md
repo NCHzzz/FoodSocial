@@ -73,14 +73,14 @@ This document consolidates the detailed **Data Model** (previously in `07_data_m
   "id": "uuid", // References Post.id
   "dishName": "string",
   "dishId": "uuid", // References Dish.id
-  "restaurantId": "uuid", // References Restaurant.id
+  "placeId": "uuid", // References Place.id
   "rating": "integer (1-5)",
   "priceRange": "enum: $ | $$ | $$$ | $$$$",
   "tasteNotes": ["string"]
 }
 ```
 
-#### Restaurant
+#### Place
 ```json
 {
   "id": "uuid",
@@ -202,9 +202,9 @@ erDiagram
     Post ||--o{ FoodPost : extends
     Post ||--o{ Recipe : extends
     FoodPost }o--|| Dish : references
-    FoodPost }o--|| Restaurant : references
+    FoodPost }o--|| Place : references
     Comment ||--o{ Comment : nested
-    Restaurant ||--o{ FoodPost : location
+    Place ||--o{ FoodPost : location
 ```
 
 ---
@@ -212,7 +212,7 @@ erDiagram
 ### Indexing Strategy (summary)
 - Primary keys: `id` (UUID) for all tables.
 - Unique indexes: `User.username`, `User.email`.
-- Search indexes: full‑text on `Post.caption`, `Restaurant.name`, `Dish.name`.
+- Search indexes: full‑text on `Post.caption`, `Place.name`, `Dish.name`.
 - Foreign‑key indexes as described in the original `08_database_design.md`.
 
 ---
