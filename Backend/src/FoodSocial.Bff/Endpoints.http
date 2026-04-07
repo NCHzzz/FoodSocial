@@ -1,0 +1,10 @@
+@BffHttpBase = http://localhost:5276
+
+### Start browser login flow
+GET {{BffHttpBase}}/api/auth/login
+
+### Read current BFF session after login
+GET {{BffHttpBase}}/api/auth/session
+
+### Logout current BFF session
+POST {{BffHttpBase}}/api/auth/logout

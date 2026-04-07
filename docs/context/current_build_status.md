@@ -46,6 +46,8 @@ This file is a current-state snapshot, not a history log.
 - BFF exists as a separate API edge project
 - `ServiceDefaults` is referenced by the API projects
 - default WeatherForecast sample files were removed
+- Identity now has its first concrete persistence bootstrap with EF Core and PostgreSQL
+- FoodSocial.Contracts now contains initial auth and identity boundary contracts
 
 ### Local orchestration state
 
@@ -58,6 +60,15 @@ This file is a current-state snapshot, not a history log.
   - `postdb`
 - RabbitMQ resource is configured in AppHost
 - Redis resource is configured in AppHost
+- Keycloak is configured as an Aspire-managed local resource with import-driven realm bootstrap for development
+
+### Authentication bootstrap state
+
+- BFF contains an Aspire Keycloak JWT bearer authentication skeleton
+- BFF now also contains the browser-facing Keycloak OpenID Connect login/session/logout edge flow
+- Identity.Api contains an Aspire Keycloak JWT bearer authentication skeleton
+- service-side auth now relies on Aspire Keycloak resource wiring instead of a hardcoded localhost authority
+- Identity.Api exposes an authenticated current-user bootstrap endpoint for claims validation
 
 ### Frontend skeleton
 
@@ -73,6 +84,13 @@ This file is a current-state snapshot, not a history log.
 
 - backend solution builds successfully
 - AppHost builds successfully
+- BFF builds successfully after Aspire Keycloak client integration
+- Identity.Api builds successfully after Aspire Keycloak client integration
+- initial Identity EF Core migration was generated successfully
+- initial Identity database update was applied successfully against the live Aspire PostgreSQL container
+- AppHost brings up PostgreSQL, Redis, RabbitMQ, and Keycloak successfully for local development
+- Keycloak issues access tokens successfully through the imported `foodsocial` realm
+- BFF login now redirects correctly to the Keycloak login page through the local auth edge
 - frontend Angular app structure exists, but local build still depends on installed frontend packages in the working environment
 
 ## Important Clarifications
@@ -80,21 +98,21 @@ This file is a current-state snapshot, not a history log.
 - Redis is available as a selective cache or short-lived state layer, not a source-of-truth replacement
 - PostgreSQL remains the source-of-truth datastore per service
 - RabbitMQ remains the async messaging backbone
-- Keycloak is the chosen external identity provider, but it is not wired into the running skeleton yet
+- Keycloak remains the chosen external identity provider and is now configured as a local Aspire-managed dependency for development
 
 ## Current Blockers
 
-- Keycloak is not wired into the BFF or backend services yet
-- Service-level persistence wiring is still missing in the current backend skeleton
+- Service-level persistence wiring is still missing for UserProfile, Dish, and Post
 - Core contracts, messaging conventions, and runtime reliability conventions are still at scaffold level
 
 ## Current Priority
 
-- finish backend platform setup before Identity Service business implementation
+- begin service implementation on top of the now-runnable local platform, starting with the next planned service bootstrap or business logic slice
 
 ## Active Delivery Artifacts
 
 - Workflow alignment spec: `docs/delivery/specs/2026-04-06-ai-agent-workflow-alignment-spec.md`
 - Backend setup plan: `docs/delivery/plans/2026-04-06-backend-setup-before-identity-plan.md`
+- Local auth and identity bootstrap runbook: `docs/delivery/plans/2026-04-07-local-auth-and-identity-bootstrap-runbook.md`
 
 Do not treat this file as an implementation plan. Detailed execution artifacts belong in `docs/delivery/`.

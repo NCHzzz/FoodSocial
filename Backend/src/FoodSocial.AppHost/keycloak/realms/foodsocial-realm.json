@@ -1,0 +1,94 @@
+{
+  "realm": "foodsocial",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "clients": [
+    {
+      "clientId": "foodsocial-bff",
+      "name": "FoodSocial BFF",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "foodsocial-bff-secret",
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:5276/signout-callback-oidc##https://localhost:7187/signout-callback-oidc##http://localhost:5276/##https://localhost:7187/"
+      },
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5276/signin-oidc",
+        "https://localhost:7187/signin-oidc"
+      ],
+      "webOrigins": [
+        "http://localhost:5276",
+        "https://localhost:7187"
+      ]
+    },
+    {
+      "clientId": "foodsocial-identity-api",
+      "name": "FoodSocial Identity API",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": true
+    },
+    {
+      "clientId": "foodsocial-cli",
+      "name": "FoodSocial CLI",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "foodsocial-api",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-foodsocial-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "foodsocial-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "defaultDefaultClientScopes": [
+    "profile",
+    "email",
+    "roles",
+    "foodsocial-api"
+  ],
+  "users": [
+    {
+      "username": "demo-user",
+      "enabled": true,
+      "email": "demo.user@foodsocial.local",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Pass@word1",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

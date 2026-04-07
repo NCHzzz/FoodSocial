@@ -20,13 +20,25 @@ var redis = builder
     .AddRedis("redis")
     .WithDataVolume();
 
+// Keycloak
+var keycloak = builder
+    .AddKeycloak("keycloak", port: 8080)
+    .WithRealmImport("./keycloak/realms");
+
 // Services
-var bff = builder.AddProject<Projects.FoodSocial_Bff>("bff");
+var bff = builder
+    .AddProject<Projects.FoodSocial_Bff>("bff")
+    .WithReference(keycloak)
+    .WithReference(redis)
+    .WaitFor(keycloak);
+
 var identityApi = builder
     .AddProject<Projects.FoodSocial_Identity_Api>("identity-api")
     .WithReference(identityDb)
+    .WithReference(keycloak)
     .WithReference(rabbitMq)
     .WaitFor(identityDb)
+    .WaitFor(keycloak)
     .WaitFor(rabbitMq);
 
 var userProfileApi = builder
@@ -54,7 +66,6 @@ bff.WithReference(identityApi)
     .WithReference(userProfileApi)
     .WithReference(dishApi)
     .WithReference(postApi)
-    .WithReference(redis)
     .WaitFor(identityApi)
     .WaitFor(userProfileApi)
     .WaitFor(dishApi)

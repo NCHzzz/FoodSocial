@@ -41,3 +41,27 @@ This file is for milestone-level progress only.
 - Added a dedicated delivery-spec artifact for AI-agent workflow alignment.
 - Clarified the repository direction toward separating current-state context from delivery artifacts.
 - This unblocks migration of plan-like notes out of `docs/context/`.
+
+## 2026-04-07
+
+- Moved local Keycloak setup into the Aspire-managed backend platform direction.
+- Added initial AppHost, BFF, and Identity.Api auth bootstrap code for a local Keycloak-driven development flow.
+- This unblocks the next phase of realm/client bootstrap and Identity persistence wiring.
+
+## 2026-04-08
+
+- Added the first local Keycloak realm import with test clients and a demo user.
+- Replaced placeholder Identity and Contracts scaffolding with initial auth contracts, a claims-based Identity endpoint, and EF Core persistence bootstrap.
+- This unblocks the first Identity migration and database update before business logic implementation.
+
+## 2026-04-09
+
+- Completed the browser-facing Keycloak direction at the BFF edge with login, logout, and session endpoints.
+- Split local auth validation into two clear flows: browser OIDC through BFF and API token validation through a dedicated CLI client.
+- This unblocks end-to-end auth verification aligned with the repository architecture instead of a JWT-only partial setup.
+
+## 2026-04-10
+
+- Stabilized the local pre-service platform so AppHost brings up PostgreSQL, Redis, RabbitMQ, and Keycloak together.
+- Verified live Keycloak token issuance and BFF login redirect against the imported `foodsocial` realm.
+- This makes the local platform usable enough to start real service implementation instead of more bootstrap-only work.

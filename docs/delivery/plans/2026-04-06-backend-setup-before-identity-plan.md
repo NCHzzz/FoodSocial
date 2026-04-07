@@ -15,6 +15,7 @@ The repository already has PostgreSQL, RabbitMQ, Redis, Aspire AppHost, BFF, and
 
 What is still missing is the platform glue that makes the backend ready for real bounded-service implementation:
 
+- Aspire-managed local auth orchestration
 - auth wiring
 - persistence bootstrap
 - contracts bootstrap
@@ -46,15 +47,30 @@ Define stable configuration sections for backend services and BFF:
 
 ### 2. Wire authentication boundaries
 
+Add Keycloak to the Aspire AppHost as part of the local development platform:
+
+1. add the Aspire-managed Keycloak resource in `FoodSocial.AppHost`
+2. use a stable local host port for browser and OIDC consistency
+3. enable Keycloak data persistence for local development
+4. add a realm import directory under AppHost-managed assets
+5. make BFF and Identity.Api wait for local Keycloak startup
+
+Why this belongs in Aspire:
+
+- Keycloak is a core local dependency like PostgreSQL, RabbitMQ, and Redis
+- one-command startup reduces local drift and onboarding friction
+- local auth behavior should be reproducible from the same orchestration layer as the rest of the backend
+
+### 3. Wire authentication boundaries
+
 Set up the authentication skeleton before Identity business logic:
 
-- local Keycloak runtime
 - realm and client bootstrap path
 - BFF authentication middleware
 - backend token validation
 - explicit authorization entry points
 
-### 3. Bootstrap Identity persistence
+### 4. Bootstrap Identity persistence
 
 Implement the baseline persistence pattern for `Identity` first:
 
@@ -64,7 +80,7 @@ Implement the baseline persistence pattern for `Identity` first:
 - `AddInfrastructure(...)`
 - configuration binding
 
-### 4. Replace placeholder contracts
+### 5. Replace placeholder contracts
 
 Add the first real contract groups in `FoodSocial.Contracts` for:
 
@@ -72,7 +88,7 @@ Add the first real contract groups in `FoodSocial.Contracts` for:
 - identity mapping or provisioning requests and responses
 - early integration event contracts if needed
 
-### 5. Establish messaging conventions
+### 6. Establish messaging conventions
 
 Decide and apply one consistent messaging pattern for:
 
@@ -83,7 +99,7 @@ Decide and apply one consistent messaging pattern for:
 - idempotency expectations
 - correlation propagation
 
-### 6. Standardize reliability and observability behavior
+### 7. Standardize reliability and observability behavior
 
 Build on `FoodSocial.ServiceDefaults` to make runtime behavior consistent:
 
@@ -92,7 +108,7 @@ Build on `FoodSocial.ServiceDefaults` to make runtime behavior consistent:
 - health and readiness expectations
 - timeout and retry boundaries
 
-### 7. Standardize error behavior
+### 8. Standardize error behavior
 
 Define service-wide `ProblemDetails` behavior for:
 
@@ -101,16 +117,16 @@ Define service-wide `ProblemDetails` behavior for:
 - not-found responses
 - conflicts
 
-### 8. Add lightweight runtime controls
+### 9. Add lightweight runtime controls
 
 Prepare simple feature-toggle support for bootstrap-safe rollout and kill-switch scenarios.
 
-### 9. Write the local runbook
+### 10. Write the local runbook
 
 Document how to:
 
 - start Aspire
-- start Keycloak
+- verify Keycloak starts through AppHost
 - load realm and client configuration
 - apply migrations
 - verify health endpoints
@@ -121,6 +137,7 @@ Document how to:
 Before this plan is considered complete:
 
 - backend builds cleanly
+- Keycloak is AppHost-managed for local development
 - BFF auth wiring is present
 - Identity persistence wiring is present
 - configuration shape is explicit and consistent
