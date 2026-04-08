@@ -65,10 +65,6 @@ var postApi = builder
 bff.WithReference(identityApi)
     .WithReference(userProfileApi)
     .WithReference(dishApi)
-    .WithReference(postApi)
-    .WaitFor(identityApi)
-    .WaitFor(userProfileApi)
-    .WaitFor(dishApi)
-    .WaitFor(postApi);
+    .WithReference(postApi);
 
 builder.Build().Run();
