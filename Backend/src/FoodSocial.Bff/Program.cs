@@ -49,6 +49,18 @@ builder.Services
         options.ClaimActions.MapUniqueJsonKey("preferred_username", "preferred_username");
         options.ClaimActions.MapUniqueJsonKey("email", "email");
         options.ClaimActions.MapUniqueJsonKey("name", "name");
+        options.Events.OnRedirectToIdentityProvider = context =>
+        {
+            var redirectUri = context.Properties.RedirectUri;
+
+            if (!string.IsNullOrWhiteSpace(redirectUri) && !Uri.TryCreate(redirectUri, UriKind.Relative, out _))
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                context.HandleResponse();
+            }
+
+            return Task.CompletedTask;
+        };
         options.Scope.Clear();
         options.Scope.Add(OpenIdConnectScope.OpenIdProfile);
         options.Scope.Add("profile");
@@ -110,17 +122,12 @@ app.MapGet("/api/auth/session", (ClaimsPrincipal user) =>
             return Results.Unauthorized();
         }
 
-        var roles = user.FindAll(ClaimTypes.Role)
-            .Select(claim => claim.Value)
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
-
         var response = new CurrentUserResponse(
             new AuthenticatedUserDto(
-                user.FindFirstValue("sub") ?? string.Empty,
-                user.FindFirstValue("preferred_username") ?? user.Identity?.Name,
-                user.FindFirstValue(ClaimTypes.Email),
-                roles),
+                IdentityClaimReader.GetSubject(user) ?? string.Empty,
+                IdentityClaimReader.GetPreferredUsername(user),
+                IdentityClaimReader.GetEmail(user),
+                IdentityClaimReader.GetRoles(user)),
             DateTimeOffset.UtcNow);
 
         return Results.Ok(response);
