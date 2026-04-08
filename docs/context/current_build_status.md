@@ -93,6 +93,11 @@ This file is a current-state snapshot, not a history log.
 - BFF login now redirects correctly to the Keycloak login page through the local auth edge
 - frontend Angular app structure exists, but local build still depends on installed frontend packages in the working environment
 
+### Platform maturity notes
+
+- Redis is provisioned and available, but it is not yet used by a concrete cache or ephemeral-state implementation in the current codebase
+- RabbitMQ is provisioned and available, but producer/consumer reliability conventions are still at documentation/bootstrap level rather than implemented workflows
+
 ## Important Clarifications
 
 - Redis is available as a selective cache or short-lived state layer, not a source-of-truth replacement
@@ -104,6 +109,7 @@ This file is a current-state snapshot, not a history log.
 
 - Service-level persistence wiring is still missing for UserProfile, Dish, and Post
 - Core contracts, messaging conventions, and runtime reliability conventions are still at scaffold level
+- Redis usage is still intentionally deferred until a measured cache or short-lived-state need exists
 
 ## Current Priority
 

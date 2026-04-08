@@ -65,3 +65,15 @@ This file is for milestone-level progress only.
 - Stabilized the local pre-service platform so AppHost brings up PostgreSQL, Redis, RabbitMQ, and Keycloak together.
 - Verified live Keycloak token issuance and BFF login redirect against the imported `foodsocial` realm.
 - This makes the local platform usable enough to start real service implementation instead of more bootstrap-only work.
+
+## 2026-04-11
+
+- Hardened the local platform setup with backend-wide central package version management under `Backend/src/Directory.Packages.props`.
+- Reduced auth-edge fragility by centralizing Keycloak claim extraction into shared contract helpers and tightening BFF login redirect handling.
+- Updated docs to describe Redis and RabbitMQ at their actual maturity level instead of implying deeper usage than the current code provides.
+
+## 2026-04-12
+
+- Upgraded the Identity EF Core stack to the current stable EF Core 10.0.5 line with Npgsql.EntityFrameworkCore.PostgreSQL 10.0.1 through central package management.
+- Verified the backend still restores and the full AppHost build remains clean after the EF/Npgsql alignment.
+- This removes the previous EF 9.x vs net10 version mismatch from the active backend setup.

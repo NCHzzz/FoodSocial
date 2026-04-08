@@ -103,6 +103,11 @@ Media-heavy user-generated products require more than upload support. Storage cl
 
 RabbitMQ is a practical MVP choice, but event publication, retries, dead-letter behavior, and replay expectations must stay explicit or the architecture may look simpler on paper than it is in production.
 
+Current state note:
+
+- local RabbitMQ bootstrap is now in place through Aspire AppHost
+- reliability conventions are still documentation-level and remain an active implementation risk until producer/consumer workflows exist
+
 ### R-19 Geo-discovery expectations may exceed the current search definition
 
 The product promise includes dish, place, and location-aware discovery. If nearby relevance is important, the MVP search model must still define practical geo-query behavior even without a dedicated geo/search platform.
@@ -167,6 +172,11 @@ The current docs acknowledge monitoring, backups, and graceful degradation, but 
 - limited mixing in Following feed is acceptable only if UX and ranking keep the follower-priority clear
 - MVP can defer vector-search infrastructure unless real semantic retrieval needs or proven search-quality gaps justify it
 - selective caching is sufficient for MVP if cache ownership and invalidation stay explicit per use case rather than becoming an implicit platform crutch
+
+Current state note:
+
+- local Redis bootstrap is now in place through Aspire AppHost
+- Redis is still intentionally unused in product code until a measured cache or short-lived-state requirement appears
 
 ## Decision Log Candidates
 

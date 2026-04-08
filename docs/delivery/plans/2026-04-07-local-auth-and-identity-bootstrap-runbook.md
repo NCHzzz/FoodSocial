@@ -14,6 +14,21 @@ Provide the exact local-development steps needed to verify the Keycloak-driven a
 - Docker Desktop or equivalent local container runtime running
 - PostgreSQL, RabbitMQ, Redis, and Keycloak managed through Aspire AppHost
 
+## Current maturity boundary
+
+The local platform currently guarantees:
+
+- AppHost startup for PostgreSQL, Redis, RabbitMQ, and Keycloak
+- Keycloak realm import and token issuance
+- BFF login redirect and session bootstrap
+- Identity API token validation and first persistence bootstrap
+
+The local platform does not yet guarantee:
+
+- real Redis-backed application behavior
+- RabbitMQ producer/consumer workflows
+- retry, dead-letter, or replay implementations beyond documented intent
+
 ## 1. Start the AppHost
 
 Run:
@@ -171,6 +186,22 @@ dotnet build Backend/src/FoodSocial.AppHost/FoodSocial.AppHost.csproj
 Expected outcome:
 
 - all three builds succeed
+
+## 10A. Optional local DX helpers
+
+To inspect runtime ports quickly during local validation:
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Ports}}"
+```
+
+To stop stale local .NET processes when file locks block rebuilds:
+
+```powershell
+Get-Process dotnet -ErrorAction SilentlyContinue | Stop-Process -Force
+```
+
+Use these as development helpers only; they are not part of production behavior.
 
 ## 11. Update current-state docs after verification
 
