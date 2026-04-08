@@ -14,7 +14,7 @@ public sealed class CurrentUserController : ControllerBase
     [ProducesResponseType<CurrentUserResponse>(StatusCodes.Status200OK)]
     public ActionResult<CurrentUserResponse> GetCurrentUser()
     {
-        var subject = User.FindFirstValue("sub");
+        var subject = IdentityClaimReader.GetSubject(User);
 
         if (string.IsNullOrWhiteSpace(subject))
         {
@@ -24,17 +24,12 @@ public sealed class CurrentUserController : ControllerBase
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
-        var roles = User.FindAll(ClaimTypes.Role)
-            .Select(claim => claim.Value)
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
-
         var response = new CurrentUserResponse(
             new AuthenticatedUserDto(
                 subject,
-                User.FindFirstValue("preferred_username") ?? User.Identity?.Name,
-                User.FindFirstValue(ClaimTypes.Email),
-                roles),
+                IdentityClaimReader.GetPreferredUsername(User),
+                IdentityClaimReader.GetEmail(User),
+                IdentityClaimReader.GetRoles(User)),
             DateTimeOffset.UtcNow);
 
         return Ok(response);
