@@ -1,0 +1,7 @@
+#VQ|#JB|#ZS|#HW|#PQ|Kept the browser helper on one transport origin strategy: discovered AppHost endpoint for requests, same-origin checks against that same origin, and no fixed-origin Host override.
+#SV|#BT|#WS|#SM|#XB|Final helper slice: browser/public origin remains `https://localhost:7187` for Keycloak-visible OIDC callbacks, while transport still targets the discovered AppHost endpoint.
+#VZ|#HN|#BN|#LN|#RT|The Identity runtime issue was not the browser flow itself; it was a missing `identity_users.State` column in the live PostgreSQL schema, fixed by adding a real EF migration and letting startup apply migrations.
+#RY|#KT|#TZ|#T8|#LP|Task 8 needed a real UserProfile migration: without live `user_profile_shells` schema, the bootstrap consumer path could start but never persist the minimal profile shell.
+#KM|#SP|#TZ|#T8|#RD|AppHost consumer coverage is sensitive to service readiness; waiting for `userprofile-api` health removed startup races around RabbitMQ background consumers.
+#NK|#RV|#TZ|#T9|#RB|Reviewer fix: the BFF session payload must treat `EnsureIdentityResponse.Roles` as the sole app-owned authorization source and must not merge IdP/token roles back in.
+#FW|Final-wave proof: direct bearer access to `/identity/current-user/internal/ensure` is forbidden without trusted service headers, while the authenticated BFF browser session still ensures the same user successfully through the internal trusted hop.

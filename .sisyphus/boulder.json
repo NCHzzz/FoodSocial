@@ -1,0 +1,137 @@
+{
+  "active_plan": "C:\\FoodSocial\\.sisyphus\\plans\\identity-service-complete.md",
+  "started_at": "2026-04-09T08:49:09.448Z",
+  "session_ids": [
+    "ses_28eb7f121ffeJ8teq88UfDrPXW",
+    "ses_28e8fd268ffeZukTaLEmKAYeny",
+    "ses_28e8fd20cffeNB5ZyzUJRZ5WtJ",
+    "ses_28e8fd206ffevnre1RQ6KhsRJ4",
+    "ses_28dc08f3bffe8osSRSRdPSuhpn",
+    "ses_28db1345cffeEPXxxdV2mrXLVL",
+    "ses_28da4cdfdffe0cU2hGv5C5aS60",
+    "ses_28ada8393ffezE4PvU65b1jNDu",
+    "ses_28ad92ccbffePLfJkeQLfLaoYf",
+    "ses_28ad92c79ffeHqNE8izmKIVWD4",
+    "ses_28ad92c1dffeKeLvWmyeO8cD9P",
+    "ses_28ad92bcbffetbOsHEwDpyTCjb",
+    "ses_28ab98f63ffezoS1IXCWJIenGg"
+  ],
+  "session_origins": {
+    "ses_28eb7f121ffeJ8teq88UfDrPXW": "direct",
+    "ses_28e8fd268ffeZukTaLEmKAYeny": "appended",
+    "ses_28e8fd20cffeNB5ZyzUJRZ5WtJ": "appended",
+    "ses_28e8fd206ffevnre1RQ6KhsRJ4": "appended",
+    "ses_28dc08f3bffe8osSRSRdPSuhpn": "appended",
+    "ses_28db1345cffeEPXxxdV2mrXLVL": "appended",
+    "ses_28da4cdfdffe0cU2hGv5C5aS60": "appended",
+    "ses_28ada8393ffezE4PvU65b1jNDu": "direct",
+    "ses_28ad92ccbffePLfJkeQLfLaoYf": "appended",
+    "ses_28ad92c79ffeHqNE8izmKIVWD4": "appended",
+    "ses_28ad92c1dffeKeLvWmyeO8cD9P": "appended",
+    "ses_28ad92bcbffetbOsHEwDpyTCjb": "appended",
+    "ses_28ab98f63ffezoS1IXCWJIenGg": "direct"
+  },
+  "plan_name": "identity-service-complete",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Establish Identity ownership model, lifecycle state machine, and test harness baseline",
+      "session_id": "ses_28e8ce59fffeLGNROa5IYrN2bn",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-09T09:04:38.487Z"
+    },
+    "todo:2": {
+      "task_key": "todo:2",
+      "task_label": "2",
+      "task_title": "Replace caller-supplied ensure contracts with claim-driven Identity ensure flow",
+      "session_id": "ses_28e7ceaeaffe8yg4lUi7ZaWS95",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-09T09:31:30.979Z"
+    },
+    "todo:3": {
+      "task_key": "todo:3",
+      "task_label": "3",
+      "task_title": "Add AppHost-backed integration test infrastructure and reusable auth test utilities",
+      "session_id": "ses_28e5b7d64ffehSGRPr9D5qgCE5",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-09T10:17:58.241Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "Implement synchronous local identity ensure endpoint and reconciliation rules",
+      "session_id": "ses_28e3cd96effeGnL5y4mNwi6I1L",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-09T10:51:48.898Z"
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "Implement account-level RBAC model, authorization policies, and service trust rules",
+      "session_id": "ses_28e1ce41dffe1bnSaWFk95BH7D",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-09T11:13:24.476Z"
+    },
+    "todo:6": {
+      "task_key": "todo:6",
+      "task_label": "6",
+      "task_title": "Add durable outbox publication for identity bootstrap events",
+      "session_id": "ses_28e0a2900ffec3hYapnw5W285s",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-09T11:35:05.018Z"
+    },
+    "todo:7": {
+      "task_key": "todo:7",
+      "task_label": "7",
+      "task_title": "Extend BFF auth edge with identity orchestration, refresh flow, and bootstrap-aware session semantics",
+      "session_id": "ses_28bc77f3effe3NMEAFfJ444Z2W",
+      "agent": "explore",
+      "category": "",
+      "updated_at": "2026-04-09T21:49:56.016Z"
+    },
+    "todo:8": {
+      "task_key": "todo:8",
+      "task_label": "8",
+      "task_title": "Implement idempotent UserProfile bootstrap consumer and bootstrap-status completion path",
+      "session_id": "ses_28b9cd8e8ffetsIx0aKYqeFu8T",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-09T22:58:04.586Z"
+    },
+    "todo:9": {
+      "task_key": "todo:9",
+      "task_label": "9",
+      "task_title": "Execute full production-path verification: auth, RBAC, outbox, duplicate delivery, and degraded downstream cases",
+      "session_id": "ses_28b83561effeVBE5zIe8APoIb0",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-09T23:25:05.401Z"
+    },
+    "todo:10": {
+      "task_key": "todo:10",
+      "task_label": "10",
+      "task_title": "Update repository context and operational artifacts to match the new Identity reality",
+      "session_id": "ses_28b4c92e6ffe4p5vuzYtSfhxlH",
+      "agent": "Sisyphus-Junior",
+      "category": "writing",
+      "updated_at": "2026-04-10T00:05:36.319Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "Plan Compliance Audit — oracle",
+      "session_id": "ses_28a7faf6cffejGmbYL3GvByKWj",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-10T03:58:31.925Z"
+    }
+  }
+}
