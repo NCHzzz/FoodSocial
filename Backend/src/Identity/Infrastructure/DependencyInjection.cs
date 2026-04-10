@@ -1,3 +1,5 @@
+using FoodSocial.Identity.Application;
+using FoodSocial.Identity.Infrastructure.Messaging;
 using FoodSocial.Identity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +17,23 @@ public static class DependencyInjection
         services.AddDbContext<IdentityDbContext>(options =>
             options.UseNpgsql(connectionString, npgsql =>
                 npgsql.MigrationsHistoryTable("__IdentityMigrationsHistory")));
+
+        services.AddScoped<IIdentityUserStore, IdentityUserStore>();
+        services.AddScoped<IdentityOutboxDrainWorker>();
+
+        var rabbitMqConnectionString =
+            configuration.GetConnectionString("rabbitmq")
+            ?? configuration["ConnectionStrings:rabbitmq"]
+            ?? configuration["RabbitMQ:ConnectionString"];
+
+        if (!string.IsNullOrWhiteSpace(rabbitMqConnectionString))
+        {
+            services.AddSingleton<IIdentityIntegrationEventPublisher>(_ => new RabbitMqIdentityIntegrationEventPublisher(rabbitMqConnectionString));
+        }
+        else
+        {
+            services.AddSingleton<IIdentityIntegrationEventPublisher, MissingRabbitMqConfigurationIdentityIntegrationEventPublisher>();
+        }
 
         return services;
     }

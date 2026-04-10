@@ -6,13 +6,24 @@ namespace FoodSocial.Contracts.Identity;
 public static class IdentityClaimReader
 {
     public static string? GetSubject(ClaimsPrincipal user) =>
-        user.FindFirst(IdentityClaims.Subject)?.Value;
+        FindFirstValue(user, IdentityClaims.Subject)
+        ?? FindFirstValue(user, "sub")
+        ?? FindFirstValue(user, ClaimTypes.NameIdentifier)
+        ?? FindFirstValue(user, "nameidentifier");
 
     public static string? GetPreferredUsername(ClaimsPrincipal user) =>
-        user.FindFirst(IdentityClaims.PreferredUsername)?.Value ?? user.Identity?.Name;
+        FindFirstValue(user, IdentityClaims.PreferredUsername)
+        ?? FindFirstValue(user, "name")
+        ?? user.Identity?.Name;
 
     public static string? GetEmail(ClaimsPrincipal user) =>
-        user.FindFirst(ClaimTypes.Email)?.Value ?? user.FindFirst(IdentityClaims.Email)?.Value;
+        FindFirstValue(user, ClaimTypes.Email)
+        ?? FindFirstValue(user, IdentityClaims.Email)
+        ?? FindFirstValue(user, "email");
+
+    public static string? GetAuthorizedParty(ClaimsPrincipal user) =>
+        FindFirstValue(user, "azp")
+        ?? FindFirstValue(user, "client_id");
 
     public static IReadOnlyList<string> GetRoles(ClaimsPrincipal user)
     {
@@ -81,5 +92,13 @@ public static class IdentityClaimReader
                 }
             }
         }
+    }
+
+    private static string? FindFirstValue(ClaimsPrincipal user, string claimType)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentException.ThrowIfNullOrWhiteSpace(claimType);
+
+        return user.Claims.FirstOrDefault(claim => string.Equals(claim.Type, claimType, StringComparison.OrdinalIgnoreCase))?.Value;
     }
 }

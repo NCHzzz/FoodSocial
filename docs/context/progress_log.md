@@ -77,3 +77,21 @@ This file is for milestone-level progress only.
 - Upgraded the Identity EF Core stack to the current stable EF Core 10.0.5 line with Npgsql.EntityFrameworkCore.PostgreSQL 10.0.1 through central package management.
 - Verified the backend still restores and the full AppHost build remains clean after the EF/Npgsql alignment.
 - This removes the previous EF 9.x vs net10 version mismatch from the active backend setup.
+
+## 2026-04-10
+
+- Completed the first production-path Identity slice across BFF, Identity, UserProfile, and AppHost verification.
+- Verified browser auth at the BFF edge, claim-driven ensure, lifecycle/RBAC/trusted-service rules, durable outbox publication, and UserProfile bootstrap completion in automated tests.
+- This unblocks the next service implementation phase on top of a working auth, identity, and bootstrap-event foundation.
+
+## 2026-04-10
+
+- Audited the saved `.sisyphus` identity-completion plan against the live repo and finished the remaining verification-related work that the codebase still needed.
+- Fixed stale Identity test wiring, aligned bootstrap-completion routing, hardened fresh AppHost startup with session-scoped infra plus service-owned database creation/migration sequencing, and revalidated the full backend build plus Identity domain/application/API/AppHost suites.
+- This keeps the saved plan, the context layer, and the live verified implementation in sync so the next service slice can build on a trustworthy auth and bootstrap foundation.
+
+## 2026-04-10
+
+- Hardened the local auth stack by removing committed local secrets from the active BFF/AppHost/Keycloak bootstrap path and replacing them with Aspire secret parameters plus Keycloak realm environment placeholders.
+- Tightened trusted internal ensure authorization to require an authenticated trusted caller with matching authorized-party identity, switched the BFF logout edge to POST-only, and verified the updated browser/session/logout path through AppHost integration tests.
+- Updated the frontend Angular build chain and lockfile so the checked-in dependency tree now builds cleanly and reports zero vulnerabilities under `npm audit --package-lock-only`.

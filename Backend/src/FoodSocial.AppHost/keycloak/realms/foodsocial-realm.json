@@ -11,11 +11,25 @@
       "name": "FoodSocial BFF",
       "enabled": true,
       "publicClient": false,
-      "secret": "foodsocial-bff-secret",
+      "secret": "${KEYCLOAK_BFF_CLIENT_SECRET}",
       "protocol": "openid-connect",
       "attributes": {
         "post.logout.redirect.uris": "http://localhost:5276/signout-callback-oidc##https://localhost:7187/signout-callback-oidc##http://localhost:5276/##https://localhost:7187/"
       },
+      "protocolMappers": [
+        {
+          "name": "subject-sub",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "consentRequired": false,
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "true"
+          }
+        }
+      ],
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
       "redirectUris": [
@@ -42,7 +56,21 @@
       "publicClient": true,
       "protocol": "openid-connect",
       "standardFlowEnabled": false,
-      "directAccessGrantsEnabled": true
+      "directAccessGrantsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "subject-sub",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "consentRequired": false,
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "clientScopes": [
@@ -85,7 +113,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "Pass@word1",
+          "value": "${KEYCLOAK_DEMO_USER_PASSWORD}",
           "temporary": false
         }
       ]

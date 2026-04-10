@@ -31,6 +31,20 @@
   <Folder Name="/src/Identity/Infrastructure/">
     <Project Path="src/Identity/Infrastructure/FoodSocial.Identity.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Identity/" />
+  <Folder Name="/tests/Identity/Api.Tests/">
+    <Project Path="tests/Identity/Api.Tests/FoodSocial.Identity.Api.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Identity/Application.Tests/">
+    <Project Path="tests/Identity/Application.Tests/FoodSocial.Identity.Application.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Identity/Domain.Tests/">
+    <Project Path="tests/Identity/Domain.Tests/FoodSocial.Identity.Domain.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/FoodSocial.AppHost.Tests/">
+    <Project Path="tests/FoodSocial.AppHost.Tests/FoodSocial.AppHost.Tests.csproj" />
+  </Folder>
   <Folder Name="/src/Post/" />
   <Folder Name="/src/Post/Api/">
     <Project Path="src/Post/Api/FoodSocial.Post.Api.csproj" />

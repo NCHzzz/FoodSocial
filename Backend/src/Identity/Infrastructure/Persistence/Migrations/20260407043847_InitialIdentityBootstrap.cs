@@ -19,6 +19,7 @@ namespace FoodSocial.Identity.Infrastructure.Persistence.Migrations
                     Subject = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     PreferredUsername = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     Email = table.Column<string>(type: "character varying(320)", maxLength: 320, nullable: true),
+                    State = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     CreatedAtUtc = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>

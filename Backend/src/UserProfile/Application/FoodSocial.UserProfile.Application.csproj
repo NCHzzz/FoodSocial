@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <ProjectReference Include="..\Domain\FoodSocial.UserProfile.Domain.csproj" />
     <ProjectReference Include="..\..\FoodSocial.Contracts\FoodSocial.Contracts.csproj" />
   </ItemGroup>

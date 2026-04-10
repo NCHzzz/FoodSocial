@@ -46,8 +46,9 @@ This file is a current-state snapshot, not a history log.
 - BFF exists as a separate API edge project
 - `ServiceDefaults` is referenced by the API projects
 - default WeatherForecast sample files were removed
-- Identity now has its first concrete persistence bootstrap with EF Core and PostgreSQL
-- FoodSocial.Contracts now contains initial auth and identity boundary contracts
+- Identity now has a production-oriented business slice with lifecycle state, claim-driven ensure flow, app-owned RBAC, trusted-service authorization rules, and durable outbox-backed bootstrap event publication
+- UserProfile now includes the first bootstrap consumer/completion path for identity-driven shell creation and explicit completion signaling back to Identity
+- FoodSocial.Contracts contains the active auth, identity, and bootstrap integration contracts used by the BFF, Identity, and UserProfile services
 
 ### Local orchestration state
 
@@ -58,17 +59,22 @@ This file is a current-state snapshot, not a history log.
   - `userprofiledb`
   - `dishdb`
   - `postdb`
-- RabbitMQ resource is configured in AppHost
+- RabbitMQ resource is configured in AppHost and is exercised by the Identity to UserProfile bootstrap workflow
 - Redis resource is configured in AppHost
 - Keycloak is configured as an Aspire-managed local resource with import-driven realm bootstrap for development
+- Keycloak realm bootstrap now uses environment-variable placeholders for local secrets instead of committed literal client credentials and demo passwords
+- AppHost now supplies local BFF client secret, demo-user password, and internal trust secret through Aspire secret parameters at runtime
+- AppHost-backed verification now uses session-scoped local infrastructure resources and service-owned database creation before migrations, which keeps fresh local verification runs reproducible
 
-### Authentication bootstrap state
+### Authentication and identity flow state
 
-- BFF contains an Aspire Keycloak JWT bearer authentication skeleton
 - BFF now also contains the browser-facing Keycloak OpenID Connect login/session/logout edge flow
-- Identity.Api contains an Aspire Keycloak JWT bearer authentication skeleton
-- service-side auth now relies on Aspire Keycloak resource wiring instead of a hardcoded localhost authority
-- Identity.Api exposes an authenticated current-user bootstrap endpoint for claims validation
+- BFF session and refresh behavior are wired through the verified browser auth edge and identity orchestration path
+- BFF logout is now POST-only and verified through the AppHost browser flow
+- Identity.Api uses authenticated claim-driven ensure behavior instead of caller-supplied subject input
+- service-side auth relies on Aspire Keycloak resource wiring instead of a hardcoded localhost authority
+- Identity.Api enforces app-owned RBAC policies and explicit trusted-service authorization for secured operations
+- trusted internal ensure now requires an authenticated principal, a configured shared secret, and a matching authorized-party/client identifier for the trusted BFF caller
 
 ### Frontend skeleton
 
@@ -83,20 +89,29 @@ This file is a current-state snapshot, not a history log.
 ### Verification already completed
 
 - backend solution builds successfully
+- Identity domain tests pass successfully
+- Identity application tests pass successfully
+- Identity API tests pass successfully
 - AppHost builds successfully
 - BFF builds successfully after Aspire Keycloak client integration
 - Identity.Api builds successfully after Aspire Keycloak client integration
 - initial Identity EF Core migration was generated successfully
 - initial Identity database update was applied successfully against the live Aspire PostgreSQL container
+- initial UserProfile EF Core migration was generated and applied successfully for the bootstrap consumer path
 - AppHost brings up PostgreSQL, Redis, RabbitMQ, and Keycloak successfully for local development
 - Keycloak issues access tokens successfully through the imported `foodsocial` realm
 - BFF login now redirects correctly to the Keycloak login page through the local auth edge
+- the BFF browser auth edge, authenticated session path, refresh behavior, and POST-only logout behavior are verified through AppHost-backed tests
+- Identity lifecycle, claim-driven ensure flow, duplicate-safe persistence, RBAC enforcement, trusted-service authorization, and durable outbox publication are covered by backend tests
+- UserProfile bootstrap consumption and explicit completion signaling back to Identity are verified through the production-path AppHost suite after routing-key and startup verification fixes
+- the full AppHost-backed verification suite for the completed Identity slice passes end to end against the live local platform
 - frontend Angular app structure exists, but local build still depends on installed frontend packages in the working environment
+- frontend dependency remediation is in place and `npm audit --package-lock-only` now reports zero vulnerabilities for the current checked-in lockfile
 
 ### Platform maturity notes
 
 - Redis is provisioned and available, but it is not yet used by a concrete cache or ephemeral-state implementation in the current codebase
-- RabbitMQ is provisioned and available, but producer/consumer reliability conventions are still at documentation/bootstrap level rather than implemented workflows
+- RabbitMQ-backed async delivery is implemented for the Identity bootstrap workflow, but broader cross-service messaging coverage is still limited to this first production path
 
 ## Important Clarifications
 
@@ -107,13 +122,12 @@ This file is a current-state snapshot, not a history log.
 
 ## Current Blockers
 
-- Service-level persistence wiring is still missing for UserProfile, Dish, and Post
-- Core contracts, messaging conventions, and runtime reliability conventions are still at scaffold level
+- Dish and Post still remain earlier-stage service slices compared with the completed Identity path
 - Redis usage is still intentionally deferred until a measured cache or short-lived-state need exists
 
 ## Current Priority
 
-- begin service implementation on top of the now-runnable local platform, starting with the next planned service bootstrap or business logic slice
+- build the next service slice on top of the now-verified Identity, BFF, AppHost, and bootstrap-event foundation
 
 ## Active Delivery Artifacts
 
