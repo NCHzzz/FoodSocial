@@ -82,16 +82,15 @@ This file is for milestone-level progress only.
 
 - Completed the first production-path Identity slice across BFF, Identity, UserProfile, and AppHost verification.
 - Verified browser auth at the BFF edge, claim-driven ensure, lifecycle/RBAC/trusted-service rules, durable outbox publication, and UserProfile bootstrap completion in automated tests.
-- This unblocks the next service implementation phase on top of a working auth, identity, and bootstrap-event foundation.
-
-## 2026-04-10
-
 - Audited the saved `.sisyphus` identity-completion plan against the live repo and finished the remaining verification-related work that the codebase still needed.
 - Fixed stale Identity test wiring, aligned bootstrap-completion routing, hardened fresh AppHost startup with session-scoped infra plus service-owned database creation/migration sequencing, and revalidated the full backend build plus Identity domain/application/API/AppHost suites.
-- This keeps the saved plan, the context layer, and the live verified implementation in sync so the next service slice can build on a trustworthy auth and bootstrap foundation.
-
-## 2026-04-10
-
 - Hardened the local auth stack by removing committed local secrets from the active BFF/AppHost/Keycloak bootstrap path and replacing them with Aspire secret parameters plus Keycloak realm environment placeholders.
 - Tightened trusted internal ensure authorization to require an authenticated trusted caller with matching authorized-party identity, switched the BFF logout edge to POST-only, and verified the updated browser/session/logout path through AppHost integration tests.
 - Updated the frontend Angular build chain and lockfile so the checked-in dependency tree now builds cleanly and reports zero vulnerabilities under `npm audit --package-lock-only`.
+- This unblocks the next service implementation phase on top of a working auth, identity, bootstrap-event foundation, and trustworthy local auth stack.
+
+## 2026-04-13
+
+- Added the first Angular auth-aware FoodSocial shell with guest login entry, authenticated logout entry, and BFF session-state wiring in the web frontend.
+- Added local Angular dev-server proxy support plus matching local Keycloak callback/origin bootstrap entries so browser auth can round-trip through the BFF during frontend development.
+- This unblocks frontend-authenticated UX work on top of the verified BFF auth edge instead of relying on backend URLs alone.

@@ -1,0 +1,61 @@
+<div class="min-h-dvh bg-[radial-gradient(circle_at_top,_#fff7ed,_#fffbeb_48%,_#ffffff_100%)] text-slate-950">
+  <header class="border-b border-orange-100/80 bg-white/85 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+      <div class="flex items-start gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 via-amber-400 to-rose-400 text-lg font-semibold text-white shadow-lg shadow-orange-200/70">
+          FS
+        </div>
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.24em] text-orange-600">Food-first social</p>
+          <a class="inline-flex items-center text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl" routerLink="/discover">
+            FoodSocial
+          </a>
+          <p class="mt-1 max-w-xl text-sm text-slate-600 sm:text-base">
+            Angular 21 standalone shell with guest-safe browsing, BFF-owned auth, and route-first feature composition.
+          </p>
+        </div>
+      </div>
+
+      <nav aria-label="Primary" class="flex flex-wrap gap-2">
+        @for (item of navigationItems(); track item.route) {
+          <a
+            appShellNavLink
+            [routerLink]="item.route"
+            routerLinkActive="border-slate-950 bg-slate-950 text-white shadow-slate-300"
+            [textContent]="item.label"
+          ></a>
+        }
+      </nav>
+
+      <div class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
+        <div appUiSurface="soft" appUiSurfacePadding="compact">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Session</p>
+          <p class="mt-1 text-sm font-medium text-slate-900">
+            @if (isAuthenticated()) {
+              <span [textContent]="session()?.user?.preferredUsername || session()?.user?.email || 'Signed in'"></span>
+            } @else {
+              Guest mode
+            }
+          </p>
+          <p class="mt-1 text-xs text-slate-500" aria-live="polite" [textContent]="sessionSummary()"></p>
+        </div>
+
+        @if (isAuthenticated()) {
+          <form method="post" [attr.action]="logoutAction()" class="contents" (submit)="markLogoutPending()">
+            <button appUiButton="primary" type="submit">
+              <span [textContent]="authState().isLoggingOut ? 'Logging out…' : 'Log out'"></span>
+            </button>
+          </form>
+        } @else {
+          <button appUiButton="accent" type="button" (click)="startLogin()">
+            Log in
+          </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+    <router-outlet />
+  </main>
+</div>

@@ -1,0 +1,20 @@
+{
+  "/api": {
+    "target": "https://localhost:7187",
+    "secure": false,
+    "changeOrigin": false,
+    "logLevel": "info"
+  },
+  "/signin-oidc": {
+    "target": "https://localhost:7187",
+    "secure": false,
+    "changeOrigin": false,
+    "logLevel": "info"
+  },
+  "/signout-callback-oidc": {
+    "target": "https://localhost:7187",
+    "secure": false,
+    "changeOrigin": false,
+    "logLevel": "info"
+  }
+}
