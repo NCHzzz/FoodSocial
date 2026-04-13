@@ -1,8 +1,7 @@
 # Backend Setup Before Identity Plan
 
-> Status: active
+> Status: archived reference
 > Date: 2026-04-06
-> Related spec: `docs/delivery/specs/2026-04-06-ai-agent-workflow-alignment-spec.md`
 > Scope: backend platform setup before Identity Service business implementation
 
 ## Goal

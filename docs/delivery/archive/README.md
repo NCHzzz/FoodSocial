@@ -18,4 +18,9 @@ The archive keeps active delivery folders readable while preserving useful histo
 - `docs/delivery/archive/specs/`
 - `docs/delivery/archive/plans/`
 
-If these subfolders do not exist yet, create them when the first archived artifact is moved.
+Create these subfolders only when archived artifacts actually exist.
+
+## Current archive state
+
+- `docs/delivery/archive/plans/` is active and currently holds archived plan/runbook artifacts.
+- `docs/delivery/archive/specs/` should be created only when a spec with real reference value is archived.

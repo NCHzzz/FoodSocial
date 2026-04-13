@@ -1,6 +1,6 @@
 # Local Auth and Identity Bootstrap Runbook
 
-> Status: active
+> Status: archived reference
 > Date: 2026-04-07
 > Scope: local development validation for Keycloak, Identity API auth, and Identity persistence bootstrap
 
