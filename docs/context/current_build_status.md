@@ -54,11 +54,7 @@ This file is a current-state snapshot, not a history log.
 
 - Aspire AppHost is present
 - PostgreSQL resource is configured in AppHost
-- logical PostgreSQL databases are configured for:
-  - `identitydb`
-  - `userprofiledb`
-  - `dishdb`
-  - `postdb`
+- logical PostgreSQL databases are configured for Identity, UserProfile, Dish, and Post
 - RabbitMQ resource is configured in AppHost and is exercised by the Identity to UserProfile bootstrap workflow
 - Redis resource is configured in AppHost
 - Keycloak is configured as an Aspire-managed local resource with import-driven realm bootstrap for development
@@ -78,26 +74,20 @@ This file is a current-state snapshot, not a history log.
 
 ### Frontend skeleton
 
-- Angular 21 application exists at `Frontend/foodsocial-web`
+- Angular 21 application now lives directly at `Frontend/`
 - TailwindCSS is integrated using the current Angular/Tailwind flow
-- frontend folder structure includes:
-  - `core/`
-  - `shared/`
-  - `features/`
-  - feature folders for discover, following, create-post, profile, notifications, dishes, and places
+- frontend structure uses `src/app/core/`, `src/app/shell/`, `src/app/features/`, and lazy route areas for discover, posts, profiles, following, post-create, notifications, and profile
+- frontend now includes the first auth-aware shell with guest-safe login entry, authenticated logout entry, and BFF session-state wiring
+- Angular local development now proxies auth-related browser routes to the BFF and depends on the local Keycloak realm allowing `http://localhost:4200` callback/origin entries for dev-server auth round-trips
+- frontend now follows a clearer production Angular 21 structure with standalone bootstrap, shell-owned layout, lazy route areas, and signal-driven local auth state
 
 ### Verification already completed
 
 - backend solution builds successfully
-- Identity domain tests pass successfully
-- Identity application tests pass successfully
-- Identity API tests pass successfully
+- Identity domain, application, and API tests pass successfully
 - AppHost builds successfully
-- BFF builds successfully after Aspire Keycloak client integration
-- Identity.Api builds successfully after Aspire Keycloak client integration
-- initial Identity EF Core migration was generated successfully
-- initial Identity database update was applied successfully against the live Aspire PostgreSQL container
-- initial UserProfile EF Core migration was generated and applied successfully for the bootstrap consumer path
+- BFF and Identity.Api build successfully after Aspire Keycloak client integration
+- initial Identity and UserProfile EF Core migrations were generated and applied successfully for the current production path
 - AppHost brings up PostgreSQL, Redis, RabbitMQ, and Keycloak successfully for local development
 - Keycloak issues access tokens successfully through the imported `foodsocial` realm
 - BFF login now redirects correctly to the Keycloak login page through the local auth edge
@@ -107,6 +97,8 @@ This file is a current-state snapshot, not a history log.
 - the full AppHost-backed verification suite for the completed Identity slice passes end to end against the live local platform
 - frontend Angular app structure exists, but local build still depends on installed frontend packages in the working environment
 - frontend dependency remediation is in place and `npm audit --package-lock-only` now reports zero vulnerabilities for the current checked-in lockfile
+- frontend unit tests now cover the auth session service plus guest/authenticated shell rendering for the login/logout UI slice
+- frontend production build now succeeds with the auth-aware shell changes
 
 ### Platform maturity notes
 
@@ -127,12 +119,8 @@ This file is a current-state snapshot, not a history log.
 
 ## Current Priority
 
-- build the next service slice on top of the now-verified Identity, BFF, AppHost, and bootstrap-event foundation
+- build the next service slice on top of the now-verified Identity, BFF, AppHost, bootstrap-event foundation, and first frontend auth shell
 
-## Active Delivery Artifacts
+## Delivery Artifact Note
 
-- Workflow alignment spec: `docs/delivery/specs/2026-04-06-ai-agent-workflow-alignment-spec.md`
-- Backend setup plan: `docs/delivery/plans/2026-04-06-backend-setup-before-identity-plan.md`
-- Local auth and identity bootstrap runbook: `docs/delivery/plans/2026-04-07-local-auth-and-identity-bootstrap-runbook.md`
-
-Do not treat this file as an implementation plan. Detailed execution artifacts belong in `docs/delivery/`.
+Do not treat this file as an implementation plan. Current-state snapshots belong here; active `/opsx-*` change workflow belongs in `openspec/`, and curated markdown delivery records belong in `docs/delivery/`.

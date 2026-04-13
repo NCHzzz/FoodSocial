@@ -17,10 +17,11 @@
 - moderation and reporting
 - responsive web experience
 - AI-assisted user discovery and decision support
-- agent-friendly platform contracts and APIs
 - practical nearby and area-aware food/place discovery
-- explicit media lifecycle support for upload, derivative handling, and deletion cleanup expectations
-- lightweight runtime feature controls for beta rollout and safety fallback behavior
+
+Detailed product behavior for in-scope capabilities lives in `04_functional_requirements.md`.
+
+Technical implementation direction for AI, search, media lifecycle, and rollout safety lives in `10_architecture.md` and `05_non_functional_requirements.md`.
 
 ## Out of Scope for MVP
 
@@ -40,23 +41,11 @@
 
 The MVP is already broad and should be treated as a focused but usable first product release rather than a minimal prototype.
 
-Given the current delivery context:
+Given the current delivery context, the MVP should remain strict enough for a solo, AI-assisted build with a limited real-user beta target.
 
-- solo builder
-- AI-assisted coding workflow
-- 2-month target timeline
+Delivery framing lives in `00_project_overview.md`.
 
-the MVP feature list should later be validated against implementation feasibility and may require a launch-sequencing decision inside the MVP itself.
-
-The likely risk areas are:
-
-- AI recommendation depth
-- moderation sophistication
-- search quality
-- content modeling across food posts, place posts, and recipe posts
-- solo delivery capacity versus current MVP breadth
-- media lifecycle and deletion complexity
-- async messaging correctness and operator response clarity
+Risk detail lives in `14_risks_open_questions.md` and `10_architecture.md`.
 
 ## Possible Phase 2 / Future Ideas
 
@@ -78,7 +67,9 @@ The likely risk areas are:
 
 ## MVP Delivery Constraints to Preserve
 
-- Search remains PostgreSQL-first in MVP even if later hybrid or vector retrieval becomes attractive
-- Caching remains selective and evidence-driven rather than an assumed platform requirement
-- Moderation remains manual-review-first even if later automation hooks are preserved
-- Feature rollout safety should remain lightweight and practical for a limited beta
+- Search remains PostgreSQL-first in MVP.
+- Caching remains selective and evidence-driven.
+- Moderation remains manual-review-first.
+- Feature rollout safety remains lightweight and practical.
+
+Canonical technical detail for these constraints lives in `05_non_functional_requirements.md` and `10_architecture.md`.

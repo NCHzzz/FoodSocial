@@ -4,21 +4,105 @@
 
 This file defines frontend engineering rules for the Angular application and TailwindCSS usage in this repository.
 
+This file is the **general frontend implementation rules file**.
+
+It governs:
+
+- Angular architecture and layering
+- standalone component and route composition rules
+- state, template, diagnostics, and quality rules
+- Tailwind usage discipline
+- performance, failure-state, and maintainability rules for frontend code
+
+It does **not** define the shared FoodSocial UI/UX design system.
+
+For the active FoodSocial visual system standard, also read:
+
+- `docs/ai/stack-rules/frontend-ui-unification.md`
+
+## Boundary With `frontend-ui-unification.md`
+
+Use this file when the question is:
+
+- how should this frontend code be structured?
+- where should this Angular logic live?
+- how should Tailwind be written safely and consistently?
+- how should frontend state, templates, routing, diagnostics, and quality be handled?
+
+Use `frontend-ui-unification.md` when the question is:
+
+- what should the UI feel like?
+- what is the canonical page pattern?
+- how should shared UI/UX behavior remain consistent across the system?
+- what visual hierarchy, CTA hierarchy, shell behavior, and content framing should the product use?
+
+## Current Frontend Baseline
+
+- Angular 21+
+- workspace rooted directly at `Frontend/`
+- standalone bootstrap via `bootstrapApplication(...)`
+- standalone components and directives only
+- route-first structure under `src/app/`
+- `core/`, `shell/`, and lazy `features/` areas inside the app
+- TailwindCSS v4 as the primary styling layer
+- TypeScript strict mode and Angular strict template diagnostics
+- signals for local and view-oriented state
+- `provideHttpClient()` and `provideRouter()` in `app.config.ts`
+- single-app workspace today, with a future path to `apps/ + libs/` if frontend scope grows beyond one deployable Angular app
+
 ## Angular Architecture Rules
 
 - Prefer standalone, feature-oriented Angular structure
+- Keep the Angular workspace rooted at `Frontend/`; do not reintroduce nested one-app workspace folders such as `Frontend/foodsocial-web/`
+- Organize app code under `src/app/` using:
+  - `core/` for app-wide infrastructure, auth/session services, guards, runtime config, and browser/BFF boundaries
+  - `shell/` for layout, navigation, and auth-aware frame composition
+  - `features/` for lazy route areas and page-level composition
+- Prefer page/route composition in feature folders over overloading `app.ts` or one giant root component
+- Use route files per feature area, for example `discover.routes.ts`, `profile.routes.ts`, and `notifications.routes.ts`
 - Keep components small and focused on one clear purpose
 - Separate orchestration-heavy components from presentational UI when complexity grows
 - Keep business logic out of templates and out of purely visual components
 - Prefer explicit component APIs using clear inputs and outputs
+- Do not regress to NgModule-based app composition, shared module patterns, or `AppModule` bootstrapping
+- Apply the Angular 21 setup guide strictly for coding/layering rules now, but treat its full multi-app `apps/ + libs/` workspace shape as future-state guidance until this repo actually has multiple Angular apps or real shared frontend libraries
+
+## Angular 21 Implementation Rules
+
+- Use standalone components only
+- Default components to `ChangeDetectionStrategy.OnPush` unless a strong reason exists not to
+- Prefer `signal()` for local state, `computed()` for derived state, and `effect()` only for intentional side effects
+- Keep constructors light; prefer `ngOnInit()` or explicit methods for async bootstrap work when lifecycle clarity matters
+- Prefer route guards and route boundaries for authenticated-only route areas instead of template-only gating
+- Keep `app.ts` minimal; it should usually host the root `router-outlet` and very little else
+- Keep bootstrap providers obvious in `app.config.ts`
+- Prefer lazy `loadChildren` / `loadComponent` for larger route areas
+- Angular apps **SHOULD** keep application behavior behind explicit service/client/store boundaries rather than spreading fetch/orchestration logic across pages and shell components
 
 ## Angular State and Template Rules
 
 - Prefer signals for local reactive state
+- Prefer small view models exposed through computed signals rather than repeating raw object traversal throughout templates
 - Keep templates declarative and shallow
 - Avoid non-trivial logic in templates
 - Prefer reactive forms for non-trivial input flows
 - Prefer pragmatic feature-scoped state over heavyweight global state by default
+- Use native Angular control flow: `@if`, `@for`, `@switch`, and `@defer` when appropriate
+- Do not use `*ngIf`, `*ngFor`, `*ngSwitch`, `ngClass`, or `ngStyle`
+- Do not import `CommonModule` only to restore legacy structural directives in new code
+- Prefer explicit property/class/style bindings over dynamic Tailwind class generation
+- Visual or route components **SHOULD NOT** call transport code directly when a core or feature-owned client/service boundary is more appropriate
+- User-facing screens **SHOULD** make loading, empty, error, degraded, and gated states explicit rather than leaving them implicit in missing-data behavior
+- Request and async state **SHOULD** stay explicit in services, stores, or feature-owned state surfaces rather than being inferred indirectly from template null checks
+
+## Angular Diagnostics and Quality Rules
+
+- Keep TypeScript `strict` enabled
+- Keep Angular `strictTemplates` enabled
+- Treat Angular and TypeScript diagnostics as design feedback, not as something to suppress
+- Do not use `as any`, `@ts-ignore`, or `@ts-expect-error` to bypass frontend typing or template issues
+- Keep template parser output clean before considering build/test work complete
+- Route and feature boundaries **SHOULD** remain easy to trace from route -> page -> state/service -> transport boundary
 
 ## Angular Performance Rules
 
@@ -27,28 +111,58 @@ This file defines frontend engineering rules for the Angular application and Tai
 - Keep AI-assisted behavior off the critical rendering path when possible
 - Use deterministic fallback UX when AI is unavailable or slow
 - Use Angular image optimization and intentional media sizing for content-heavy pages
+- Keep the initial shell light and let route areas load lazily
+- Reuse in-flight bootstrap/session work when guards and shell both need the same auth state
+- Frontend composition **SHOULD** prefer the BFF and stable backend-facing service boundaries over chatty multi-endpoint page orchestration
 
-## Accessibility and UX Rules
+## Accessibility Implementation Rules
 
 - Accessibility is mandatory, not a later polish step
 - Prefer native semantic HTML before custom interaction patterns
 - All interactive elements must support keyboard access, visible focus, and clear labels
-- Do not make AI-assisted UI the only way to complete a task
-- Respect responsive-first UX and reduced-motion-friendly behavior where relevant
+- Prefer implementation choices that preserve responsive-first and reduced-motion-friendly behavior
+
+Canonical user-facing accessibility, responsive behavior, shell language, CTA hierarchy, page patterns, guest/auth honesty, and AI fallback UX belong to `docs/ai/stack-rules/frontend-ui-unification.md`.
+
+## Frontend Failure-State Implementation Rules
+
+- Async UI flows **MUST** model realistic loading, empty, retryable error, hard error, and gated states explicitly in code rather than leaving them implicit in component null-check behavior
+- Session-expired or auth-invalid states **SHOULD** be represented explicitly in frontend state handling instead of collapsing into unknown failure buckets
+- Retry behavior **SHOULD** be modeled intentionally rather than hidden in silent loops or ad hoc retry branching
+
+Visible user-facing async-state treatment, state naming, state hierarchy, and degraded AI UX belong to `docs/ai/stack-rules/frontend-ui-unification.md`.
 
 ## TailwindCSS Rules
 
-- Use Tailwind as a disciplined design-system implementation tool
 - Keep class names static and fully spelled out in source
 - Do not build Tailwind classes dynamically
-- Prefer centralized tokens and theme values over scattered arbitrary values
 - Use mobile-first responsive utilities
 - Prefer CSS/state variants over extra JS branching when styling can express the behavior
-- Extract repeated UI patterns into Angular components before resorting to large custom CSS layers
+- Keep global stylesheet files minimal; global styles should mostly contain Tailwind imports, resets, and a very small set of app-wide tokens
+- Group long utility lists in a stable, readable order
+- SCSS or component CSS should be the exception, not the default
+
+Semantic roles, design-token intent, and primitive growth policy belong to `docs/ai/stack-rules/frontend-ui-unification.md`.
 
 ## Frontend Maintainability Rules
 
 - Prefer readable templates over dense utility-class noise; extract components when markup becomes hard to reason about
 - Keep API interaction behind stable frontend-facing interfaces aligned with the BFF
 - Avoid unnecessary global state, premature abstraction, and hidden UI behavior
-- Preserve clear user expectations for Following vs Discover, notifications, and AI-assisted suggestions
+- Update repo context docs when the frontend workspace shape or local-dev frontend auth flow materially changes
+- Keep route naming, folder naming, and feature naming explicit and product-aligned
+- Prefer the smallest correct scope for reuse: app-specific first, then broader sharing only when a pattern is genuinely repeated
+- In the current single-app workspace, keep transport details behind explicit infrastructure-style folders within the app when a full shared-library extraction would be premature
+- Frontend changes are not complete until the relevant diagnostics, tests, and build paths are clean for the affected work
+- AI-generated frontend code **SHOULD** prefer small components, explicit state transitions, and direct route-to-page traceability over wrapper-heavy or speculative abstractions
+- AI-generated frontend code **MUST NOT** hide meaningful behavior in template cleverness, silent side effects, or unnecessary reusable layers
+
+Design-system primitive rules, semantic roles, and intentional exception policy belong to `docs/ai/stack-rules/frontend-ui-unification.md`.
+
+## Frontend Exception Handling Rule
+
+- Deviations from a major frontend **SHOULD** rule **SHOULD** be intentional and documented with:
+  - the rule being deviated from
+  - why the default does not fit
+  - the risk introduced
+  - how the risk is mitigated

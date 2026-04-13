@@ -41,7 +41,13 @@ Saved experience should support revisiting posts, dishes, and places.
 - keep nearby and area-aware discovery understandable without requiring a map-heavy MVP UX
 - route high-risk capabilities through explicit UI states so feature controls and kill switches degrade gracefully
 
+This section exists to shape frontend decomposition and UX delivery.
+
+Canonical product behavior lives in `04_functional_requirements.md`.
+
 Profile MVP direction should include authored posts, saved items, follow counts, and a basic bio or taste profile, while preserving a future path to richer activity and recommendation-signal views.
+
+Canonical profile product truth lives in `04_functional_requirements.md`.
 
 Taste profile direction:
 
@@ -49,6 +55,8 @@ Taste profile direction:
 - later evolution may combine manual taste input with AI-inferred preference understanding
 - MVP taste-profile editing should focus on cuisine/tag preferences and dislike/avoid preferences
 - later evolution may add richer taste attributes such as spice level or flavor dimensions
+
+Canonical taste-profile product truth lives in `04_functional_requirements.md`.
 
 Guest users should be able to access basic feed and post viewing paths, while authenticated routes and deeper actions remain gated.
 
@@ -100,6 +108,8 @@ Repost/reshare UI should support a lightweight short-caption flow rather than a 
 - keep `Following` and `Discover` visually distinct to reduce user confusion
 - make AI-assisted discovery visible enough that the product feels AI-native, not merely searchable
 - if Following includes limited mixed content, the UI should still make follower-priority clear to users
+
+This section exists to shape frontend implementation and decomposition, not to redefine product truth already captured in `04_functional_requirements.md` and `docs/ai/stack-rules/frontend-ui-unification.md`.
 
 ## Media and Discovery UX Direction
 

@@ -10,26 +10,11 @@ Approved MVP direction: microservices.
 
 ## Backend Decision Summary
 
-- API edge stays at the Gateway / BFF layer
-- Internal services use Hybrid REST + async events
-- RabbitMQ remains the MVP async backbone
-- Event handling must remain idempotent and recovery-aware
-- Binary media stays outside PostgreSQL and needs explicit lifecycle orchestration
-- Geo-discovery stays PostgreSQL-friendly before separate infra is introduced
-- Runtime feature control should stay lightweight and operationally explicit
-- Deletion and retention behavior must be treated as backend capabilities, not accidental side effects
+This file describes backend implications of the approved architecture.
 
-Recommended initial service boundaries:
+Canonical cross-system architecture decisions live in `10_architecture.md`.
 
-- identity and auth
-- user/profile graph
-- posts and media
-- dishes
-- places
-- feed
-- search and recommendation
-- notifications
-- moderation and trust
+The canonical system component and service map lives in `10_architecture.md`.
 
 ## Chosen backend technology direction
 
@@ -68,6 +53,8 @@ Additional cross-service responsibility notes:
 - search/recommendation should provide AI-assisted discovery and recommendation outputs
 - notifications should own notification center state and notification retrieval
 - AI integration should be hidden behind internal contracts, not spread ad hoc across services
+
+These notes clarify backend ownership implications; they do not replace the canonical component map in `10_architecture.md`.
 
 Boundary clarification:
 
@@ -122,6 +109,8 @@ Implications:
 - gateway/BFF should handle response shaping for feed, search, profile, and recommendation scenarios
 - authentication context handling is simplified at the edge compared with direct multi-service frontend integration
 
+The API edge decision itself is canonical in `10_architecture.md`.
+
 ## Internal service communication direction
 
 Approved direction:
@@ -133,6 +122,8 @@ Implications:
 - synchronous REST calls should be limited to interactions that truly require immediate consistency or immediate responses
 - async events should be used for background workflows, read-model updates, and non-blocking cross-service reactions
 - clean architecture boundaries should keep transport concerns outside application core logic
+
+The system-wide communication decision itself is canonical in `10_architecture.md`.
 
 ### MVP event reliability expectations
 
@@ -170,6 +161,8 @@ Implications:
 - media-processing work should stay off the critical publish path whenever possible
 - deletion semantics must account for both metadata records and stored media objects
 
+Canonical media direction lives in `10_architecture.md`; this section exists only for backend implications.
+
 ## Geo-Discovery Backend Direction
 
 Approved direction:
@@ -182,6 +175,8 @@ Implications:
 - the Search/Recommendation boundary may consume geo-relevant read models, but Place ownership of canonical location data should remain explicit
 - geo relevance should remain one ranking signal among several rather than fully replacing food relevance or lexical relevance in MVP
 
+Canonical geo-discovery direction lives in `10_architecture.md`; this section exists only for backend implications.
+
 ## Feature Control and Runtime Configuration
 
 Approved direction:
@@ -192,6 +187,8 @@ Implications:
 
 - feature controls should be explicit enough that operators can disable degraded or risky capabilities without requiring coordinated full redeploys
 - config-driven behavior should not become a hidden business-logic layer; important rules must still remain visible in contracts and service code
+
+Canonical rollout and feature-control direction lives in `10_architecture.md` and `05_non_functional_requirements.md`.
 
 ## Data Lifecycle and Deletion Direction
 
@@ -204,6 +201,8 @@ Implications:
 
 - user deletion and content deletion must be compatible with auditability, moderation history, and storage cleanup expectations
 - rebuildable read models should not become an excuse to leave deletion side effects undefined
+
+Canonical lifecycle direction lives in `10_architecture.md`; this section exists only for backend implications.
 
 ## Initial Notes
 
