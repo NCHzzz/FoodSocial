@@ -7,7 +7,7 @@
 
 ## Overview
 
-This document consolidates the detailed **Data Model** (previously in `07_data_model.md`) with the high‑level **Domain Model** (previously in this file). It defines the core entities, their attributes, relationships, and the MVP modeling direction for FoodSocial.
+This document defines the core entities, their attributes, relationships, and the MVP modeling direction for FoodSocial.
 
 ---
 
@@ -178,10 +178,11 @@ This document consolidates the detailed **Data Model** (previously in `07_data_m
 
 ### High‑Level Domain Model (MVP Direction)
 
-- **Post** is the central aggregate with a `contentType` field (`food`, `restaurant`, `recipe`).
-- **Dish** and **Place** are first‑class entities from day 1; food posts must reference a canonical `Dish`, and may reference a canonical `Place` when known.
-- **User** owns posts, likes, comments, follows, and saved items.
-- **Tenant** isolation is enforced at the service layer (not a separate domain entity for MVP).
+- **Dish** and **Place** are first‑class entities from day 1.
+- Food posts must reference a canonical `Dish`, and may reference a canonical `Place` when known.
+- `Post` is the central content aggregate.
+- `User` owns posts, likes, comments, follows, and saved items.
+- Tenant isolation is enforced at the service layer rather than as a separate MVP domain entity.
 - Aggregates:
   - `User/Profile`
   - `Post` (including `FoodPost`, `RecipePost`)
@@ -210,11 +211,15 @@ erDiagram
 ---
 
 ### Indexing Strategy (summary)
-- Primary keys: `id` (UUID) for all tables.
-- Unique indexes: `User.username`, `User.email`.
-- Search indexes: full‑text on `Post.caption`, `Place.name`, `Dish.name`.
-- Foreign‑key indexes as described in the original `08_database_design.md`.
+
+Canonical schema/index detail lives in `08_database_design.md`.
+
+Only the highest-value summary remains here:
+
+- primary keys use UUIDs
+- `User.username` and `User.email` are unique
+- search indexes matter on `Post.caption`, `Place.name`, and `Dish.name`
 
 ---
 
-*This unified document replaces both `07_data_model.md` and the previous `07_domain_model.md`. The original `07_data_model.md` can be removed as its content is now incorporated here.*
+This is the canonical domain-model document for current product and API-facing entity discussion.

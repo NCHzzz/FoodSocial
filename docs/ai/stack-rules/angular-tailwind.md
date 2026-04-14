@@ -67,6 +67,52 @@ Use `frontend-ui-unification.md` when the question is:
 - Do not regress to NgModule-based app composition, shared module patterns, or `AppModule` bootstrapping
 - Apply the Angular 21 setup guide strictly for coding/layering rules now, but treat its full multi-app `apps/ + libs/` workspace shape as future-state guidance until this repo actually has multiple Angular apps or real shared frontend libraries
 
+## Frontend Naming Rules
+
+Follow universal naming semantics in `docs/ai/engineering-rules.md`.
+
+This section adds only frontend-specific naming mechanics and Angular-specific conventions.
+
+### File naming
+
+- Angular and TypeScript file names **MUST** use kebab-case.
+- File suffixes **MUST** reflect role clearly, for example:
+  - `*.component.ts`
+  - `*.directive.ts`
+  - `*.service.ts`
+  - `*.guard.ts`
+  - `*.routes.ts`
+- `*.api.ts`
+- `*.models.ts`
+- `*.token.ts`
+- `*.spec.ts`
+- Feature files **SHOULD** be named by feature + role, for example `discover.page.ts`, `profile.routes.ts`, `auth-session.service.ts`.
+
+### Type and class naming
+
+- Angular classes, interfaces, and types **MUST** use PascalCase.
+- Class names **MUST** match file purpose and suffix role clearly, for example `AuthSessionService`, `UiButtonDirective`, `AppShellComponent`.
+- Injection tokens **SHOULD** use clear exported constant names in upper snake or explicit constant style only when that matches existing Angular token usage, for example `BROWSER_WINDOW`.
+
+### Function and variable naming
+
+- Functions, methods, properties, and variables **MUST** use camelCase.
+- Observable-like or stream-like values **SHOULD** use names that imply streaming only when they are truly streams.
+- Signal values **SHOULD** be named for the state they expose, not for the mechanism used to implement them.
+
+Examples that match this rule:
+
+- `isAuthenticated`
+- `hasResults`
+- `canSubmit`
+- `startLogin`
+- `markLogoutPending`
+- `loadSession`
+
+### Template naming
+
+- Avoid naming collisions between component fields, computed values, and template loop variables when they represent different concepts.
+
 ## Angular 21 Implementation Rules
 
 - Use standalone components only

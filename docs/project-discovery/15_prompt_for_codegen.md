@@ -9,16 +9,7 @@
 
 Build a responsive web-first AI-native food-focused social media platform.
 
-The platform must support:
-
-- user accounts and profiles
-- posting food content, restaurant/location content, and recipe content
-- discovery feed
-- likes, comments, saves, and shares
-- search by dish, restaurant, and location
-- following users
-- AI-based food recommendation
-- moderation and reporting
+Implement the approved MVP scope from `03_scope_mvp.md` and `04_functional_requirements.md`.
 
 Use `AGENTS.md`, `docs/ai/repo-map.md`, and the approved project-discovery documents as source material.
 
@@ -26,27 +17,11 @@ This file is an implementation bootstrap helper, not primary product truth.
 
 ## Stack
 
-- Frontend: Angular
-- Backend: .NET 10 microservices
-- AI-oriented services: Python where model-heavy execution is a better fit
-- Local orchestration/composition: .NET Aspire
-- Datastores: PostgreSQL with ownership per service
-- Search: PostgreSQL-first search using full-text search, trigram similarity, and structured filters
-- AI integration: multiple AI providers behind an internal provider-agnostic abstraction layer
-- Authentication: self-hosted Keycloak as external identity provider
-- Frontend API style: API Gateway / BFF
-- Internal integration style: Hybrid REST + async events
-- Deployment: Kubernetes-based deployment target
-- Tenant model: multi-tenant
-- Async messaging: RabbitMQ
+Canonical stack and architecture truth live in `10_architecture.md`.
 
 ## Coding Conventions
 
-- Keep service boundaries explicit and contract-first
-- Do not use shared cross-service database access
-- Prefer deterministic business logic with AI assisting specific workflows rather than replacing core control flow
-- Design graceful fallback behavior for AI-assisted features
-- Keep Angular frontend feature-oriented and API contracts stable
+Use `AGENTS.md`, `docs/ai/workflows.md`, `docs/ai/engineering-rules.md`, and the relevant stack-rule files as the canonical implementation-rule sources.
 
 ## Files to Generate First
 
@@ -63,30 +38,10 @@ This file is an implementation bootstrap helper, not primary product truth.
 
 ## Suggested Build Order
 
-1. Define shared contracts, service templates, and Aspire composition
-2. Implement identity/auth and Angular app shell
-3. Implement posts/media plus canonical dish and place services
-4. Implement feed, saved-content, notification, and profile flows
-5. Implement PostgreSQL-first search and AI-assisted query handling
-6. Add a Python AI capability service behind stable .NET-facing contracts
-7. Implement moderation/reporting and basic trust rules
-8. Add multi-provider AI routing and fallback hardening
+Suggested build order follows the same intent as the file-generation list above; keep only one sequencing source when this helper is used.
 
 ## Need Confirmation
 
 - recommendation implementation scope details beyond the currently approved direction
 
-Monetization direction:
-
-- MVP should prioritize product validation over immediate monetization
-- implementation should preserve a path toward future monetization models
-
-Current approved direction:
-
-- recommendation should ship at medium personalization depth in MVP
-- implementation should preserve an upgrade path toward stronger personalization later
-
-Agent direction:
-
-- keep APIs and authorization design extensible enough for broader external agent actions later
-- MVP agent-facing exposure should remain private or controlled-access rather than public open developer access
+Approved monetization, recommendation, and agent-direction truth should be read from the canonical discovery and architecture docs instead of being restated here.

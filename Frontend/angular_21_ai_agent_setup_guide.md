@@ -22,6 +22,23 @@ It is also designed for workspaces where **each frontend domain maps to a backen
 
 You can use this document as source material when refining frontend rules, architecture, and Angular implementation standards.
 
+## Lightweight usage rule
+
+This file is a **deep reference**, not part of the default agent workflow.
+
+Default workflow should use:
+
+- `AGENTS.md`
+- `docs/ai/workflows.md`
+- `docs/ai/stack-rules/angular-tailwind.md`
+- `docs/ai/stack-rules/frontend-ui-unification.md` for UI work
+
+Use this guide only when:
+
+- a second Angular app is being introduced
+- the repo is moving toward a real `apps/ + libs/` frontend workspace
+- frontend architecture rules need deeper source material beyond the repo-specific stack rules
+
 Recommended setup:
 - keep the short mandatory contract in `AGENTS.md`
 - keep repo-specific active Angular rules in `docs/ai/stack-rules/angular-tailwind.md`

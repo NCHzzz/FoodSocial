@@ -71,148 +71,53 @@ This document defines the API specification for the FoodSocial platform. It cons
 
 ## Data Models for Key Entities
 
+Canonical entity and domain truth live in `07_domain_model.md`.
+
+This section should describe API-facing shapes and important deltas only.
+
+### Shared rule
+
+If the API-facing shape and domain model stay effectively identical, prefer updating `07_domain_model.md` first and keep only API-specific notes here.
+
 ### User
-```json
-{
-  "id": "uuid",
-  "username": "string",
-  "email": "string",
-  "displayName": "string",
-  "avatarUrl": "string",
-  "bio": "string",
-  "tasteProfile": {
-    "preferredCuisines": ["string"],
-    "dislikedIngredients": ["string"],
-    "dietaryRestrictions": ["string"]
-  },
-  "role": "enum: guest | user | admin",
-  "status": "enum: active | suspended | deleted",
-  "createdAt": "datetime",
-  "updatedAt": "datetime"
-}
-```
+
+- API response shape matches `07_domain_model.md` `#### User`.
+- Use the domain-model definition as canonical unless the API needs transport-specific omissions or expansions.
 
 ### Post (base)
-```json
-{
-  "id": "uuid",
-  "type": "enum: food | restaurant | recipe",
-  "authorId": "uuid",
-  "caption": "string",
-  "media": [{
-    "type": "enum: image | video",
-    "url": "string",
-    "thumbnailUrl": "string",
-    "caption": "string"
-  }],
-  "tags": ["string"],
-  "location": {
-    "latitude": "float",
-    "longitude": "float",
-    "address": "string",
-    "city": "string",
-    "country": "string"
-  },
-  "engagement": {
-    "likes": "integer",
-    "comments": "integer",
-    "shares": "integer",
-    "saves": "integer"
-  },
-  "status": "enum: published | hidden | deleted",
-  "createdAt": "datetime",
-  "updatedAt": "datetime"
-}
-```
+
+- API response shape matches `07_domain_model.md` `#### Post (base)`.
+- Keep API payloads explicit in examples, but do not treat this section as the authoritative domain-model home.
 
 ### FoodPost (extends Post)
-```json
-{
-  "id": "uuid",
-  "dishName": "string",
-  "dishId": "uuid",
-  "placeId": "uuid",
-  "rating": "integer (1-5)",
-  "priceRange": "enum: $ | $$ | $$$ | $$$$",
-  "tasteNotes": ["string"]
-}
-```
+
+- API shape matches `07_domain_model.md` `#### FoodPost (extends Post)`.
+- Keep request/response examples where a payload differs materially from the canonical entity shape.
 
 ### Place
-```json
-{
-  "id": "uuid",
-  "name": "string",
-  "description": "string",
-  "address": "string",
-  "location": {"latitude": "float", "longitude": "float"},
-  "cuisineTypes": ["string"],
-  "priceRange": "enum: $ | $$ | $$$ | $$$$",
-  "operatingHours": {"monday": {"open": "time", "close": "time"}},
-  "contact": {"phone": "string", "website": "string", "email": "string"},
-  "rating": {"average": "float", "count": "integer"},
-  "status": "enum: active | closed | suspended",
-  "createdAt": "datetime",
-  "updatedAt": "datetime"
-}
-```
+
+- API shape matches `07_domain_model.md` `#### Place`.
+- A minimal response may use lighter nested examples than the domain-model document as long as field meaning remains the same.
 
 ### Dish
-```json
-{
-  "id": "uuid",
-  "name": "string",
-  "description": "string",
-  "category": "string",
-  "cuisine": "string",
-  "ingredients": ["string"],
-  "dietaryInfo": {"isVegetarian": "boolean", "isVegan": "boolean", "isGlutenFree": "boolean", "isSpicy": "boolean"},
-  "nutrition": {"calories": "integer", "protein": "float", "carbs": "float", "fat": "float"},
-  "status": "enum: active | deprecated",
-  "createdAt": "datetime"
-}
-```
+
+- API shape matches `07_domain_model.md` `#### Dish`.
 
 ### Comment
-```json
-{
-  "id": "uuid",
-  "postId": "uuid",
-  "parentId": "uuid",
-  "authorId": "uuid",
-  "content": "string",
-  "status": "enum: visible | hidden | deleted",
-  "createdAt": "datetime",
-  "updatedAt": "datetime"
-}
-```
+
+- API shape matches `07_domain_model.md` `#### Comment`.
 
 ### Report
-```json
-{
-  "id": "uuid",
-  "reporterId": "uuid",
-  "targetType": "enum: post | user | comment",
-  "targetId": "uuid",
-  "reason": "enum: spam | inauthentic | abuse | illegal | other",
-  "description": "string",
-  "status": "enum: submitted | under_review | resolved_no_action | resolved_content_action | resolved_user_action",
-  "moderatorId": "uuid",
-  "resolution": "string",
-  "createdAt": "datetime",
-  "resolvedAt": "datetime"
-}
-```
+
+- API shape matches `07_domain_model.md` `#### Report`.
 
 ## API Design Principles
 
-1. **RESTful Design**: All APIs follow REST principles with clear resource-based URLs and standard HTTP methods.
-2. **JSON Format**: All request and response bodies use JSON format.
-3. **Authentication**: All endpoints (except auth endpoints) require a valid JWT token in the Authorization header.
-4. **Error Handling**: Standard HTTP status codes are used with detailed error messages in the response body.
-5. **Versioning**: The current MVP examples consistently use `/api/...` paths. If explicit path versioning is introduced later, it should be applied consistently across the full API surface.
-6. **Pagination**: All list endpoints implement cursor-based pagination.
-7. **Filtering and Sorting**: Endpoints that return lists support filtering and sorting via query parameters.
+1. **Authentication**: all endpoints except auth endpoints require a valid token.
+2. **Error Handling**: standard HTTP status codes with detailed error bodies.
+3. **Versioning**: if explicit path versioning is introduced later, apply it consistently.
+4. **Pagination**: list endpoints use cursor-based pagination.
+5. **Filtering and Sorting**: list endpoints support filtering and sorting via query parameters.
 
 ## Request/Response Examples
 
@@ -251,28 +156,24 @@ POST /api/search/assist
 ## Integration Patterns
 
 ### Authentication Model
-- External identity provider (Keycloak) integration
-- Application validates externally issued tokens
-- Internal platform manages roles and permissions
+
+Canonical architecture truth for auth integration lives in `10_architecture.md`.
 
 ### Frontend Integration
-- API Gateway / BFF pattern for Angular frontend
-- Centralized auth/session handling at the edge
-- Edge-layer controls such as rate limiting, feature gating, and safe fallback shaping should be applied in the BFF or equivalent frontend-facing boundary where appropriate
+
+Canonical BFF/API edge truth lives in `10_architecture.md`.
 
 ### Internal Services
-- Hybrid REST + async events for internal communication
-- REST/JSON for synchronous operations
-- Async events for eventual-consistency flows
-- Internal integration should preserve idempotency, additive contract evolution, and a clear distinction between source-of-truth writes versus rebuildable read-model updates
+
+Canonical internal integration truth lives in `10_architecture.md`.
 
 ### Media and file handling model
-- Binary uploads and media retrieval should follow an explicit storage and access model rather than treating media URLs as opaque implementation leftovers
-- API contracts should preserve enough media metadata for derivative handling, moderation review, and cleanup workflows
+
+Canonical media lifecycle direction lives in `10_architecture.md`.
 
 ### Runtime feature control model
-- AI-assist behavior, rollout-sensitive capabilities, and provider routing may be governed by runtime configuration or lightweight feature controls
-- Public contracts should fail safely when a feature is disabled or degraded rather than returning unclear behavior
+
+Canonical rollout and fallback direction lives in `10_architecture.md` and `05_non_functional_requirements.md`.
 
 ## Webhooks and Events
 

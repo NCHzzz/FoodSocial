@@ -8,11 +8,7 @@
 
 The product aims to solve food discovery and food sharing problems through a dedicated social platform focused entirely on food.
 
-The platform is intended to be a place where users can:
-
-- share good dishes, restaurants, and recipes
-- discover what to eat based on community content
-- find trusted food-related recommendations
+The platform should help users share food experiences, discover what to eat, and find more trusted food-related recommendations.
 
 ## Pain Points
 
@@ -28,22 +24,17 @@ The platform is intended to be a place where users can:
 
 ### Google Maps
 
-- Strong for place lookup
-- Weak for social interaction and food-centric sharing
-- Weak for answering “what should I eat now?” in a social/discovery context
+- strong for place lookup
+- weak for food-first social discovery and answering “what should I eat now?”
 
 ### TikTok
 
-- Strong for inspiration and short-form discovery
-- Can be distracting
-- Content quality and authenticity may be inconsistent
-- Retrieval and structured discovery are weaker than a focused platform
+- strong for inspiration and short-form discovery
+- weaker for trustworthy retrieval and structured food discovery
 
 ### General social media platforms
 
-- Too broad and noisy
-- Food content is mixed with unrelated content
-- Harder to build a focused food-interest community
+- too broad and noisy for focused food-interest discovery
 
 ## Product Opportunity
 
@@ -55,16 +46,15 @@ The product can differentiate by being:
 - more trustworthy than high-noise, high-seeding channels
 - eventually enhanced with AI-based food suggestions
 
+Detailed AI-native and MVP product direction live in `00_project_overview.md` and `04_functional_requirements.md`.
+
 ## Positioning Direction
 
 The product is trending toward an **AI-native food social platform**.
 
-This means the product should not only store and display food posts, but also help users answer food-related intent such as:
+This means the product should not only store and display food posts, but also help users answer food-related intent.
 
-- what should I eat now?
-- what is good in this area?
-- which dish matches my taste?
-- what should I try based on what I usually engage with?
+Detailed AI-native product direction lives in `00_project_overview.md`.
 
 ## Success Metrics
 
@@ -74,8 +64,7 @@ Primary MVP success metric:
 
 Public expansion gate after beta:
 
-- should be based on multiple factors rather than a single metric
-- primary factors: active/retained real users and technical stability
+- should be based on active/retained real users and technical stability rather than a single metric
 
 ## Monetization Direction
 

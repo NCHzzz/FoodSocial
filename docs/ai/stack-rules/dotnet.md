@@ -48,6 +48,38 @@ Use it for code-generation and review decisions. Product and architecture truth 
 - Dish and Place **MUST** remain explicit first-class owned boundaries
 - Tenant-aware services **MUST** keep tenant isolation explicit in authorization and data access boundaries
 
+## Naming Rules
+
+Follow universal naming semantics in `docs/ai/engineering-rules.md`.
+
+This section adds only .NET-specific naming mechanics, type-role conventions, and boundary-sensitive backend naming.
+
+### File and type naming
+
+- C# file names **MUST** use PascalCase and match the primary type they contain.
+- Public types **MUST** use PascalCase.
+- Interface names **MUST** use the `I` prefix only for true interfaces.
+
+### Type-role naming
+
+- Request/response and DTO types **MUST** be explicit about their transport or contract role.
+- Command, query, handler, validator, mapper, client, repository, and policy names **SHOULD** reflect their actual role directly.
+
+### Member naming
+
+- Async methods **SHOULD** use the `Async` suffix unless they are event handlers or framework-required exceptions.
+
+### Boundary naming rules
+
+- Names **MUST** distinguish clearly between domain concepts and infrastructure concepts.
+
+Examples that belong in this layer:
+
+- `GetProfileQuery`, `GetProfileQueryHandler`
+- `UpdateDishCommand`, `UpdateDishCommandHandler`
+- `UserProfileDto`, `CreatePostRequest`, `CreatePostResponse`
+- `LoadSessionAsync`, `PublishIntegrationEventAsync`
+
 ## API and Contract Rules
 
 - Public APIs **MUST** use explicit request and response models

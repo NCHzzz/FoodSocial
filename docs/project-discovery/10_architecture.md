@@ -85,26 +85,16 @@ Initial high-level flow:
 
 ## Why This Architecture
 
-Responsive web first is currently the preferred delivery strategy because it reduces scope compared with launching web and native mobile apps at the same time.
+Responsive web first reduces launch scope.
 
-This direction is especially appropriate because the project is currently planned as a solo build with a 2-month target timeline.
+Microservices is an intentional trade-off that preserves explicit service boundaries despite higher MVP complexity.
 
-The user has explicitly chosen microservices despite the higher delivery and operational risk for MVP.
+The architecture should optimize for both:
 
-At the same time, the architecture should preserve the product's AI-native direction by isolating search/recommendation logic so it can evolve independently.
-
-It should also avoid overly UI-centric modeling so that core platform capabilities remain consumable by AI agents in the future.
-
-The approved MVP architecture should optimize for A + B:
-
-- AI-assisted experiences for human users
-- structured platform contracts for AI-agent consumption
+- AI-assisted experiences for end users
+- structured contracts for AI-agent consumption
 
 It should not require full internal multi-agent behavior in the first release.
-
-The chosen API interaction style for MVP is an API Gateway / BFF so the Angular client does not need to integrate directly with multiple backend services.
-
-The chosen internal service communication style is Hybrid REST + async events, which is the most appropriate fit for a social platform using microservices and clean architecture.
 
 ### Chosen search architecture
 
@@ -195,26 +185,18 @@ Given the current scope and timeline, the architectural priority should still be
 
 ### Benefits
 
-- clearer service ownership around core domains such as Dish, Place, Feed, and Recommendation
-- better long-term alignment with agent-friendly contracts and future extraction needs
-- stronger explicit boundaries if the platform grows beyond MVP
-- Aspire improves local orchestration, dependency wiring, and observability consistency
-- PostgreSQL-first search keeps the search stack simpler for MVP
-- an API Gateway / BFF reduces frontend coupling to microservice topology
-- Hybrid REST + async events reduces synchronous coupling while preserving simple request-response behavior where needed
+- clearer service ownership
+- stronger contract boundaries
+- simpler MVP search stack
+- lower frontend coupling through the BFF
 
 ### Costs
 
-- not a full native mobile experience at launch
-- mobile-specific engagement patterns may be weaker than native apps
-- first-class place modeling increases MVP complexity and data management overhead
-- first-class dish modeling adds additional complexity in normalization, matching, and search design
-- significantly higher operational and coordination overhead for a solo 2-month MVP
-- more difficult local development, debugging, observability, and failure handling
-- cross-service consistency and contract drift risk
-- slower feature iteration during product validation
-- multiple AI providers introduce behavior drift, routing complexity, and additional cost controls
-- self-hosting Keycloak adds additional operational and deployment burden for a solo MVP
+- higher operational complexity for a solo MVP
+- slower feature iteration during validation
+- more cross-service consistency risk
+- added complexity from first-class Dish and Place modeling
+- added burden from self-hosted identity and multi-provider AI routing
 
 ## Environments
 

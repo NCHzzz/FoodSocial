@@ -2,9 +2,7 @@
 
 ## Purpose
 
-This file records meaningful implementation progress over time.
-
-Use it to append concise progress notes when the repository materially changes.
+This file records milestone-level implementation progress.
 
 ## Update Rule
 
@@ -18,13 +16,12 @@ Append an entry when any of the following happens:
 
 Do not append minor churn, repetitive edits, or every small refactor.
 
-This file is for milestone-level progress only.
-
 ## Size Control Rule
 
 - keep only recent and still-useful milestones in this file
 - when the log becomes large, move older entries into `docs/context/archive/` using archive files such as `progress_log.2026-Q2.md`
 - do not load full historical progress by default when current implementation state is enough
+- keep only one entry per day unless multiple milestones are materially different and still useful to future work
 
 ## Entry Format
 
@@ -81,13 +78,9 @@ This file is for milestone-level progress only.
 ## 2026-04-10
 
 - Completed the first production-path Identity slice across BFF, Identity, UserProfile, and AppHost verification.
-- Verified browser auth at the BFF edge, claim-driven ensure, lifecycle/RBAC/trusted-service rules, durable outbox publication, and UserProfile bootstrap completion in automated tests.
-- Audited the saved `.sisyphus` identity-completion plan against the live repo and finished the remaining verification-related work that the codebase still needed.
-- Fixed stale Identity test wiring, aligned bootstrap-completion routing, hardened fresh AppHost startup with session-scoped infra plus service-owned database creation/migration sequencing, and revalidated the full backend build plus Identity domain/application/API/AppHost suites.
-- Hardened the local auth stack by removing committed local secrets from the active BFF/AppHost/Keycloak bootstrap path and replacing them with Aspire secret parameters plus Keycloak realm environment placeholders.
-- Tightened trusted internal ensure authorization to require an authenticated trusted caller with matching authorized-party identity, switched the BFF logout edge to POST-only, and verified the updated browser/session/logout path through AppHost integration tests.
-- Updated the frontend Angular build chain and lockfile so the checked-in dependency tree now builds cleanly and reports zero vulnerabilities under `npm audit --package-lock-only`.
-- This unblocks the next service implementation phase on top of a working auth, identity, bootstrap-event foundation, and trustworthy local auth stack.
+- Revalidated browser auth, trusted-service authorization, outbox/bootstrap flow, and backend build/test health after fixing stale Identity wiring and startup sequencing issues.
+- Hardened local auth by removing committed local secrets from the active bootstrap path and replacing them with Aspire secret parameters and Keycloak environment placeholders.
+- This unblocks the next service implementation phase on top of a working auth, identity, and bootstrap-event foundation.
 
 ## 2026-04-13
 

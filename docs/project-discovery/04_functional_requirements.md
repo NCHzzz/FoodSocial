@@ -49,11 +49,6 @@ Users must be able to create posts related to food, restaurants, and recipes.
 - Restaurant/place content and recipe content are secondary but supported content types
 - Recipe content in MVP should support basic structured fields such as ingredients, steps, and media
 
-#### Initial technical implication
-
-- The post creation flow should likely start from a shared post model with content-type-specific metadata or sections
-- The feed and search experience should prioritize food entities, dish names, and dish context
-
 #### Recommended MVP default for a food-first post
 
 Required fields:
@@ -79,12 +74,6 @@ Deferred from default MVP posting flow unless proven necessary:
 - order link
 - advanced recipe structure inside food posts
 
-#### Why this default is recommended
-
-- It keeps post creation lightweight enough for a consumer social product
-- It preserves enough structure for search and future recommendation
-- It avoids making restaurant linkage mandatory, which would slow down posting and exclude non-restaurant food content
-
 #### Updated architectural direction
 
 Because `Dish` is now approved as a first-class MVP entity, the publishing flow should prefer canonical dish linkage when possible.
@@ -109,12 +98,6 @@ The Discover feed should combine signals such as:
 - engagement
 - food relevance
 - user interests and interaction history (lightweight MVP personalization)
-
-#### Why this default is recommended
-
-- It keeps the social graph experience clear and predictable
-- It allows exploration beyond the follow graph
-- It creates a natural place for future recommendation improvements without overcomplicating the Following feed
 
 ### FR-05 Engagement
 
@@ -147,16 +130,7 @@ Advanced discovery search.
 - support for AI-assisted food exploration
 - practical nearby and area-aware discovery behavior when location context is available
 
-#### Recommended implementation interpretation for MVP
-
-The product experience should feel AI-native, but the first implementation can still use a staged approach, such as:
-
-- structured filtering
-- ranking heuristics
-- lightweight AI assistance for query understanding or suggestion generation
-- PostgreSQL-friendly geo-aware ranking or filtering where nearby discovery materially improves the result
-
-This is recommended to keep the product feasible for a solo 2-month build while preserving the intended user experience.
+Implementation direction for search and ranking lives in `10_architecture.md`.
 
 ### FR-07 Follow Graph
 
@@ -202,13 +176,7 @@ Moderate trust system.
 - moderation remains manual-review-first in MVP with no automatic content hiding
 - moderation outcomes and evidence should remain auditable enough that later appeal or secondary review design does not require redesigning core moderation records
 
-#### Later-phase direction
-
-- intelligent auto-hide based on report type and trust/risk scoring
-
-- suspicious behavior scoring
-- trust score / reputation mechanisms
-- deeper anti-seeding intelligence
+Later-phase trust evolution should remain compatible with the MVP moderation records, but detailed later-phase direction is not canonical here.
 
 ## Use Cases
 
@@ -226,10 +194,7 @@ TBD
 
 #### Acceptance criteria
 
-- A user cannot publish a food post without a primary photo
-- A user cannot publish a food post without dish identity
-- A user cannot publish a food post without caption or review text
-- Optional metadata can be omitted without blocking publishing
+See `FR-03`, `BR-01`, `BR-02`, and `BR-03`.
 
 ### UC-02 Browse Following feed
 
@@ -240,8 +205,7 @@ TBD
 
 #### Acceptance criteria
 
-- The Following feed is visually and behaviorally distinct from Discover
-- The Following feed primarily shows posts from followed users, with limited mixed content allowed
+See `FR-04`, `BR-04`, and `BR-05`.
 
 ### UC-03 Browse Discover feed
 
@@ -252,8 +216,7 @@ TBD
 
 #### Acceptance criteria
 
-- The Discover feed ranks content using more than one signal
-- The Discover feed can show content from users the current user does not follow
+See `FR-04` and `BR-05`.
 
 ### UC-04 Use AI-assisted search and discovery
 
@@ -264,9 +227,7 @@ TBD
 
 #### Acceptance criteria
 
-- Search should support more than exact keyword lookup
-- Users should be able to discover relevant food content through structured signals and AI-assisted relevance
-- If AI assistance is unavailable, users should still be able to reach useful deterministic discovery results without a blocking failure
+See `FR-06` and `BR-08`.
 
 ### UC-05 Report suspicious or low-quality content
 
@@ -278,9 +239,7 @@ TBD
 
 #### Acceptance criteria
 
-- Users can report posts, users, and comments
-- Reported items enter a moderation review process
-- Moderators can dismiss reports, hide/delete content, warn users, and suspend/restrict users
+See `FR-09`.
 
 ## Business Rules
 
@@ -326,11 +285,11 @@ Media upload support is not sufficient by itself. The platform must preserve eno
 
 ### EF-01 User does not know the exact restaurant name
 
-The user can still publish the post without a linked restaurant.
+See `BR-03`.
 
 ### EF-02 The food is home-cooked
 
-The user can publish the post as a food post without restaurant metadata.
+See `BR-03`.
 
 ### EF-03 User wants to post multiple images
 

@@ -6,9 +6,13 @@
 
 ## User Personas
 
+This file keeps persona and permission framing.
+
+Canonical profile, taste-profile, and auth behavior live in `04_functional_requirements.md` and `11_frontend_structure.md`.
+
 ### 1. Food Sharer / Reviewer
 
-The main early-content persona.
+Primary early-content persona.
 
 #### Goals
 
@@ -24,7 +28,7 @@ The main early-content persona.
 
 ### 2. Food Explorer
 
-The main consumption and discovery persona.
+Primary consumption and discovery persona.
 
 #### Goals
 
@@ -41,7 +45,7 @@ The main consumption and discovery persona.
 
 ### 3. Recipe-Oriented User / Home Cook
 
-Currently a secondary persona in MVP.
+Secondary MVP persona.
 
 #### Goals
 
@@ -61,6 +65,10 @@ Currently a secondary persona in MVP.
 
 ## Roles
 
+This section defines role meaning.
+
+Use `## Permissions Overview` as the canonical permissions view.
+
 ### Guest (Assumption)
 
 - Browse public content such as basic feed and post views
@@ -75,20 +83,7 @@ Currently a secondary persona in MVP.
 - Manage profile
 - Report content
 
-#### Profile direction
-
-- MVP profile should show posts, saved items, follow counts, and a basic bio or taste profile
-- Profile design should preserve a clear path toward richer activity and recommendation-signal views later
-- MVP may allow users to edit a basic taste profile manually
-- Later profile evolution may combine manual taste preferences with AI-inferred taste understanding
-- MVP manual taste profile should include cuisine or tag preferences plus dislike/avoid preferences
-- Later evolution may add richer taste attributes such as spice level or flavor preferences
-
-#### Identity direction
-
-- authenticated through an external identity provider
-- application profile data remains owned by the platform
-- identity mapping and profile ownership should not be treated as the same backend concern
+Profile and identity direction are canonical in `04_functional_requirements.md` and `11_frontend_structure.md`.
 
 ### Admin / Moderator
 
@@ -97,6 +92,8 @@ Currently a secondary persona in MVP.
 - Handle abuse / seeding / spam
 
 ## Permissions Overview
+
+This is the canonical permissions section for MVP role behavior.
 
 ### Guest
 
@@ -107,8 +104,7 @@ Currently a secondary persona in MVP.
 
 ### MVP visibility direction
 
-- basic feed, post, and limited profile content should be public in MVP
-- private accounts or private posts are not part of the current MVP direction
+Public/private visibility direction is canonical in `04_functional_requirements.md`.
 
 ### Registered User
 
@@ -130,6 +126,8 @@ Currently a secondary persona in MVP.
 - Review moderation history and audit data
 
 ## Key Needs by Role
+
+This section is intentionally brief and only keeps needs not already obvious from persona and permission sections.
 
 ### Registered User
 

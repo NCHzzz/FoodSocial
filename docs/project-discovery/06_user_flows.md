@@ -6,29 +6,25 @@
 
 ## Core User Flows
 
+This file is the sequence-oriented user-flow view.
+
+Canonical product behavior, acceptance rules, and business rules live in `04_functional_requirements.md`.
+
 ### Flow 1: Discover what to eat
 
 Primary MVP flow.
 
 The product should optimize this flow before place-first and recipe-first flows.
 
-#### Recommended feed structure
-
-- `Following` tab: primarily social graph content with limited mixed content allowed
-- `Discover` tab: hybrid-ranked discovery content
-
-#### Discover ranking inputs (recommended MVP direction)
-
-- recency
-- engagement
-- food relevance
-- lightweight user-interest signals
+Detailed feed behavior and ranking truth live in `04_functional_requirements.md`.
 
 ### Flow 2: Share a good dish or restaurant
 
 Food-first posting should be the default mental model.
 
 The ideal posting flow should likely begin with the dish or food item, then optionally attach restaurant/place context and supporting review details.
+
+Canonical posting requirements and mandatory publish conditions live in `04_functional_requirements.md`.
 
 #### Recommended default steps
 
@@ -61,10 +57,7 @@ The approved direction is advanced discovery search rather than basic text-only 
 3. The system returns relevant dishes, places, tags, or posts
 4. The user applies filters or continues exploring
 
-#### Notes
-
-- The product should feel AI-native in search and discovery
-- The initial implementation may still use structured search plus ranking/relevance assistance instead of full semantic search everywhere
+Detailed search and AI-assist behavior live in `04_functional_requirements.md`.
 
 ### Flow 5: Follow a user and revisit saved content
 
@@ -83,9 +76,7 @@ Follow-notification direction:
 - notification design should preserve a path toward later moderation/account notifications
 - repost or reshare actions should also generate user-visible notifications in MVP
 
-#### Initial implication
-
-Following is not only a relationship feature. It is also a primary retrieval path through the dedicated Following feed, even if the feed still allows limited mixed content.
+Following as a dedicated retrieval path is canonical product truth in `04_functional_requirements.md`.
 
 ### Flow 6: Report suspicious or low-quality content
 
@@ -97,55 +88,33 @@ Recommended MVP flow:
 4. Admin takes action such as dismiss, hide, delete, warn, suspend, or restrict
 5. The outcome is logged for auditability
 
-Initial report reason categories should include spam/seeding, false or inauthentic content, abuse/harassment, and illegal or sensitive content.
-
-Appeal direction:
-
-- no end-user appeal flow in MVP
-- moderation outcomes should still be stored in a way that supports future appeal review flows
-- no automatic content hiding in MVP; future phases may add score-based auto-hide behavior
+Detailed moderation behavior, report categories, and appeal direction live in `04_functional_requirements.md`.
 
 ### Flow 7: Receive AI-based suggestions
 
-AI should support food decision-making, not just generic content ranking.
-
-Example user intents:
-
-- what should I eat now?
-- what is good near me?
-- what dish matches my recent interests?
-
-Priority direction:
-
-- suggest dishes first
-- then connect the user to relevant places
-- deliver the most important recommendation experience through the Discover feed in MVP
-- use medium-depth personalization in MVP while preserving a path to stronger personalization later
-- provide short explanation hints where recommendation trust or clarity benefits from it
+Detailed recommendation intent, targets, and explanation behavior live in `04_functional_requirements.md`.
 
 ## Alternate Flows
 
 ### AF-01 Dish cannot be matched canonically at publish time
 
-- The system should guide the user to resolve dish identity more strictly than place identity
-- The current MVP direction should block publish until canonical dish identity is resolved
+Canonical publish blocking rules live in `04_functional_requirements.md`.
 
 ### AF-02 Place cannot be matched canonically at publish time
 
-- The user may continue with fallback text for the place
-- The system should preserve enough data for later canonicalization or admin cleanup
+Canonical place fallback behavior lives in `04_functional_requirements.md`.
 
 ### AF-03 AI recommendation is unavailable
 
-- The feed and search experience should fall back to deterministic ranking and structured retrieval
-- The user should still be able to browse and search without blocking errors
+Canonical degraded-AI behavior lives in `04_functional_requirements.md`.
 
 ### AF-04 Report does not result in action
 
-- A moderator may dismiss the report
-- The report outcome should still be recorded for auditability
+Canonical moderation outcome behavior lives in `04_functional_requirements.md`.
 
 ## Approval / Status Transitions
+
+These remain useful as sequence-oriented flow/state references and intentionally stay thinner than the full requirement set.
 
 ### Moderation report status direction
 

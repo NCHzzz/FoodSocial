@@ -6,9 +6,7 @@
 
 ## Proposed Tables
 
-Initial recommended direction for MVP:
-
-These tables represent a logical data model and service-owned storage direction, not a single shared physical database schema for all services.
+These tables represent a logical data model and service-owned storage direction.
 
 - tenants
 - users
@@ -25,25 +23,15 @@ These tables represent a logical data model and service-owned storage direction,
 - follows
 - reports
 
-Possible MVP approach for food-first fields:
+Food-first field modeling may start in `posts` and move to a more specialized detail table only if content separation proves necessary.
 
-- keep core food fields in `posts` for speed of implementation, or
-- use a `food_post_details` table if content-type separation becomes clearer
+Recipe should remain a structured post type in MVP rather than a separate platform module.
 
-Recipe direction in MVP:
+Because `Place` and `Dish` are first-class MVP entities, the schema should support canonical storage and post linkage for both from the start.
 
-- keep recipe as a structured post type
-- support fields for ingredients and steps without introducing a fully separate recipe platform module yet
-
-Because `Place` is a first-class entity in MVP, the schema should support canonical place storage and post-to-place linkage from the start.
-
-Because `Dish` is also a first-class entity in MVP, the schema should support canonical dish storage and post-to-dish linkage from the start.
-
-Service-owned persistence should keep these models within the owning service boundary and use projections or replicated read models where cross-domain reads are needed.
+Service-owned persistence should keep these models within the owning service boundary.
 
 ## Primary Keys / Foreign Keys
-
-Recommended direction:
 
 - `users.tenant_id -> tenants.id`
 - `profiles.tenant_id -> tenants.id`
@@ -68,7 +56,7 @@ Recommended direction:
 
 ## Important Fields
 
-Recommended important post fields for MVP:
+Important post fields for MVP:
 
 - id
 - tenant_id
@@ -85,7 +73,7 @@ Recommended important post fields for MVP:
 - created_at
 - updated_at
 
-Recommended important place fields:
+Important place fields:
 
 - id
 - tenant_id
@@ -100,7 +88,7 @@ Recommended important place fields:
 - created_at
 - updated_at
 
-Recommended important dish fields:
+Important dish fields:
 
 - id
 - tenant_id
@@ -114,8 +102,6 @@ Recommended important dish fields:
 - updated_at
 
 ## Suggested Indexes
-
-Recommended initial indexes:
 
 - `posts(created_at desc)`
 - `posts(tenant_id, created_at desc)`
@@ -136,15 +122,10 @@ Recommended initial indexes:
 
 ## Soft Delete / Audit Fields
 
-Recommended direction:
-
 - soft delete for posts and comments
 - optional soft delete for places if admin reversibility is needed
 - audit fields for moderation-sensitive tables
 
 ## Initial Notes
 
-- The data model will likely need to support mixed content types under a shared post model or a polymorphic content strategy
-- Search requirements may influence indexing and denormalization decisions
-- First-class place modeling improves long-term discovery but increases MVP scope
-- First-class dish modeling further increases MVP scope, but strongly supports the Food-first AI-native direction
+This file should stay focused on logical schema direction, keys, and indexes.

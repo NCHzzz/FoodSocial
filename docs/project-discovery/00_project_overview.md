@@ -128,30 +128,32 @@ Long-term agent direction:
 
 ## Chosen Technology Stack
 
+- Detailed stack and architecture truth live in `10_architecture.md`.
+
+High-level summary:
+
 - Backend: .NET 10
-- AI-oriented services: Python is allowed where model-heavy capabilities justify it
-- Service orchestration and local composition: .NET Aspire
 - Frontend: Angular
-- Data storage: PostgreSQL with ownership per service
-- Search approach: PostgreSQL-first search for MVP
-- AI provider strategy: support multiple AI providers through an internal abstraction layer
-- External identity provider: self-hosted Keycloak
-- Deployment direction: Kubernetes-based deployment
-- Tenant model: multi-tenant
+- Datastores: PostgreSQL per service
+- Identity: self-hosted Keycloak
+- Local orchestration: .NET Aspire
+- Deployment direction: Kubernetes
+- Search MVP: PostgreSQL-first
 
 For MVP implementation, tenant should be treated primarily as an architectural isolation concern rather than a rich product-facing workflow driver.
 
 ## Architecture Snapshot for MVP
 
+- Canonical architecture truth lives in `10_architecture.md`.
+
+Snapshot:
+
 - Edge pattern: API Gateway / BFF
 - Internal communication: Hybrid REST + async events
 - Async backbone: RabbitMQ
-- Search model: PostgreSQL-first lexical search with structured filtering and typo tolerance
-- Geo-discovery model: practical nearby and area-aware retrieval without dedicated geo infrastructure in MVP
-- Media model: object-style storage plus explicit derivative and cleanup lifecycle
-- AI strategy: provider-agnostic integration with graceful deterministic fallback
-- Rollout safety: lightweight runtime feature controls instead of heavyweight experimentation infrastructure
-- Deferred by default: vector-first retrieval, heavyweight dedicated search, platform-wide cache dependency
+- Search MVP: PostgreSQL-first
+- AI strategy: provider-agnostic integration with deterministic fallback
+- Rollout safety: lightweight runtime feature controls
 
 ## Platform Direction
 

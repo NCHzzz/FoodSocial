@@ -126,9 +126,9 @@ The current docs acknowledge monitoring, backups, and graceful degradation, but 
 
 ## Current Clarifications
 
-- dish identity is required at publish time for food posts
-- saved content in MVP includes posts, dishes, and places
-- MVP agent-facing APIs use private or controlled-access exposure
+- dish identity requirement is canonical in `04_functional_requirements.md`
+- saved-content scope is canonical in `04_functional_requirements.md`
+- MVP agent-facing exposure direction is canonical in `10_architecture.md`
 
 ## Release Readiness Direction
 
@@ -137,41 +137,17 @@ The current docs acknowledge monitoring, backups, and graceful degradation, but 
 
 ## Agent Capability Direction
 
-- long-term direction: broader external agent actions are allowed if properly authorized
-- MVP should remain more conservative than the long-term target
-- MVP API exposure should stay private or controlled-access rather than fully public
-- exact real-world meaning of tenant beyond future extensibility intent
+Canonical agent capability and exposure direction live in `10_architecture.md`.
 
 ## Clarified Constraints
 
-- Timeline: 2 months
-- Delivery model: solo builder
-- Development approach: AI-assisted / vibe coding
+Canonical delivery constraints already live in `00_project_overview.md`.
 
 ## Assumptions Needing Validation
 
-- responsive web first is acceptable for MVP
-- native mobile apps can wait
-- ordering integration is not part of MVP
-- AI recommendation in MVP can start simple
-- moderate trust controls are sufficient for MVP if later-phase stronger trust mechanisms are planned
-- first-class place modeling is worth the added MVP complexity because place-aware discovery is important to the product vision
-- first-class dish modeling is worth the added MVP complexity because dish-aware discovery is central to the Food-first AI-native vision
-- PostgreSQL-first search is a sufficient MVP compromise before dedicated search infrastructure is considered
-- a thin internal AI provider abstraction is enough for MVP multi-provider support
-- self-hosted Keycloak is acceptable only if the product owner prioritizes control over lower operational burden
-- Kubernetes deployment is acceptable only if the product owner intentionally accepts higher operational burden in exchange for deployment standardization
-- multi-tenant architecture is acceptable only if the product owner intentionally accepts higher isolation and data-partitioning complexity in MVP
-- current tenant decision is future-oriented and should not force unnecessary MVP workflow complexity before tenant semantics are defined
-- RabbitMQ is the most practical async messaging choice for MVP compared with heavier event-streaming infrastructure
-- MVP can defer monetization only if later monetization extensibility is preserved in domain and platform contracts
-- mixed monetization is acceptable because affiliate / ordering commission is the clearest primary long-term direction
-- no appeal flow in MVP is acceptable only if moderation records remain extensible enough for future appeal workflows
-- manual-review-first moderation is acceptable for MVP only if future automation hooks remain possible
-- Vietnam-first launch scope is acceptable for MVP and reduces geographic modeling ambiguity
-- limited mixing in Following feed is acceptable only if UX and ranking keep the follower-priority clear
-- MVP can defer vector-search infrastructure unless real semantic retrieval needs or proven search-quality gaps justify it
-- selective caching is sufficient for MVP if cache ownership and invalidation stay explicit per use case rather than becoming an implicit platform crutch
+Keep this section focused on unresolved assumptions only.
+
+Canonical approved directions for architecture, moderation, search, launch market, and feed behavior already live in discovery source-of-truth docs and should not be restated here in full.
 
 Current state note:
 

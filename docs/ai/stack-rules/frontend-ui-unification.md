@@ -193,8 +193,6 @@ Define the semantic design-system roles that future primitives and pages should 
 
 ### Rules
 
-#### Token layer
-
 FoodSocial should use a two-layer token model:
 
 1. foundational values
@@ -202,52 +200,17 @@ FoodSocial should use a two-layer token model:
 
 The design-system doc should speak in **semantic roles**, not raw utility values.
 
-#### Foundational token categories
-
-- neutral colors
-- warm brand/accent colors
-- state colors
-- radius values
-- spacing values
-- elevation values
-- motion values
-
-#### Semantic token categories
-
-- surface roles: `surface-canvas`, `surface-default`, `surface-subtle`, `surface-soft`, `surface-inverse`, `surface-hero`
-- text roles: `text-primary`, `text-secondary`, `text-muted`, `text-inverse`, `text-accent`
-- border roles: `border-subtle`, `border-default`, `border-strong`, `border-accent`
-- action roles: `action-primary`, `action-accent`, `action-secondary`, `action-danger`
-- state roles: `state-success`, `state-warning`, `state-danger`, `state-info`, `state-gated`, `state-degraded`
-
-#### Typography roles
-
-- `type-display`
-- `type-page-title`
-- `type-section-title`
-- `type-card-title`
-- `type-body`
-- `type-body-support`
-- `type-metadata`
-- `type-eyebrow`
-- `type-status-label`
-- `type-button-label`
-
-#### Shape, spacing, and elevation roles
-
-- shape: `shape-pill`, `shape-panel`, `shape-feature`
-- spacing: `space-compact`, `space-default`, `space-comfortable`, `space-section`, `space-page`
-- elevation: `elevation-flat`, `elevation-soft`, `elevation-raised`, `elevation-hero`
-
-#### Icon roles
-
-- `icon-nav`
-- `icon-action`
-- `icon-inline-meta`
-- `icon-status`
-- `icon-decorative-support`
-
-#### Naming rules
+| Group | Roles / items |
+|---|---|
+| Foundational categories | neutral colors, warm brand/accent colors, state colors, radius values, spacing values, elevation values, motion values |
+| Surface roles | `surface-canvas`, `surface-default`, `surface-subtle`, `surface-soft`, `surface-inverse`, `surface-hero` |
+| Text roles | `text-primary`, `text-secondary`, `text-muted`, `text-inverse`, `text-accent` |
+| Border roles | `border-subtle`, `border-default`, `border-strong`, `border-accent` |
+| Action roles | `action-primary`, `action-accent`, `action-secondary`, `action-danger` |
+| State roles | `state-success`, `state-warning`, `state-danger`, `state-info`, `state-gated`, `state-degraded` |
+| Typography roles | `type-display`, `type-page-title`, `type-section-title`, `type-card-title`, `type-body`, `type-body-support`, `type-metadata`, `type-eyebrow`, `type-status-label`, `type-button-label` |
+| Shape / spacing / elevation | shape: `shape-pill`, `shape-panel`, `shape-feature`; spacing: `space-compact`, `space-default`, `space-comfortable`, `space-section`, `space-page`; elevation: `elevation-flat`, `elevation-soft`, `elevation-raised`, `elevation-hero` |
+| Icon roles | `icon-nav`, `icon-action`, `icon-inline-meta`, `icon-status`, `icon-decorative-support` |
 
 - Semantic roles **MUST** be named by purpose, not by pigment or Tailwind class.
 - Repeated UI **MUST** map to semantic roles before introducing new one-off values.
@@ -376,39 +339,16 @@ Define how interactive, async, and degraded states should be treated.
 
 ### Rules
 
-#### Interactive state model
-
-- `rest`
-- `hover`
-- `focus-visible`
-- `pressed`
-- `selected`
-- `disabled`
-
-#### Async/product state model
-
-- `loading`
-- `empty`
-- `retryable-error`
-- `hard-error`
-- `gated`
-- `degraded-ai`
-- `success`
-- `pending`
-
-#### State rules
+| State family | States / scope |
+|---|---|
+| Interactive state model | `rest`, `hover`, `focus-visible`, `pressed`, `selected`, `disabled` |
+| Async/product state model | `loading`, `empty`, `retryable-error`, `hard-error`, `gated`, `degraded-ai`, `success`, `pending` |
+| State-surface contract | inline state = field/local component; section state = list/module/subsection; page state = route-level major state; banner/message state = cross-page or contextual operational state |
 
 - Interactive state and async/product state **MUST NOT** be conflated.
 - `empty`, `error`, `gated`, and `degraded-ai` **MUST** remain distinct user-facing states.
 - “No results” and “AI unavailable” **MUST NOT** share the same copy or visual treatment.
 - `focus-visible` **MUST** remain obvious and never be removed for cosmetic reasons.
-
-#### State-surface contract
-
-- inline state — field-level or local component state
-- section state — list/module/subsection state
-- page state — route-level state such as gated, unavailable, or major empty state
-- banner/message state — cross-page or contextual operational state
 
 ### Current truth
 
@@ -427,17 +367,15 @@ Define how the system should reason about pages beyond individual route names.
 
 ### Rules
 
-#### Core page families
-
-- placeholder / route-intro page
-- feed page
-- detail page
-- create/edit page
-- search/discovery page
-- profile page
-- notification page
-
-#### Page-family rules
+| Page family | Core expectation |
+|---|---|
+| placeholder / route-intro page | simple scaffold, clear orientation, honest route framing |
+| feed page | fast scanning, stable hierarchy, content-first browsing |
+| detail page | deeper context without losing primary content hierarchy |
+| create/edit page | low-friction input flow with clear required vs optional structure |
+| search/discovery page | intent-first retrieval with structured exploration |
+| profile page | authored content, saved context, and identity grouped clearly |
+| notification page | chronology and scanability over ornament |
 
 - Each page family **SHOULD** define header anatomy, content priority, and state placement.
 - Page families **MUST** preserve the same meaning hierarchy across breakpoints.
@@ -498,15 +436,15 @@ Until the shared system grows further, future UI **SHOULD** stay visually compat
 
 - Agents **MUST** distinguish between what is implemented, what is implied, and what is only a target system rule.
 
-## 11. Adding or Extending Primitives
+## 11. Operational Appendix
 
 ### Purpose
 
-Give future agents one clear path for growing the shared UI layer.
+Provide a compact implementation appendix for future agents.
 
-### Rules
+### Adding or extending primitives
 
-When implementing UI, use this decision order:
+Use this decision order:
 
 1. If the page is a simple placeholder or route introduction, use `app-ui-page-scaffold`.
 2. If a panel is a repeated informational or state surface, start with `appUiSurface`.
@@ -516,65 +454,43 @@ When implementing UI, use this decision order:
 6. If the needed semantic role is not yet tokenized, use the closest current compatible implementation family and document it honestly.
 7. If the pattern is genuinely distinct, promote it deliberately into a new primitive instead of forking ad hoc markup.
 
-### When adding a new primitive
-
-Add a new primitive only when all are true:
+#### Add a new primitive only when
 
 - the pattern is repeated or clearly about to repeat
 - an existing primitive cannot absorb it cleanly
 - the new primitive has a stable purpose and boundary
 - it can be documented with the shared component spec contract
 
-### When extending an existing primitive
-
-Extend an existing primitive when:
+#### Extend an existing primitive when
 
 - the hierarchy is the same
 - the usage intent is the same
 - the visual change is a variant, not a different component family
 - extension reduces duplication without weakening the primitive boundary
 
-### Exceptions
+### Intentional system-breaking exceptions
 
-- Do not add or extend primitives just to hide markup complexity.
-
-## 12. Intentional System-Breaking Exceptions
-
-### Purpose
-
-Define when a page or component may break the default system intentionally.
-
-### Rules
-
-A page may break the default system intentionally only when one of these is true:
+A page may break the default system intentionally only when:
 
 - product truth requires a materially different hierarchy
 - a feature introduces a clearly different content model
 - a hero/editorial moment requires a distinct presentation family
 - a brand or partner mark requires a non-system icon or visual treatment
 
-### Required safeguards
+Required safeguards:
 
-- The exception **MUST** be intentional, not accidental.
-- The exception **MUST** preserve FoodSocial identity.
-- The exception **MUST NOT** weaken public/auth honesty, dish-first hierarchy, or accessibility.
-- The exception **MUST** be documentable in this file if it is likely to repeat.
+- the exception is intentional
+- FoodSocial identity is preserved
+- dish-first hierarchy, honesty, and accessibility are not weakened
+- the exception is documented here if it is likely to repeat
 
-### Current known exceptions
+Known exceptions:
 
-- `Discover` may use richer editorial framing than the default page scaffold.
-- Hero/editorial surfaces are a separate family and **MUST NOT** be forced into `UiSurfaceDirective`.
-- Brand marks and rare illustrations may use non-Phosphor visuals without redefining the icon system.
+- `Discover` may use richer editorial framing than the default page scaffold
+- hero/editorial surfaces are a separate family and must not be forced into `UiSurfaceDirective`
+- brand marks and rare illustrations may use non-Phosphor visuals without redefining the icon system
 
-## 13. Refactor Order
-
-### Purpose
-
-Keep design-system convergence incremental and honest.
-
-### Rules
-
-When aligning the frontend to this file, follow this order:
+### Refactor order
 
 1. use existing shared primitives where they already fit
 2. normalize shared scaffolds and state surfaces
@@ -583,13 +499,7 @@ When aligning the frontend to this file, follow this order:
 5. formalize semantic token mappings when repetition is proven
 6. refine page patterns route by route
 
-## 14. Design System Checklist for Agents
-
-### Purpose
-
-Final ship checklist for UI work.
-
-### Checklist
+### Design system checklist for agents
 
 - Does the screen still read as FoodSocial rather than generic SaaS/admin UI?
 - Is dish-first hierarchy preserved where relevant?
@@ -602,9 +512,7 @@ Final ship checklist for UI work.
 - If you introduced a new primitive, was the pattern truly distinct and documented honestly?
 - If you broke the system intentionally, is the exception justified, accessible, and still consistent with FoodSocial identity?
 
-## 15. Short Rule for Future Agents
-
-When in doubt:
+### Short rule for future agents
 
 - keep the shell quiet
 - keep food content primary
