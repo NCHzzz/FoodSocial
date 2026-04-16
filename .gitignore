@@ -56,3 +56,6 @@ pnpm-debug.log*
 
 # Test and visual artifacts
 **/__screenshots__/
+
+# AI agent local state
+.sisyphus/

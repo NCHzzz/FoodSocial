@@ -104,11 +104,11 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
                     follow.CreatedAtUtc,
                     Summary = new UserProfileSummary(shell.IdentityId, detail != null ? detail.DisplayName : null, detail != null ? detail.AvatarUrl : null)
                 })
-            .Take(normalizedLimit)
             .ToListAsync(cancellationToken);
 
         var boundedItems = items
             .OrderByDescending(item => item.CreatedAtUtc)
+            .Take(normalizedLimit)
             .Select(item => item.Summary)
             .ToArray();
 
@@ -140,11 +140,11 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
                     follow.CreatedAtUtc,
                     Summary = new UserProfileSummary(shell.IdentityId, detail != null ? detail.DisplayName : null, detail != null ? detail.AvatarUrl : null)
                 })
-            .Take(normalizedLimit)
             .ToListAsync(cancellationToken);
 
         var boundedItems = items
             .OrderByDescending(item => item.CreatedAtUtc)
+            .Take(normalizedLimit)
             .Select(item => item.Summary)
             .ToArray();
 
