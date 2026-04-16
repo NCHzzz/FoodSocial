@@ -42,6 +42,10 @@
   <Folder Name="/tests/Identity/Domain.Tests/">
     <Project Path="tests/Identity/Domain.Tests/FoodSocial.Identity.Domain.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/UserProfile/" />
+  <Folder Name="/tests/UserProfile/Api.Tests/">
+    <Project Path="tests/UserProfile/Api.Tests/FoodSocial.UserProfile.Api.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/FoodSocial.AppHost.Tests/">
     <Project Path="tests/FoodSocial.AppHost.Tests/FoodSocial.AppHost.Tests.csproj" />
   </Folder>
