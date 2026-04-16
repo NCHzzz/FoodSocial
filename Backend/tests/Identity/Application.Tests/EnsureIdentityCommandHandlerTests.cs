@@ -141,9 +141,6 @@ public sealed class EnsureIdentityCommandHandlerTests
             return Task.FromResult(roles);
         }
 
-        public Task<bool> AssignRoleAsync(string subject, string role, CancellationToken cancellationToken) =>
-            Task.FromResult(true);
-
         public Task<bool> EnsureRoleAssignedAsync(string subject, string role, CancellationToken cancellationToken) =>
             Task.FromResult(true);
 
@@ -205,9 +202,6 @@ public sealed class EnsureIdentityCommandHandlerTests
 
         public Task<IReadOnlyList<string>> GetRoleNamesBySubjectAsync(string subject, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<string>>([IdentityAppRoles.User]);
-
-        public Task<bool> AssignRoleAsync(string subject, string role, CancellationToken cancellationToken) =>
-            Task.FromResult(true);
 
         public Task<bool> EnsureRoleAssignedAsync(string subject, string role, CancellationToken cancellationToken) =>
             Task.FromResult(true);

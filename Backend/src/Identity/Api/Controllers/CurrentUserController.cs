@@ -71,14 +71,7 @@ public sealed class CurrentUserController(
             return missingSubjectResult!;
         }
 
-        var command = new EnsureIdentityCommand(
-            claims.Subject,
-            claims.PreferredUsername,
-            claims.Email);
-
-        var response = await _ensureIdentityCommandHandler.HandleAsync(command, cancellationToken);
-
-        return Ok(response);
+        return await EnsureIdentityForAuthenticatedUserAsync(claims, cancellationToken);
     }
 
     [HttpPost("internal/ensure")]
@@ -96,13 +89,14 @@ public sealed class CurrentUserController(
             return missingSubjectResult!;
         }
 
-        var command = new EnsureIdentityCommand(
-            claims.Subject,
-            claims.PreferredUsername,
-            claims.Email);
+        return await EnsureIdentityForAuthenticatedUserAsync(claims, cancellationToken);
+    }
 
-        var response = await _ensureIdentityCommandHandler.HandleAsync(command, cancellationToken);
-
+    private async Task<ActionResult<EnsureIdentityResponse>> EnsureIdentityForAuthenticatedUserAsync(
+        AuthenticatedIdentityClaims claims,
+        CancellationToken cancellationToken)
+    {
+        var response = await _ensureIdentityCommandHandler.HandleAsync(CreateEnsureIdentityCommand(claims), cancellationToken);
         return Ok(response);
     }
 
@@ -134,10 +128,15 @@ public sealed class CurrentUserController(
         return true;
     }
 
+    private static EnsureIdentityCommand CreateEnsureIdentityCommand(AuthenticatedIdentityClaims claims) =>
+        new(
+            claims.Subject,
+            claims.PreferredUsername,
+            claims.Email);
+
     private readonly record struct AuthenticatedIdentityClaims(
         string Subject,
         string? PreferredUsername,
         string? Email);
 }
-
 

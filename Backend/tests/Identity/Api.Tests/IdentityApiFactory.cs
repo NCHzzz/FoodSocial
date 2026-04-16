@@ -139,7 +139,19 @@ internal sealed class IdentityApiFactory : WebApplicationFactory<Program>
             }
         }
 
-        public Task<bool> AssignRoleAsync(string subject, string role, CancellationToken cancellationToken)
+        public Task<bool> EnsureRoleAssignedAsync(string subject, string role, CancellationToken cancellationToken) =>
+            StageRoleAssignmentAsync(subject, role);
+
+        public Task AddOutboxMessageAsync(FoodSocial.Contracts.Identity.UserProvisionedIntegrationEvent integrationEvent, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+
+        public Task<TResult> ExecuteInTransactionAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(operation);
+            return operation(cancellationToken);
+        }
+
+        private Task<bool> StageRoleAssignmentAsync(string subject, string role)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(subject);
 
@@ -161,18 +173,6 @@ internal sealed class IdentityApiFactory : WebApplicationFactory<Program>
                 _subjectRoles[subject] = [.. roles, normalizedRole];
                 return Task.FromResult(true);
             }
-        }
-
-        public Task<bool> EnsureRoleAssignedAsync(string subject, string role, CancellationToken cancellationToken) =>
-            AssignRoleAsync(subject, role, cancellationToken);
-
-        public Task AddOutboxMessageAsync(FoodSocial.Contracts.Identity.UserProvisionedIntegrationEvent integrationEvent, CancellationToken cancellationToken) =>
-            Task.CompletedTask;
-
-        public Task<TResult> ExecuteInTransactionAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken)
-        {
-            ArgumentNullException.ThrowIfNull(operation);
-            return operation(cancellationToken);
         }
 
         private static void ApplyState(IdentityUser user, IdentityLifecycleState targetState)

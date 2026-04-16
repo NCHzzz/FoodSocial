@@ -14,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\FoodSocial.Identity.Application.csproj" />
     <ProjectReference Include="..\Domain\FoodSocial.Identity.Domain.csproj" />
+    <ProjectReference Include="..\..\FoodSocial.Messaging\FoodSocial.Messaging.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

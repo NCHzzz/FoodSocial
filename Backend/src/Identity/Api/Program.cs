@@ -7,6 +7,7 @@ using FoodSocial.Identity.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using System.Net.Http;
 
@@ -169,6 +170,9 @@ static async Task EnsureDatabaseExistsAsync(IServiceProvider services, string da
 {
     using var scope = services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+    var logger = scope.ServiceProvider
+        .GetRequiredService<ILoggerFactory>()
+        .CreateLogger("FoodSocial.Identity.Api.DatabaseInitialization");
     var connectionString = dbContext.Database.GetConnectionString()
         ?? throw new InvalidOperationException("Identity database connection string is not configured.");
 
@@ -186,9 +190,11 @@ static async Task EnsureDatabaseExistsAsync(IServiceProvider services, string da
     try
     {
         await command.ExecuteNonQueryAsync();
+        logger.LogInformation("Created PostgreSQL database {DatabaseName} for Identity.Api startup.", databaseName);
     }
     catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.DuplicateDatabase)
     {
+        logger.LogInformation("PostgreSQL database {DatabaseName} already exists for Identity.Api startup.", databaseName);
     }
 }
 

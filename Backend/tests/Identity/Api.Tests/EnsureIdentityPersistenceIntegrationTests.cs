@@ -6,6 +6,7 @@ using FoodSocial.Identity.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace FoodSocial.Identity.Api.Tests;
@@ -138,7 +139,7 @@ public sealed class EnsureIdentityPersistenceIntegrationTests
             CancellationToken.None);
 
         var publisher = new CapturingIdentityIntegrationEventPublisher();
-        var drainWorker = new IdentityOutboxDrainWorker(dbContext, publisher);
+        var drainWorker = new IdentityOutboxDrainWorker(dbContext, publisher, NullLogger<IdentityOutboxDrainWorker>.Instance);
         var processedCount = await drainWorker.DrainOnceAsync(CancellationToken.None);
 
         processedCount.Should().Be(1);
@@ -169,7 +170,7 @@ public sealed class EnsureIdentityPersistenceIntegrationTests
             CancellationToken.None);
 
         var publisher = new ThrowingIdentityIntegrationEventPublisher(new InvalidOperationException("Simulated publish failure."));
-        var drainWorker = new IdentityOutboxDrainWorker(dbContext, publisher);
+        var drainWorker = new IdentityOutboxDrainWorker(dbContext, publisher, NullLogger<IdentityOutboxDrainWorker>.Instance);
         var processedCount = await drainWorker.DrainOnceAsync(CancellationToken.None);
 
         processedCount.Should().Be(0);
@@ -199,7 +200,7 @@ public sealed class EnsureIdentityPersistenceIntegrationTests
             CancellationToken.None);
 
         var publisher = new MissingRabbitMqConfigurationIdentityIntegrationEventPublisher();
-        var drainWorker = new IdentityOutboxDrainWorker(dbContext, publisher);
+        var drainWorker = new IdentityOutboxDrainWorker(dbContext, publisher, NullLogger<IdentityOutboxDrainWorker>.Instance);
 
         var processedCount = await drainWorker.DrainOnceAsync(CancellationToken.None);
 

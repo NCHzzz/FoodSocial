@@ -40,15 +40,6 @@ public interface IIdentityUserStore
     Task<IReadOnlyList<string>> GetRoleNamesBySubjectAsync(string subject, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Assigns an application-owned role to a subject.
-    /// </summary>
-    /// <param name="subject">The trusted subject.</param>
-    /// <param name="role">The canonical role name.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns><c>true</c> when the role assignment was created; otherwise <c>false</c> if it already existed.</returns>
-    Task<bool> AssignRoleAsync(string subject, string role, CancellationToken cancellationToken);
-
-    /// <summary>
     /// Ensures an application-owned role is staged for a subject without committing the persistence unit.
     /// </summary>
     /// <param name="subject">The trusted subject.</param>

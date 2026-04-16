@@ -74,14 +74,6 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
     }
 
     /// <inheritdoc />
-    public async Task<bool> AssignRoleAsync(string subject, string role, CancellationToken cancellationToken)
-    {
-        var created = await EnsureRoleAssignedAsync(subject, role, cancellationToken);
-        await SaveChangesAsync(cancellationToken);
-        return created;
-    }
-
-    /// <inheritdoc />
     public async Task<bool> EnsureRoleAssignedAsync(string subject, string role, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);

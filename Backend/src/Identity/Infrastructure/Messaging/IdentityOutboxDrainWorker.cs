@@ -1,5 +1,6 @@
 using FoodSocial.Identity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FoodSocial.Identity.Infrastructure.Messaging;
 
@@ -8,10 +9,12 @@ namespace FoodSocial.Identity.Infrastructure.Messaging;
 /// </summary>
 public sealed class IdentityOutboxDrainWorker(
     IdentityDbContext dbContext,
-    IIdentityIntegrationEventPublisher integrationEventPublisher)
+    IIdentityIntegrationEventPublisher integrationEventPublisher,
+    ILogger<IdentityOutboxDrainWorker> logger)
 {
     private readonly IdentityDbContext _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
     private readonly IIdentityIntegrationEventPublisher _integrationEventPublisher = integrationEventPublisher ?? throw new ArgumentNullException(nameof(integrationEventPublisher));
+    private readonly ILogger<IdentityOutboxDrainWorker> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>
     /// Gets or sets the maximum publish attempts before dead-letter state.
@@ -48,6 +51,11 @@ public sealed class IdentityOutboxDrainWorker(
             }
             catch (Exception exception)
             {
+                _logger.LogWarning(
+                    exception,
+                    "Identity outbox delivery failed for message {OutboxMessageId} on attempt {AttemptCount}.",
+                    message.Id,
+                    message.AttemptCount + 1);
                 message.MarkFailedRetryable(attemptedAtUtc, exception.Message, MaxRetryAttempts);
             }
         }

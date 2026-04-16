@@ -10,8 +10,10 @@ namespace FoodSocial.Identity.Infrastructure.Messaging;
 /// </summary>
 public sealed class RabbitMqIdentityIntegrationEventPublisher : IIdentityIntegrationEventPublisher, IDisposable
 {
-    private readonly IConnection _connection;
-    private readonly IChannel _channel;
+    private readonly ConnectionFactory _connectionFactory;
+    private readonly SemaphoreSlim _initializationLock = new(1, 1);
+    private IConnection? _connection;
+    private IChannel? _channel;
     private bool _disposed;
 
     /// <summary>
@@ -22,21 +24,10 @@ public sealed class RabbitMqIdentityIntegrationEventPublisher : IIdentityIntegra
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
-        var factory = new ConnectionFactory
+        _connectionFactory = new ConnectionFactory
         {
             Uri = new Uri(connectionString)
         };
-
-        _connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
-        _channel = _connection.CreateChannelAsync().GetAwaiter().GetResult();
-
-        _channel.ExchangeDeclareAsync(
-                exchange: "identity.events",
-                type: ExchangeType.Topic,
-                durable: true,
-                autoDelete: false)
-            .GetAwaiter()
-            .GetResult();
     }
 
     /// <inheritdoc />
@@ -44,7 +35,7 @@ public sealed class RabbitMqIdentityIntegrationEventPublisher : IIdentityIntegra
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        ThrowIfDisposed();
+        var channel = await GetChannelAsync(cancellationToken);
 
         var payloadBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(integrationEvent));
 
@@ -58,7 +49,7 @@ public sealed class RabbitMqIdentityIntegrationEventPublisher : IIdentityIntegra
             Timestamp = new AmqpTimestamp(integrationEvent.OccurredAtUtc.ToUnixTimeSeconds())
         };
 
-        await _channel.BasicPublishAsync(
+        await channel.BasicPublishAsync(
             exchange: "identity.events",
             routingKey: "identity.user.provisioned.v1",
             mandatory: false,
@@ -75,9 +66,55 @@ public sealed class RabbitMqIdentityIntegrationEventPublisher : IIdentityIntegra
             return;
         }
 
-        _channel.Dispose();
-        _connection.Dispose();
+        _channel?.Dispose();
+        _connection?.Dispose();
+        _initializationLock.Dispose();
         _disposed = true;
+    }
+
+    private async Task<IChannel> GetChannelAsync(CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+
+        if (_channel is not null)
+        {
+            return _channel;
+        }
+
+        await _initializationLock.WaitAsync(cancellationToken);
+
+        try
+        {
+            ThrowIfDisposed();
+
+            if (_channel is not null)
+            {
+                return _channel;
+            }
+
+            _connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
+            _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
+            await _channel.ExchangeDeclareAsync(
+                exchange: "identity.events",
+                type: ExchangeType.Topic,
+                durable: true,
+                autoDelete: false,
+                cancellationToken: cancellationToken);
+
+            return _channel;
+        }
+        catch
+        {
+            _channel?.Dispose();
+            _connection?.Dispose();
+            _channel = null;
+            _connection = null;
+            throw;
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
     }
 
     private void ThrowIfDisposed()
