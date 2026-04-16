@@ -9,7 +9,7 @@ import { UiPageScaffoldComponent } from '../../shared/ui/page-scaffold/ui-page-s
     <app-ui-page-scaffold
       eyebrow="Authenticated route area"
       title="Following"
-      description="The following feed is now a dedicated lazy route area. Guests are redirected away until a verified session exists."
+      description="Keep up with people you trust, with a calmer feed that prioritizes followed accounts over broader discovery."
     />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

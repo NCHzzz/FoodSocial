@@ -18,16 +18,18 @@ describe('AppShellComponent', () => {
   });
 
   let authSessionServiceMock = createAuthSessionServiceMock({
-    status: 'guest',
+    loadStatus: 'guest',
     session: null,
     isLoggingOut: false,
+    lastLoadFailed: false,
   });
 
   beforeEach(async () => {
     authSessionServiceMock = createAuthSessionServiceMock({
-      status: 'guest',
+      loadStatus: 'guest',
       session: null,
       isLoggingOut: false,
+      lastLoadFailed: false,
     });
 
     await TestBed.configureTestingModule({
@@ -56,7 +58,7 @@ describe('AppShellComponent', () => {
 
   it('should render authenticated navigation and logout entry for signed-in users', async () => {
     authSessionServiceMock = createAuthSessionServiceMock({
-      status: 'authenticated',
+      loadStatus: 'authenticated',
       session: {
         user: {
           subject: 'subject-123',
@@ -73,6 +75,7 @@ describe('AppShellComponent', () => {
         serverTimeUtc: '2026-04-13T03:00:00Z',
       },
       isLoggingOut: false,
+      lastLoadFailed: false,
     });
 
     await TestBed.resetTestingModule()

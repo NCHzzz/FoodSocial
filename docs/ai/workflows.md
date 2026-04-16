@@ -35,12 +35,16 @@ Always load:
 - `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/dotnet.md`
 
+These files must be explicitly read before backend implementation starts. Reading `AGENTS.md` or `repo-map.md` alone is not sufficient.
+
 ### Frontend work
 
 Always load:
 
 - `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/angular-tailwind.md`
+
+These files must be explicitly read before frontend implementation starts. Reading `AGENTS.md` or `repo-map.md` alone is not sufficient.
 
 ### UI work
 
@@ -49,6 +53,8 @@ Always load:
 - `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/angular-tailwind.md`
 - `docs/ai/stack-rules/frontend-ui-unification.md`
+
+These files must be explicitly read before UI implementation starts. Reading `AGENTS.md` or `repo-map.md` alone is not sufficient.
 
 ## Active Change Workflow Rule
 

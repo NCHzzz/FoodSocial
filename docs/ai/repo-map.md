@@ -33,6 +33,8 @@ For canonical loading order and task-type loading rules, use:
 
 For task-type loading rules, use `docs/ai/workflows.md`.
 
+Do not stop at this directory map. After locating the relevant rule files, explicitly load them before implementation.
+
 Use this file only to understand **where** each class of document lives.
 
 ## Layer Summary

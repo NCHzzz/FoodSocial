@@ -9,7 +9,7 @@ import { UiPageScaffoldComponent } from '../../shared/ui/page-scaffold/ui-page-s
     <app-ui-page-scaffold
       eyebrow="Authenticated route area"
       title="Notifications"
-      description="Notification center access stays gated behind authentication and is now represented as its own lazy route boundary."
+      description="See follows, likes, comments, and repost activity in one place without losing the path back to the food and people involved."
     />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

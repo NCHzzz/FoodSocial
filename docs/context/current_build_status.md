@@ -48,7 +48,9 @@ This file is a current-state snapshot, not a history log.
 - default WeatherForecast sample files were removed
 - Identity now has a production-oriented business slice with lifecycle state, claim-driven ensure flow, app-owned RBAC, trusted-service authorization rules, and durable outbox-backed bootstrap event publication
 - UserProfile now includes the first bootstrap consumer/completion path for identity-driven shell creation and explicit completion signaling back to Identity
+- UserProfile now also exposes the first application-owned profile graph slice, including profile retrieval/update, follow graph reads and mutations, and saved-item ownership APIs backed by additive EF Core persistence
 - FoodSocial.Contracts contains the active auth, identity, and bootstrap integration contracts used by the BFF, Identity, and UserProfile services
+- FoodSocial.Contracts now also contains the current UserProfile API contracts for profile, follow, and saved-item flows
 
 ### Local orchestration state
 
@@ -94,6 +96,7 @@ This file is a current-state snapshot, not a history log.
 - the BFF browser auth edge, authenticated session path, refresh behavior, and POST-only logout behavior are verified through AppHost-backed tests
 - Identity lifecycle, claim-driven ensure flow, duplicate-safe persistence, RBAC enforcement, trusted-service authorization, and durable outbox publication are covered by backend tests
 - UserProfile bootstrap consumption and explicit completion signaling back to Identity are verified through the production-path AppHost suite after routing-key and startup verification fixes
+- direct UserProfile API and persistence regression tests now cover profile retrieval/update, ownership enforcement, self-follow rejection, follow graph behavior, and owner-only saved items
 - the full AppHost-backed verification suite for the completed Identity slice passes end to end against the live local platform
 - frontend Angular app structure exists, but local build still depends on installed frontend packages in the working environment
 - frontend dependency remediation is in place and `npm audit --package-lock-only` now reports zero vulnerabilities for the current checked-in lockfile
@@ -115,11 +118,12 @@ This file is a current-state snapshot, not a history log.
 ## Current Blockers
 
 - Dish and Post still remain earlier-stage service slices compared with the completed Identity path
+- AppHost-backed UserProfile bootstrap verification is currently blocked by a hosted startup/orchestration issue where `user_profile_shells` does not appear in `userprofiledb` before the fixture deadline even though the direct UserProfile test suite passes
 - Redis usage is still intentionally deferred until a measured cache or short-lived-state need exists
 
 ## Current Priority
 
-- build the next service slice on top of the now-verified Identity, BFF, AppHost, bootstrap-event foundation, and first frontend auth shell
+- resolve the remaining AppHost-backed UserProfile bootstrap verification issue so the hosted platform path matches the now-complete direct UserProfile service implementation
 
 ## Delivery Artifact Note
 

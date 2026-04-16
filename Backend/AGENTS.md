@@ -11,6 +11,11 @@ For canonical loading order, use:
 
 ## Rule
 
+Before implementing backend code, explicitly load both:
+
+- `docs/ai/engineering-rules.md`
+- `docs/ai/stack-rules/dotnet.md`
+
 Backend code must follow `docs/ai/stack-rules/dotnet.md`.
 
 Typical backend truth set:

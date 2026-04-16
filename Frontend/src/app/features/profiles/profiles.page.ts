@@ -9,7 +9,7 @@ import { UiPageScaffoldComponent } from '../../shared/ui/page-scaffold/ui-page-s
     <app-ui-page-scaffold
       eyebrow="Public route area"
       title="Profiles"
-      description="Limited public profile browsing remains visible in guest mode, while editing and deeper account actions stay behind authenticated routes."
+      description="Browse public profiles, authored food posts, and the identity signals that help you decide whose taste you want to follow."
     />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

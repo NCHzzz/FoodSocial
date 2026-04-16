@@ -9,7 +9,7 @@ import { UiPageScaffoldComponent } from '../../shared/ui/page-scaffold/ui-page-s
     <app-ui-page-scaffold
       eyebrow="Authenticated route area"
       title="Create post"
-      description="This route area is reserved for the food-first post composition flow. It now lives behind an authenticated lazy route instead of being implied by root-shell navigation alone."
+      description="Create a food-first post with a clear dish identity, a primary photo, and the place context that helps other people decide what to try."
     />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

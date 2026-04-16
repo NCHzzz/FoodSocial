@@ -47,6 +47,10 @@ Read in this order:
 
 ## Rule Loading by Task Type
 
+- Task-type rule files are a required load step before implementation, not a soft reference.
+- After reading `docs/ai/workflows.md`, agents MUST explicitly load the rule files for the current task type before editing.
+- For backend, frontend, or UI work, also load `docs/ai/engineering-rules.md` together with the stack-specific rule files listed below.
+
 - backend code -> `docs/ai/stack-rules/dotnet.md`
 - frontend code -> `docs/ai/stack-rules/angular-tailwind.md`
 - UI / visual work -> `docs/ai/stack-rules/angular-tailwind.md` + `docs/ai/stack-rules/frontend-ui-unification.md`

@@ -13,14 +13,21 @@ For canonical loading order, use:
 
 If the task changes visual styling, layout, components, page patterns, shell/navigation presentation, or any other user-visible UI behavior, also load:
 
+- `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/frontend-ui-unification.md`
 
 ## Rule
+
+Before implementing frontend code, explicitly load both:
+
+- `docs/ai/engineering-rules.md`
+- `docs/ai/stack-rules/angular-tailwind.md`
 
 Frontend code must follow `docs/ai/stack-rules/angular-tailwind.md`.
 
 Visual/UI work must follow both:
 
+- `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/angular-tailwind.md`
 - `docs/ai/stack-rules/frontend-ui-unification.md`
 

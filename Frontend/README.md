@@ -11,7 +11,13 @@ The workspace is rooted directly at `Frontend/` and follows the repository’s A
 - TailwindCSS v4 as the primary styling layer
 - BFF-owned browser auth integration through `/api/auth/*`
 
-The Angular 21 setup guide in this folder is written for a future multi-app workspace, but this repository currently enforces its **coding and layering rules now** while treating the full `apps/ + libs/` shape as future-state guidance until a second Angular app exists.
+The repository's canonical frontend working rules live in:
+
+- `AGENTS.md`
+- `Frontend/AGENTS.md`
+- `../docs/ai/workflows.md`
+- `../docs/ai/stack-rules/angular-tailwind.md`
+- `../docs/ai/stack-rules/frontend-ui-unification.md` for visual/UI work
 
 ## Development server
 
@@ -41,7 +47,6 @@ Frontend/
 │       ├── core/
 │       ├── shell/
 │       └── features/
-└── angular_21_ai_agent_setup_guide.md
 ```
 
 ## Architecture notes
@@ -100,7 +105,6 @@ npm start
 
 ## Additional Resources
 
-- `angular_21_ai_agent_setup_guide.md` — detailed Angular 21 reference guide used to inform the repo-specific frontend rules
 - `../docs/ai/stack-rules/angular-tailwind.md` — repo frontend engineering rules
 - `../docs/ai/stack-rules/frontend-ui-unification.md` — canonical FoodSocial UI rules for visual/frontend implementation
 - [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli)

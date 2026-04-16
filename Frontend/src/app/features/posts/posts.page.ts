@@ -9,7 +9,7 @@ import { UiPageScaffoldComponent } from '../../shared/ui/page-scaffold/ui-page-s
     <app-ui-page-scaffold
       eyebrow="Public route area"
       title="Posts"
-      description="Public post browsing stays accessible to guests. This route exists as a lazy feature-area placeholder so the frontend can grow into real feed and post-detail slices without collapsing everything back into the root shell."
+      description="Explore public food posts, then move from dish curiosity into richer details, saves, and conversation when the content earns it."
     />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

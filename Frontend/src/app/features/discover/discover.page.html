@@ -1,35 +1,35 @@
 <section class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.9fr)] lg:items-stretch">
   <article class="rounded-[2rem] border border-orange-100 bg-slate-950 px-6 py-6 text-white shadow-[0_30px_80px_-40px_rgba(15,23,42,0.75)] sm:px-8 sm:py-8">
     <div class="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] text-orange-200">
-      Discover feed direction
+      Discover what to eat
     </div>
     <h1 class="mt-5 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-      Build the food-first browsing experience on top of a route-first Angular 21 shell.
+      Browse a food-first feed built around dishes, quick verdicts, and place context.
     </h1>
     <p class="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-      This discover area is now a lazy feature route instead of root-template clutter. Guests can browse safely, while authenticated users unlock deeper social retrieval and posting paths.
+      FoodSocial should help people decide what to try next without burying the dish behind profile noise. Guests can explore safely, while signed-in users unlock saves, follows, and posting.
     </p>
 
     <dl class="mt-8 grid gap-4 sm:grid-cols-3">
       <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
         <dt class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-200">Public by default</dt>
-        <dd class="mt-2 text-sm leading-6 text-slate-200">Discover, post browsing, and profile browsing remain visible to guests without forcing sign-in.</dd>
+        <dd class="mt-2 text-sm leading-6 text-slate-200">Guests can explore public-safe discovery without being pushed into auth before the product proves value.</dd>
       </div>
       <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <dt class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-200">Signals-first</dt>
-        <dd class="mt-2 text-sm leading-6 text-slate-200">Session state, nav state, and shell copy are all driven through Angular signals and computed state.</dd>
+        <dt class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-200">Dish-first</dt>
+        <dd class="mt-2 text-sm leading-6 text-slate-200">The discover experience should make the dish identity and quick decision support stronger than creator or engagement metadata.</dd>
       </div>
       <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <dt class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-200">BFF-owned auth</dt>
-        <dd class="mt-2 text-sm leading-6 text-slate-200">The SPA stays thin and treats the BFF as the only browser-facing auth/session edge.</dd>
+        <dt class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-200">Calm guidance</dt>
+        <dd class="mt-2 text-sm leading-6 text-slate-200">AI assistance should feel helpful and quiet, with deterministic fallback when richer signals are not available.</dd>
       </div>
     </dl>
   </article>
 
   <aside class="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.6)] backdrop-blur sm:p-7">
-    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Auth edge status</p>
-    <h2 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950">Session-aware discover shell</h2>
-    <p class="mt-3 text-sm leading-6 text-slate-600">The root app now hands layout to a shell and lets lazy route areas own feature content.</p>
+    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Your browsing state</p>
+    <h2 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950">Discover stays useful before and after sign-in</h2>
+    <p class="mt-3 text-sm leading-6 text-slate-600">Public browsing should remain honest for guests while making it clear which deeper actions become available once a session is active.</p>
 
     <div class="mt-6 space-y-4">
       <section appUiSurface="subtle">
@@ -37,31 +37,14 @@
           <div>
             <p class="text-sm font-semibold text-slate-950">Current access</p>
             <p class="mt-1 text-sm text-slate-600">
-              @if (isAuthenticated()) {
-                Signed in through the verified BFF browser flow.
-              } @else if (authState().status === 'loading') {
-                Verifying whether a trusted browser session already exists.
-              } @else {
-                Guest browsing remains available while deeper actions stay gated.
-              }
+              <span [textContent]="sessionAvailabilityMessage()"></span>
             </p>
           </div>
           <span
             class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
-            [class]="isAuthenticated()
-              ? 'bg-emerald-100 text-emerald-700'
-              : authState().status === 'loading'
-                ? 'bg-amber-100 text-amber-700'
-                : 'bg-slate-200 text-slate-700'"
-          >
-            @if (isAuthenticated()) {
-              Authenticated
-            } @else if (authState().status === 'loading') {
-              Checking
-            } @else {
-              Guest
-            }
-          </span>
+            [class]="sessionStatusClasses()"
+            [textContent]="sessionStatusLabel()"
+          ></span>
         </div>
       </section>
 

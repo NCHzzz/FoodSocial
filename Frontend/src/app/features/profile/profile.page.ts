@@ -9,7 +9,7 @@ import { UiPageScaffoldComponent } from '../../shared/ui/page-scaffold/ui-page-s
     <app-ui-page-scaffold
       eyebrow="Authenticated route area"
       title="Profile"
-      description="Profile management remains a signed-in capability. This placeholder keeps the route boundary explicit and ready for the real profile MVP slice."
+      description="Manage your profile, taste signals, and saved food activity from a signed-in space that stays clearly separate from public browsing."
     />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
