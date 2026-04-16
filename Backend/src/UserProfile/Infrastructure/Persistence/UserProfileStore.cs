@@ -93,7 +93,7 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             .AsNoTracking()
             .LongCountAsync(follow => follow.FollowedUserProfileShellId == ownership.ShellId, cancellationToken);
 
-        var items = await (
+        var rawItems = await (
                 from follow in _dbContext.UserFollows.AsNoTracking()
                 join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowerUserProfileShellId equals shell.Id
                 join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
@@ -102,14 +102,16 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
                 select new
                 {
                     follow.CreatedAtUtc,
-                    Summary = new UserProfileSummary(shell.IdentityId, detail != null ? detail.DisplayName : null, detail != null ? detail.AvatarUrl : null)
+                    shell.IdentityId,
+                    DisplayName = detail != null ? detail.DisplayName : null,
+                    AvatarUrl = detail != null ? detail.AvatarUrl : null
                 })
             .ToListAsync(cancellationToken);
 
-        var boundedItems = items
+        var boundedItems = rawItems
             .OrderByDescending(item => item.CreatedAtUtc)
             .Take(normalizedLimit)
-            .Select(item => item.Summary)
+            .Select(item => new UserProfileSummary(item.IdentityId, item.DisplayName, item.AvatarUrl))
             .ToArray();
 
         return new UserProfileConnectionsSnapshot(boundedItems, totalCount);
@@ -129,7 +131,7 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             .AsNoTracking()
             .LongCountAsync(follow => follow.FollowerUserProfileShellId == ownership.ShellId, cancellationToken);
 
-        var items = await (
+        var rawItems = await (
                 from follow in _dbContext.UserFollows.AsNoTracking()
                 join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowedUserProfileShellId equals shell.Id
                 join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
@@ -138,14 +140,16 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
                 select new
                 {
                     follow.CreatedAtUtc,
-                    Summary = new UserProfileSummary(shell.IdentityId, detail != null ? detail.DisplayName : null, detail != null ? detail.AvatarUrl : null)
+                    shell.IdentityId,
+                    DisplayName = detail != null ? detail.DisplayName : null,
+                    AvatarUrl = detail != null ? detail.AvatarUrl : null
                 })
             .ToListAsync(cancellationToken);
 
-        var boundedItems = items
+        var boundedItems = rawItems
             .OrderByDescending(item => item.CreatedAtUtc)
             .Take(normalizedLimit)
-            .Select(item => item.Summary)
+            .Select(item => new UserProfileSummary(item.IdentityId, item.DisplayName, item.AvatarUrl))
             .ToArray();
 
         return new UserProfileConnectionsSnapshot(boundedItems, totalCount);
