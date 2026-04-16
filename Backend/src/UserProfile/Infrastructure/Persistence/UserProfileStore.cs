@@ -93,6 +93,10 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             .AsNoTracking()
             .LongCountAsync(follow => follow.FollowedUserProfileShellId == ownership.ShellId, cancellationToken);
 
+        // NOTE: EF Core SQLite cannot translate DateTimeOffset in SQL ORDER BY, so we
+        // materialize the full result set and apply sort+limit in memory. The result set is
+        // bounded per user (NormalizeLimit caps at 50), making this acceptable for MVP.
+        // For production PostgreSQL, consider pushing OrderByDescending + Take into SQL.
         var rawItems = await (
                 from follow in _dbContext.UserFollows.AsNoTracking()
                 join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowerUserProfileShellId equals shell.Id
@@ -131,6 +135,10 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             .AsNoTracking()
             .LongCountAsync(follow => follow.FollowerUserProfileShellId == ownership.ShellId, cancellationToken);
 
+        // NOTE: EF Core SQLite cannot translate DateTimeOffset in SQL ORDER BY, so we
+        // materialize the full result set and apply sort+limit in memory. The result set is
+        // bounded per user (NormalizeLimit caps at 50), making this acceptable for MVP.
+        // For production PostgreSQL, consider pushing OrderByDescending + Take into SQL.
         var rawItems = await (
                 from follow in _dbContext.UserFollows.AsNoTracking()
                 join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowedUserProfileShellId equals shell.Id
