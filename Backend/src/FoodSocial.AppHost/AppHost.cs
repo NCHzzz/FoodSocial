@@ -81,8 +81,10 @@ var identityApi = builder
 var userProfileApi = builder
     .AddProject<Projects.FoodSocial_UserProfile_Api>("userprofile-api")
     .WithReference(userprofileDb)
+    .WithReference(keycloak)
     .WithReference(rabbitMq)
     .WaitFor(postgres)
+    .WaitFor(keycloak)
     .WaitFor(rabbitMq);
 
 var dishApi = builder

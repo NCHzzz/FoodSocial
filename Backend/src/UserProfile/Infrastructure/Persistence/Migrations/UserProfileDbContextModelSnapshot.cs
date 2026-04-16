@@ -22,6 +22,147 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.SavedDish", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DishId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserProfileShellId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserProfileShellId", "DishId")
+                        .IsUnique();
+
+                    b.ToTable("saved_dishes", (string)null);
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.SavedPlace", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PlaceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserProfileShellId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserProfileShellId", "PlaceId")
+                        .IsUnique();
+
+                    b.ToTable("saved_places", (string)null);
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.SavedPost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserProfileShellId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserProfileShellId", "PostId")
+                        .IsUnique();
+
+                    b.ToTable("saved_posts", (string)null);
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.UserFollow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FollowedUserProfileShellId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FollowerUserProfileShellId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FollowedUserProfileShellId");
+
+                    b.HasIndex("FollowerUserProfileShellId", "FollowedUserProfileShellId")
+                        .IsUnique();
+
+                    b.ToTable("user_follows", (string)null);
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.UserProfileDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Bio")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DietaryRestrictions")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DislikedIngredients")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PreferredCuisines")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserProfileShellId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserProfileShellId")
+                        .IsUnique();
+
+                    b.ToTable("user_profile_details", (string)null);
+                });
+
             modelBuilder.Entity("FoodSocial.UserProfile.Domain.UserProfileShell", b =>
                 {
                     b.Property<Guid>("Id")
@@ -48,6 +189,62 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("user_profile_shells", (string)null);
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.SavedDish", b =>
+                {
+                    b.HasOne("FoodSocial.UserProfile.Domain.UserProfileShell", null)
+                        .WithMany()
+                        .HasForeignKey("UserProfileShellId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.SavedPlace", b =>
+                {
+                    b.HasOne("FoodSocial.UserProfile.Domain.UserProfileShell", null)
+                        .WithMany()
+                        .HasForeignKey("UserProfileShellId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.SavedPost", b =>
+                {
+                    b.HasOne("FoodSocial.UserProfile.Domain.UserProfileShell", null)
+                        .WithMany()
+                        .HasForeignKey("UserProfileShellId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.UserFollow", b =>
+                {
+                    b.HasOne("FoodSocial.UserProfile.Domain.UserProfileShell", null)
+                        .WithMany()
+                        .HasForeignKey("FollowedUserProfileShellId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FoodSocial.UserProfile.Domain.UserProfileShell", null)
+                        .WithMany()
+                        .HasForeignKey("FollowerUserProfileShellId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.UserProfileDetail", b =>
+                {
+                    b.HasOne("FoodSocial.UserProfile.Domain.UserProfileShell", null)
+                        .WithOne("Detail")
+                        .HasForeignKey("FoodSocial.UserProfile.Domain.UserProfileDetail", "UserProfileShellId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.UserProfileShell", b =>
+                {
+                    b.Navigation("Detail");
                 });
 #pragma warning restore 612, 618
         }

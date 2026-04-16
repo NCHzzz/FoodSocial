@@ -25,6 +25,11 @@ public sealed class UserProfileShell
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; private set; } = DateTimeOffset.UtcNow;
 
+    /// <summary>
+    /// Gets the application-owned profile details for this shell.
+    /// </summary>
+    public UserProfileDetail? Detail { get; private set; }
+
     private UserProfileShell()
     {
         Subject = string.Empty;
@@ -42,5 +47,16 @@ public sealed class UserProfileShell
 
         IdentityId = identityId;
         Subject = subject;
+    }
+
+    /// <summary>
+    /// Ensures application-owned profile details exist for this shell.
+    /// </summary>
+    /// <param name="displayName">The initial display name, when known.</param>
+    /// <returns>The ensured profile details.</returns>
+    public UserProfileDetail EnsureDetail(string? displayName)
+    {
+        Detail ??= new UserProfileDetail(Id, displayName);
+        return Detail;
     }
 }

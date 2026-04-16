@@ -31,6 +31,7 @@ public static class DependencyInjection
                 npgsql.MigrationsHistoryTable("__UserProfileMigrationsHistory")));
 
         services.AddScoped<IUserProfileShellStore, UserProfileShellStore>();
+        services.AddScoped<IUserProfileStore, UserProfileStore>();
 
         var rabbitMqConnectionString = configuration.GetConnectionString("rabbitmq")
             ?? configuration["ConnectionStrings:rabbitmq"]

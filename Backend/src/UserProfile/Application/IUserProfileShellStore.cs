@@ -17,6 +17,14 @@ public interface IUserProfileShellStore
     Task<UserProfileShell?> FindByIdentityIdAsync(Guid identityId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Finds an existing profile shell by subject.
+    /// </summary>
+    /// <param name="subject">The owning identity subject.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The matching shell, when present.</returns>
+    Task<UserProfileShell?> FindBySubjectAsync(string subject, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new profile shell to the persistence boundary.
     /// </summary>
     /// <param name="shell">The shell to add.</param>

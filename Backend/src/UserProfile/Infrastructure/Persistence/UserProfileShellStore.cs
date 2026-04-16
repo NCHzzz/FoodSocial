@@ -21,6 +21,14 @@ public sealed class UserProfileShellStore(UserProfileDbContext dbContext) : IUse
     }
 
     /// <inheritdoc />
+    public Task<UserProfileShell?> FindBySubjectAsync(string subject, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subject);
+
+        return _dbContext.UserProfileShells.SingleOrDefaultAsync(shell => shell.Subject == subject, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task AddAsync(UserProfileShell shell, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(shell);
@@ -37,7 +45,7 @@ public sealed class UserProfileShellStore(UserProfileDbContext dbContext) : IUse
         catch (DbUpdateException exception) when (IsDuplicateIdentityViolation(exception))
         {
             var identityId = GetPendingIdentityId();
-            throw new UserProfileBootstrapDuplicateIdentityException(identityId, exception);
+            throw new UserProfileBootstrapConflictException(identityId, exception);
         }
     }
 

@@ -11,6 +11,7 @@
     <PackageReference Include="RabbitMQ.Client" />
     <ProjectReference Include="..\Application\FoodSocial.UserProfile.Application.csproj" />
     <ProjectReference Include="..\Domain\FoodSocial.UserProfile.Domain.csproj" />
+    <ProjectReference Include="..\..\FoodSocial.Messaging\FoodSocial.Messaging.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

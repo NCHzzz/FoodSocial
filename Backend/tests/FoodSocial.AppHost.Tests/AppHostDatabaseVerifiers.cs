@@ -149,6 +149,32 @@ internal sealed class PostgreSqlDatabaseVerifier(string connectionString, string
         return await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<string>> ListTablesAsync(string? schemaName = null, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = new NpgsqlCommand(
+            """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = @schemaName
+            ORDER BY table_name;
+            """,
+            connection);
+
+        command.Parameters.AddWithValue("schemaName", schemaName ?? "public");
+
+        var tableNames = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            tableNames.Add(reader.GetString(0));
+        }
+
+        return tableNames;
+    }
+
     private static string QualifyTableName(string tableName, string? schemaName)
     {
         if (string.IsNullOrWhiteSpace(tableName))

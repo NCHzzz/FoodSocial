@@ -17,6 +17,9 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddScoped<UserProfileBootstrapService>();
+        services.AddScoped<UserProfileService>();
+        services.AddScoped<UserFollowService>();
+        services.AddScoped<UserSavedItemsService>();
         return services;
     }
 }

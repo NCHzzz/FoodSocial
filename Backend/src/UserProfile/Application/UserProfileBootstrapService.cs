@@ -29,6 +29,7 @@ public sealed class UserProfileBootstrapService(IUserProfileShellStore userProfi
                 }
 
                 var shell = new UserProfileShell(integrationEvent.IdentityId, integrationEvent.Subject);
+                _ = shell.EnsureDetail(integrationEvent.PreferredUsername);
                 await _userProfileShellStore.AddAsync(shell, transactionCancellationToken);
 
                 try
@@ -36,11 +37,12 @@ public sealed class UserProfileBootstrapService(IUserProfileShellStore userProfi
                     await _userProfileShellStore.SaveChangesAsync(transactionCancellationToken);
                     return new UserProfileBootstrapResult(shell, Created: true);
                 }
-                catch (UserProfileBootstrapDuplicateIdentityException)
+                catch (UserProfileBootstrapConflictException)
                 {
                     var duplicateShell = await _userProfileShellStore.FindByIdentityIdAsync(integrationEvent.IdentityId, transactionCancellationToken)
+                        ?? await _userProfileShellStore.FindBySubjectAsync(integrationEvent.Subject, transactionCancellationToken)
                         ?? throw new InvalidOperationException(
-                            $"The persistence boundary reported a duplicate UserProfile shell for identity '{integrationEvent.IdentityId}', but the existing shell could not be reloaded.");
+                            $"The persistence boundary reported a UserProfile bootstrap conflict for identity '{integrationEvent.IdentityId}' and subject '{integrationEvent.Subject}', but the existing shell could not be reloaded.");
 
                     return new UserProfileBootstrapResult(duplicateShell, Created: false);
                 }
