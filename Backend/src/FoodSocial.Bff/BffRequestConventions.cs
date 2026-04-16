@@ -8,7 +8,7 @@ internal static class BffRequestConventions
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return request.Headers.Authorization.ToString().StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase);
+        return ResolveBearerTokenOrNull(request) is not null;
     }
 
     public static bool TryNormalizeReturnUrl(string? returnUrl, out string normalizedReturnUrl)
@@ -29,13 +29,31 @@ internal static class BffRequestConventions
         return true;
     }
 
-    public static string? TryResolveBearerToken(HttpRequest request)
+    public static string? ResolveBearerTokenOrNull(HttpRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var authorizationHeader = request.Headers.Authorization.ToString();
-        return authorizationHeader.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase)
-            ? authorizationHeader[BearerPrefix.Length..].Trim()
+        return TryExtractBearerToken(request.Headers.Authorization.ToString(), out var bearerToken)
+            ? bearerToken
             : null;
+    }
+
+    private static bool TryExtractBearerToken(string authorizationHeader, out string? bearerToken)
+    {
+        if (!authorizationHeader.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            bearerToken = null;
+            return false;
+        }
+
+        var normalizedToken = authorizationHeader[BearerPrefix.Length..].Trim();
+        if (string.IsNullOrWhiteSpace(normalizedToken))
+        {
+            bearerToken = null;
+            return false;
+        }
+
+        bearerToken = normalizedToken;
+        return true;
     }
 }

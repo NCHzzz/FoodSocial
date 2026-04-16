@@ -3,6 +3,7 @@ using FoodSocial.Contracts.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FoodSocial.Bff;
@@ -27,31 +28,30 @@ internal static class BffAuthEndpoints
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        if (!BffRequestConventions.TryNormalizeReturnUrl(returnUrl, out var safeReturnUrl))
+        if (!TryCreateRedirectProperties(returnUrl, out var redirectProperties))
         {
-            return CreateInvalidReturnUrlResult();
+            return CreateInvalidReturnUrlResult(httpContext);
         }
 
         if (httpContext.User.Identity?.IsAuthenticated == true)
         {
-            return Results.LocalRedirect(safeReturnUrl);
+            return Results.LocalRedirect(redirectProperties.RedirectUri!);
         }
 
-        var properties = new AuthenticationProperties
-        {
-            RedirectUri = safeReturnUrl
-        };
-
-        return Results.Challenge(properties, [OpenIdConnectDefaults.AuthenticationScheme]);
+        return Results.Challenge(redirectProperties, [OpenIdConnectDefaults.AuthenticationScheme]);
     }
 
     private static async Task<IResult> GetSessionAsync(
         HttpContext httpContext,
         IdentityOrchestrationHttpClient identityClient,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(identityClient);
+        ArgumentNullException.ThrowIfNull(loggerFactory);
+
+        var logger = loggerFactory.CreateLogger(typeof(BffAuthEndpoints).FullName!);
 
         var principal = await AuthenticateSessionPrincipalAsync(httpContext);
         if (principal is null)
@@ -69,12 +69,19 @@ internal static class BffAuthEndpoints
                 useTrustedInternalEnsure: !BffRequestConventions.HasBearerAuthorizationHeader(httpContext.Request),
                 cancellationToken);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            return Results.Problem(
+            logger.LogError(
+                exception,
+                "The BFF failed to complete identity orchestration for the current session request. TraceId: {TraceId}",
+                httpContext.TraceIdentifier);
+
+            return Results.Problem(CreateProblemDetails(
                 title: "Identity orchestration failed",
                 detail: "The BFF could not complete the identity orchestration request.",
-                statusCode: StatusCodes.Status500InternalServerError);
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://foodsocial/errors/bff/identity-orchestration-failed",
+                traceId: httpContext.TraceIdentifier));
         }
 
         var sessionResponse = BuildCurrentUserResponse(principal, ensuredIdentity);
@@ -99,19 +106,16 @@ internal static class BffAuthEndpoints
             ServerTimeUtc: DateTimeOffset.UtcNow));
     }
 
-    private static IResult Logout(string? returnUrl)
+    private static IResult Logout(HttpContext httpContext, string? returnUrl)
     {
-        if (!BffRequestConventions.TryNormalizeReturnUrl(returnUrl, out var safeReturnUrl))
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        if (!TryCreateRedirectProperties(returnUrl, out var redirectProperties))
         {
-            return CreateInvalidReturnUrlResult();
+            return CreateInvalidReturnUrlResult(httpContext);
         }
 
-        var properties = new AuthenticationProperties
-        {
-            RedirectUri = safeReturnUrl
-        };
-
-        return Results.SignOut(properties, [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]);
+        return Results.SignOut(redirectProperties, [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]);
     }
 
     private static CurrentUserResponse BuildCurrentUserResponse(ClaimsPrincipal user, EnsureIdentityResponse ensuredIdentity)
@@ -166,7 +170,7 @@ internal static class BffAuthEndpoints
             return accessToken;
         }
 
-        return BffRequestConventions.TryResolveBearerToken(httpContext.Request);
+        return BffRequestConventions.ResolveBearerTokenOrNull(httpContext.Request);
     }
 
     private static IResult CreateUnauthenticatedResult(HttpContext httpContext)
@@ -187,11 +191,56 @@ internal static class BffAuthEndpoints
             [OpenIdConnectDefaults.AuthenticationScheme]);
     }
 
-    private static IResult CreateInvalidReturnUrlResult() =>
-        Results.BadRequest(new ProblemDetails
+    private static IResult CreateInvalidReturnUrlResult(HttpContext httpContext)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        return Results.BadRequest(CreateProblemDetails(
+            title: "Invalid return URL",
+            detail: "The return URL must be a relative path within the BFF.",
+            statusCode: StatusCodes.Status400BadRequest,
+            type: "https://foodsocial/errors/bff/invalid-return-url",
+            traceId: httpContext.TraceIdentifier));
+    }
+
+    private static bool TryCreateRedirectProperties(string? returnUrl, out AuthenticationProperties authenticationProperties)
+    {
+        if (!BffRequestConventions.TryNormalizeReturnUrl(returnUrl, out var safeReturnUrl))
         {
-            Title = "Invalid return URL",
-            Detail = "The return URL must be a relative path within the BFF.",
-            Status = StatusCodes.Status400BadRequest
-        });
+            authenticationProperties = default!;
+            return false;
+        }
+
+        authenticationProperties = new AuthenticationProperties
+        {
+            RedirectUri = safeReturnUrl,
+        };
+
+        return true;
+    }
+
+    private static ProblemDetails CreateProblemDetails(
+        string title,
+        string detail,
+        int statusCode,
+        string type,
+        string traceId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        ArgumentException.ThrowIfNullOrWhiteSpace(type);
+        ArgumentException.ThrowIfNullOrWhiteSpace(traceId);
+
+        return new ProblemDetails
+        {
+            Type = type,
+            Title = title,
+            Detail = detail,
+            Status = statusCode,
+            Extensions =
+            {
+                ["traceId"] = traceId,
+            },
+        };
+    }
 }

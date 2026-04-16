@@ -35,7 +35,7 @@ internal sealed class IdentityOrchestrationHttpClient(HttpClient httpClient, ICo
 
         if (string.IsNullOrWhiteSpace(subject) && !string.IsNullOrWhiteSpace(accessToken))
         {
-            var tokenClaims = TryReadClaimsFromAccessToken(accessToken);
+            var tokenClaims = TryReadAccessTokenClaims(accessToken);
             subject = tokenClaims?.Subject;
             preferredUsername ??= tokenClaims?.PreferredUsername;
             email ??= tokenClaims?.Email;
@@ -110,7 +110,7 @@ internal sealed class IdentityOrchestrationHttpClient(HttpClient httpClient, ICo
             $"Identity ensure orchestration failed with {(int)response.StatusCode} {response.ReasonPhrase}.");
     }
 
-    private static AuthenticatedTokenClaims? TryReadClaimsFromAccessToken(string accessToken)
+    private AuthenticatedTokenClaims? TryReadAccessTokenClaims(string accessToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
 
@@ -136,8 +136,9 @@ internal sealed class IdentityOrchestrationHttpClient(HttpClient httpClient, ICo
                 GetStringProperty(root, IdentityClaims.PreferredUsername),
                 GetStringProperty(root, IdentityClaims.Email));
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            _logger.LogWarning(exception, "The BFF could not read fallback claims from the access token payload.");
             return null;
         }
     }
