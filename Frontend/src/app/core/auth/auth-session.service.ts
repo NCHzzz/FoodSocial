@@ -4,7 +4,6 @@ import { firstValueFrom } from 'rxjs';
 import { BROWSER_WINDOW } from './browser-window.token';
 import {
   AuthSessionState,
-  createGuestAuthSessionState,
   createLoadingAuthSessionState,
 } from './auth-session.models';
 import { AuthSessionApi } from './infrastructure/auth-session.api';
@@ -18,18 +17,23 @@ export class AuthSessionService {
   private static readonly loginEndpoint = '/api/auth/login';
   private static readonly logoutEndpoint = '/api/auth/logout';
 
-  readonly state = signal<AuthSessionState>(createLoadingAuthSessionState());
+  private readonly authSessionState = signal<AuthSessionState>(createLoadingAuthSessionState());
+
+  readonly authState = this.authSessionState.asReadonly();
 
   loadSession(): Promise<AuthSessionState> {
-    this.state.set(createLoadingAuthSessionState());
+    this.authSessionState.set(createLoadingAuthSessionState());
 
     const sessionLoadPromise: Promise<AuthSessionState> = firstValueFrom(
       this.authSessionApi.loadSessionState(),
     ).then((nextState) => {
-      this.state.set(nextState);
+      this.authSessionState.set(nextState);
       this.sessionLoadPromise = null;
 
       return nextState;
+    }).catch((error: unknown) => {
+      this.sessionLoadPromise = null;
+      throw error;
     });
 
     this.sessionLoadPromise = sessionLoadPromise;
@@ -42,9 +46,9 @@ export class AuthSessionService {
       return this.sessionLoadPromise;
     }
 
-    const currentState = this.state();
+    const currentState = this.authSessionState();
 
-    if (currentState.status !== 'loading') {
+    if (currentState.loadStatus !== 'loading') {
       return Promise.resolve(currentState);
     }
 
@@ -56,7 +60,7 @@ export class AuthSessionService {
   }
 
   markLogoutPending(): void {
-    this.state.update((currentState) => ({
+    this.authSessionState.update((currentState) => ({
       ...currentState,
       isLoggingOut: true,
     }));

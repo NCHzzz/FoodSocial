@@ -72,15 +72,17 @@ describe('AuthSessionService', () => {
     request.flush(authenticatedSession);
 
     await expect(sessionLoadPromise).resolves.toEqual({
-      status: 'authenticated',
+      loadStatus: 'authenticated',
       session: authenticatedSession,
       isLoggingOut: false,
+      lastLoadFailed: false,
     });
 
-    expect(service.state()).toEqual({
-      status: 'authenticated',
+    expect(service.authState()).toEqual({
+      loadStatus: 'authenticated',
       session: authenticatedSession,
       isLoggingOut: false,
+      lastLoadFailed: false,
     });
   });
 
@@ -91,15 +93,38 @@ describe('AuthSessionService', () => {
     request.flush('unauthenticated', { status: 401, statusText: 'Unauthorized' });
 
     await expect(sessionLoadPromise).resolves.toEqual({
-      status: 'guest',
+      loadStatus: 'guest',
       session: null,
       isLoggingOut: false,
+      lastLoadFailed: false,
     });
 
-    expect(service.state()).toEqual({
-      status: 'guest',
+    expect(service.authState()).toEqual({
+      loadStatus: 'guest',
       session: null,
       isLoggingOut: false,
+      lastLoadFailed: false,
+    });
+  });
+
+  it('keeps non-auth session failures explicit instead of collapsing them into guest state', async () => {
+    const sessionLoadPromise = service.loadSession();
+
+    const request = httpTestingController.expectOne('/api/auth/session');
+    request.flush('downstream failure', { status: 503, statusText: 'Service Unavailable' });
+
+    await expect(sessionLoadPromise).resolves.toEqual({
+      loadStatus: 'unavailable',
+      session: null,
+      isLoggingOut: false,
+      lastLoadFailed: true,
+    });
+
+    expect(service.authState()).toEqual({
+      loadStatus: 'unavailable',
+      session: null,
+      isLoggingOut: false,
+      lastLoadFailed: true,
     });
   });
 
@@ -130,14 +155,16 @@ describe('AuthSessionService', () => {
     request.flush(authenticatedSession);
 
     await expect(firstRequest).resolves.toEqual({
-      status: 'authenticated',
+      loadStatus: 'authenticated',
       session: authenticatedSession,
       isLoggingOut: false,
+      lastLoadFailed: false,
     });
     await expect(ensuredRequest).resolves.toEqual({
-      status: 'authenticated',
+      loadStatus: 'authenticated',
       session: authenticatedSession,
       isLoggingOut: false,
+      lastLoadFailed: false,
     });
   });
 

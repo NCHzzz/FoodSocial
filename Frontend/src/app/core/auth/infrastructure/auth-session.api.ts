@@ -6,6 +6,7 @@ import {
   AuthSessionState,
   CurrentUserResponse,
   createGuestAuthSessionState,
+  createUnavailableAuthSessionState,
 } from '../auth-session.models';
 
 @Injectable({ providedIn: 'root' })
@@ -19,11 +20,12 @@ export class AuthSessionApi {
       .get<CurrentUserResponse>(AuthSessionApi.sessionEndpoint, { withCredentials: true })
       .pipe(
         map((session): AuthSessionState => ({
-          status: 'authenticated',
+          loadStatus: 'authenticated',
           session,
           isLoggingOut: false,
+          lastLoadFailed: false,
         })),
-        catchError(() => of(createGuestAuthSessionState())),
+        catchError((error) => of(error.status === 401 ? createGuestAuthSessionState() : createUnavailableAuthSessionState())),
       );
   }
 }

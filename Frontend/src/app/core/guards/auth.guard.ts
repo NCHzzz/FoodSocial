@@ -8,5 +8,5 @@ export const authenticatedRouteGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const currentState = await authSessionService.ensureSession();
 
-  return currentState.status === 'authenticated' ? true : router.createUrlTree(['/discover']);
+  return currentState.loadStatus === 'authenticated' ? true : router.createUrlTree(['/discover']);
 };

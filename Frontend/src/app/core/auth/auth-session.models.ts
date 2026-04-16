@@ -18,22 +18,32 @@ export interface CurrentUserResponse {
   serverTimeUtc: string;
 }
 
-export type AuthSessionStatus = 'loading' | 'guest' | 'authenticated';
+export type AuthSessionLoadStatus = 'loading' | 'guest' | 'authenticated' | 'unavailable';
 
 export interface AuthSessionState {
-  status: AuthSessionStatus;
+  loadStatus: AuthSessionLoadStatus;
   session: CurrentUserResponse | null;
   isLoggingOut: boolean;
+  lastLoadFailed: boolean;
 }
 
 export const createLoadingAuthSessionState = (): AuthSessionState => ({
-  status: 'loading',
+  loadStatus: 'loading',
   session: null,
   isLoggingOut: false,
+  lastLoadFailed: false,
 });
 
 export const createGuestAuthSessionState = (): AuthSessionState => ({
-  status: 'guest',
+  loadStatus: 'guest',
   session: null,
   isLoggingOut: false,
+  lastLoadFailed: false,
+});
+
+export const createUnavailableAuthSessionState = (): AuthSessionState => ({
+  loadStatus: 'unavailable',
+  session: null,
+  isLoggingOut: false,
+  lastLoadFailed: true,
 });
