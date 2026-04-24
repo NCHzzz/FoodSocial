@@ -44,6 +44,7 @@ This file is a current-state snapshot, not a history log.
 
 - clean architecture layering exists for the first four services
 - BFF exists as a separate API edge project
+- BFF now exposes a narrow browser-facing UserProfile facade for profile, follow graph, and saved-item routes, forwarding to the UserProfile service through Aspire service discovery with cookie-or-bearer token propagation for protected operations
 - `ServiceDefaults` is referenced by the API projects
 - default WeatherForecast sample files were removed
 - Identity now has a production-oriented business slice with lifecycle state, claim-driven ensure flow, app-owned RBAC, trusted-service authorization rules, and durable outbox-backed bootstrap event publication
@@ -60,6 +61,7 @@ This file is a current-state snapshot, not a history log.
 - RabbitMQ resource is configured in AppHost and is exercised by the Identity to UserProfile bootstrap workflow
 - Redis resource is configured in AppHost
 - Keycloak is configured as an Aspire-managed local resource with import-driven realm bootstrap for development
+- AppHost now supplies the Keycloak realm/audience configuration required by the hosted UserProfile service, keeping hosted UserProfile JWT validation aligned with Identity and BFF
 - Keycloak realm bootstrap now uses environment-variable placeholders for local secrets instead of committed literal client credentials and demo passwords
 - AppHost now supplies local BFF client secret, demo-user password, and internal trust secret through Aspire secret parameters at runtime
 - AppHost-backed verification now uses session-scoped local infrastructure resources and service-owned database creation before migrations, which keeps fresh local verification runs reproducible
@@ -67,7 +69,8 @@ This file is a current-state snapshot, not a history log.
 ### Authentication and identity flow state
 
 - BFF now also contains the browser-facing Keycloak OpenID Connect login/session/logout edge flow
-- BFF session and refresh behavior are wired through the verified browser auth edge and identity orchestration path
+- BFF session and refresh behavior are wired through the verified browser auth edge and identity orchestration path, and now reject blocked Identity lifecycle states such as Suspended and Deleted at the auth edge
+- BFF browser session cookies now have explicit HttpOnly, Secure, SameSite, expiration, and sliding-expiration settings
 - BFF logout is now POST-only and verified through the AppHost browser flow
 - Identity.Api uses authenticated claim-driven ensure behavior instead of caller-supplied subject input
 - service-side auth relies on Aspire Keycloak resource wiring instead of a hardcoded localhost authority
@@ -94,14 +97,18 @@ This file is a current-state snapshot, not a history log.
 - Keycloak issues access tokens successfully through the imported `foodsocial` realm
 - BFF login now redirects correctly to the Keycloak login page through the local auth edge
 - the BFF browser auth edge, authenticated session path, refresh behavior, and POST-only logout behavior are verified through AppHost-backed tests
+- focused BFF tests verify blocked lifecycle-state handling for session/refresh and explicit browser-cookie settings
+- focused BFF tests verify UserProfile facade forwarding, protected-route 401 behavior, cookie access-token propagation, and upstream ProblemDetails/status preservation
 - Identity lifecycle, claim-driven ensure flow, duplicate-safe persistence, RBAC enforcement, trusted-service authorization, and durable outbox publication are covered by backend tests
-- UserProfile bootstrap consumption and explicit completion signaling back to Identity are verified through the production-path AppHost suite after routing-key and startup verification fixes
+- UserProfile bootstrap consumption and explicit completion signaling back to Identity are verified through the production-path AppHost suite after hosted Keycloak configuration and bounded-retry dead-letter terminal handling fixes
 - direct UserProfile API and persistence regression tests now cover profile retrieval/update, ownership enforcement, self-follow rejection, follow graph behavior, and owner-only saved items
 - the full AppHost-backed verification suite for the completed Identity slice passes end to end against the live local platform
 - frontend Angular app structure exists, but local build still depends on installed frontend packages in the working environment
 - frontend dependency remediation is in place and `npm audit --package-lock-only` now reports zero vulnerabilities for the current checked-in lockfile
 - frontend unit tests now cover the auth session service plus guest/authenticated shell rendering for the login/logout UI slice
 - frontend production build now succeeds with the auth-aware shell changes
+- frontend now includes typed UserProfile BFF facade models/client coverage plus a minimal public profile route foundation at `/profiles/:identityId` and a guarded own-profile entry scaffold
+- frontend unit tests and production build pass for the UserProfile facade foundation slice
 
 ### Platform maturity notes
 
@@ -118,12 +125,11 @@ This file is a current-state snapshot, not a history log.
 ## Current Blockers
 
 - Dish and Post still remain earlier-stage service slices compared with the completed Identity path
-- AppHost-backed UserProfile bootstrap verification is currently blocked by a hosted startup/orchestration issue where `user_profile_shells` does not appear in `userprofiledb` before the fixture deadline even though the direct UserProfile test suite passes
 - Redis usage is still intentionally deferred until a measured cache or short-lived-state need exists
 
 ## Current Priority
 
-- resolve the remaining AppHost-backed UserProfile bootstrap verification issue so the hosted platform path matches the now-complete direct UserProfile service implementation
+- continue from the verified Identity/UserProfile/BFF foundation into the next MVP vertical slice, with Dish, Place, and Post still earlier-stage compared with the completed Identity/UserProfile path
 
 ## Delivery Artifact Note
 

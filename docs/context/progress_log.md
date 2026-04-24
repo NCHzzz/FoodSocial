@@ -87,3 +87,9 @@ Do not append minor churn, repetitive edits, or every small refactor.
 - Added the first Angular auth-aware FoodSocial shell with guest login entry, authenticated logout entry, and BFF session-state wiring in the web frontend.
 - Added local Angular dev-server proxy support plus matching local Keycloak callback/origin bootstrap entries so browser auth can round-trip through the BFF during frontend development.
 - This unblocks frontend-authenticated UX work on top of the verified BFF auth edge instead of relying on backend URLs alone.
+
+## 2026-04-24
+
+- Added a browser-facing UserProfile facade in the BFF and a typed Angular UserProfile client with a minimal public profile route foundation.
+- Hardened BFF session handling for blocked Identity lifecycle states and explicit browser cookie settings, then fixed hosted UserProfile startup by passing its Keycloak realm/audience configuration through AppHost and made RabbitMQ bounded-retry poison messages land deterministically in their DLQs.
+- This unblocks the next frontend profile-edit flow and the next MVP product vertical slice on top of a verified Identity/UserProfile/BFF foundation.
