@@ -26,4 +26,4 @@
 
 - [x] 5.1 Add unit and integration tests for bootstrap continuity plus profile retrieval/update validation and authorization behavior.
 - [x] 5.2 Add tests for follow-graph idempotency, self-follow rejection, saved-item idempotency, and owner-only saved-item reads.
-- [ ] 5.3 Run the relevant backend test suites, migration verification, and solution build checks for the changed `UserProfile`, contracts, and any BFF paths.
+- [x] 5.3 Run the relevant backend test suites, migration verification, and solution build checks for the changed `UserProfile`, contracts, and any BFF paths.
