@@ -128,6 +128,37 @@ public static class RabbitMqBoundedRetryTopologyConfigurator
             cancellationToken: cancellationToken);
     }
 
+    public static async Task PublishDeadLetterAsync(
+        IChannel channel,
+        RabbitMqBoundedRetryTopology topology,
+        BasicDeliverEventArgs eventArgs,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(channel);
+        ArgumentNullException.ThrowIfNull(topology);
+        ArgumentNullException.ThrowIfNull(eventArgs);
+
+        var properties = new BasicProperties
+        {
+            Persistent = eventArgs.BasicProperties.Persistent,
+            ContentType = eventArgs.BasicProperties.ContentType,
+            ContentEncoding = eventArgs.BasicProperties.ContentEncoding,
+            CorrelationId = eventArgs.BasicProperties.CorrelationId,
+            MessageId = eventArgs.BasicProperties.MessageId,
+            Type = eventArgs.BasicProperties.Type,
+            Timestamp = eventArgs.BasicProperties.Timestamp,
+            Headers = CloneHeaders(eventArgs.BasicProperties.Headers),
+        };
+
+        await channel.BasicPublishAsync(
+            exchange: topology.DeadLetterExchangeName,
+            routingKey: topology.DeadLetterRoutingKey,
+            mandatory: false,
+            basicProperties: properties,
+            body: eventArgs.Body,
+            cancellationToken: cancellationToken);
+    }
+
     public static int GetRetryCount(IReadOnlyBasicProperties? basicProperties)
     {
         if (basicProperties?.Headers is null

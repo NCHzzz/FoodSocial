@@ -3,6 +3,7 @@ using System.Text.Json;
 using FoodSocial.Contracts.Identity;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 
 namespace FoodSocial.AppHost.Tests;
 
@@ -85,6 +86,25 @@ internal sealed class AppHostRabbitMqHelper : IAsyncDisposable
 
         var declareOk = await _channel.QueueDeclarePassiveAsync(queueName, cancellationToken);
         return declareOk.MessageCount;
+    }
+
+    public async Task PurgeQueuesIfPresentAsync(IEnumerable<string> queueNames, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(queueNames);
+
+        foreach (var queueName in queueNames)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(queueName);
+
+            try
+            {
+                await _channel.QueuePurgeAsync(queueName, cancellationToken);
+            }
+            catch (OperationInterruptedException exception) when (exception.ShutdownReason?.ReplyCode == 404)
+            {
+                // Some bootstrap queues are declared by hosted consumers after startup; missing queues have no state to purge.
+            }
+        }
     }
 
     public async Task<T?> ReadSingleMessageAsync<T>(string queueName, CancellationToken cancellationToken)

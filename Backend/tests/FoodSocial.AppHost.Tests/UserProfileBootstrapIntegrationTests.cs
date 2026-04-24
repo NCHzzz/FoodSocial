@@ -11,6 +11,15 @@ public sealed class UserProfileBootstrapIntegrationTests(AppHostFixture fixture)
 {
     private const string UserProvisionedDeadLetterQueueName = "userprofile.bootstrap.user-provisioned.dead-letter.v2";
     private const string BootstrapCompletedDeadLetterQueueName = "identity.bootstrap.completed.dead-letter.v2";
+    private static readonly string[] BootstrapQueueNames =
+    [
+        "userprofile.bootstrap.user-provisioned.v2",
+        "userprofile.bootstrap.user-provisioned.retry.v2",
+        UserProvisionedDeadLetterQueueName,
+        "identity.bootstrap.completed.v2",
+        "identity.bootstrap.completed.retry.v2",
+        BootstrapCompletedDeadLetterQueueName,
+    ];
 
     [Fact]
     public async Task UserProfileBootstrap_EnsureIdentityRemainsPendingUntilDownstreamSuccess()
@@ -240,6 +249,11 @@ public sealed class UserProfileBootstrapIntegrationTests(AppHostFixture fixture)
 
     private async Task ResetBootstrapArtifactsAsync(CancellationToken cancellationToken)
     {
+        await using (var rabbitMq = new AppHostRabbitMqHelper(fixture.RabbitMqConnectionString))
+        {
+            await rabbitMq.PurgeQueuesIfPresentAsync(BootstrapQueueNames, cancellationToken);
+        }
+
         if (await fixture.Databases.UserProfile.TableExistsAsync("user_profile_shells", cancellationToken: cancellationToken))
         {
             _ = await fixture.Databases.UserProfile.ExecuteNonQueryAsync(

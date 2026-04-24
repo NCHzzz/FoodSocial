@@ -153,7 +153,12 @@ public sealed class UserProvisionedConsumerBackgroundService(
                     eventArgs.DeliveryTag,
                     retryCount);
 
-                await channel.BasicNackAsync(eventArgs.DeliveryTag, multiple: false, requeue: false, cancellationToken: cancellationToken);
+                await RabbitMqBoundedRetryTopologyConfigurator.PublishDeadLetterAsync(
+                    channel,
+                    RetryTopology,
+                    eventArgs,
+                    cancellationToken);
+                await channel.BasicAckAsync(eventArgs.DeliveryTag, multiple: false, cancellationToken: cancellationToken);
                 return;
             }
 
