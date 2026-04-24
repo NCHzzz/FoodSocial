@@ -32,6 +32,9 @@
     <Project Path="src/Identity/Infrastructure/FoodSocial.Identity.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/" />
+  <Folder Name="/tests/FoodSocial.Bff.Tests/">
+    <Project Path="tests/FoodSocial.Bff.Tests/FoodSocial.Bff.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Identity/" />
   <Folder Name="/tests/Identity/Api.Tests/">
     <Project Path="tests/Identity/Api.Tests/FoodSocial.Identity.Api.Tests.csproj" />

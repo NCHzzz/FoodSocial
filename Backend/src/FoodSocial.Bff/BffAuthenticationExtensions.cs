@@ -32,6 +32,30 @@ internal static class BffAuthenticationExtensions
         return services;
     }
 
+    public static IServiceCollection AddBffUserProfileClient(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services
+            .AddHttpClient<UserProfileHttpClient>((serviceProvider, client) =>
+            {
+                client.BaseAddress = ResolveUserProfileApiBaseAddress(serviceProvider.GetRequiredService<IConfiguration>());
+                client.Timeout = TimeSpan.FromSeconds(10);
+            })
+            .ConfigurePrimaryHttpMessageHandler(serviceProvider =>
+            {
+                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+                var environment = serviceProvider.GetRequiredService<IWebHostEnvironment>();
+                var userProfileApiBaseAddress = ResolveUserProfileApiBaseAddress(configuration);
+
+                return ShouldAllowInsecureDevServiceBackchannel(environment, userProfileApiBaseAddress)
+                    ? CreateDevelopmentBackchannelHandler()
+                    : new HttpClientHandler();
+            });
+
+        return services;
+    }
+
     public static AuthenticationBuilder AddBffAuthentication(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -67,6 +91,10 @@ internal static class BffAuthenticationExtensions
             .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
             {
                 options.Cookie.Name = "__Host-FoodSocial.Bff";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.ExpireTimeSpan = TimeSpan.FromHours(8);
                 options.SlidingExpiration = true;
             })
             .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
@@ -143,6 +171,18 @@ internal static class BffAuthenticationExtensions
             ?? configuration["Services:identity-api:http:0"]
             ?? throw new InvalidOperationException(
                 "Identity API base address is not configured. Set an Aspire service reference for 'identity-api'.");
+
+        return new Uri(discoveredAddress.TrimEnd('/'), UriKind.Absolute);
+    }
+
+    private static Uri ResolveUserProfileApiBaseAddress(IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var discoveredAddress = configuration["Services:userprofile-api:https:0"]
+            ?? configuration["Services:userprofile-api:http:0"]
+            ?? throw new InvalidOperationException(
+                "UserProfile API base address is not configured. Set an Aspire service reference for 'userprofile-api'.");
 
         return new Uri(discoveredAddress.TrimEnd('/'), UriKind.Absolute);
     }

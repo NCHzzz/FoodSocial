@@ -8,6 +8,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddAuthorization();
 builder.Services.AddBffIdentityOrchestrationClient();
+builder.Services.AddBffUserProfileClient();
 builder.Services.AddBffAuthentication(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
@@ -25,6 +26,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapBffAuthEndpoints();
+app.MapBffUserProfileEndpoints();
 
 app.MapDefaultEndpoints();
 

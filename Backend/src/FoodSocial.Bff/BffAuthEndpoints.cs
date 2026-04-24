@@ -84,18 +84,61 @@ internal static class BffAuthEndpoints
                 traceId: httpContext.TraceIdentifier));
         }
 
+        if (!IsIdentitySessionAllowed(ensuredIdentity))
+        {
+            return CreateForbiddenIdentitySessionResult(httpContext);
+        }
+
         var sessionResponse = BuildCurrentUserResponse(principal, ensuredIdentity);
         return Results.Ok(sessionResponse);
     }
 
-    private static async Task<IResult> RefreshAsync(HttpContext httpContext)
+    private static async Task<IResult> RefreshAsync(
+        HttpContext httpContext,
+        IdentityOrchestrationHttpClient identityClient,
+        ILoggerFactory loggerFactory,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(identityClient);
+        ArgumentNullException.ThrowIfNull(loggerFactory);
+
+        var logger = loggerFactory.CreateLogger(typeof(BffAuthEndpoints).FullName!);
 
         var principal = await AuthenticateSessionPrincipalAsync(httpContext);
         if (principal is null)
         {
             return CreateUnauthenticatedResult(httpContext);
+        }
+
+        var accessToken = await ResolveAccessTokenAsync(httpContext);
+        EnsureIdentityResponse ensuredIdentity;
+        try
+        {
+            ensuredIdentity = await identityClient.EnsureIdentityAsync(
+                principal,
+                accessToken,
+                useTrustedInternalEnsure: !BffRequestConventions.HasBearerAuthorizationHeader(httpContext.Request),
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(
+                exception,
+                "The BFF failed to complete identity orchestration for the current refresh request. TraceId: {TraceId}",
+                httpContext.TraceIdentifier);
+
+            return Results.Problem(CreateProblemDetails(
+                title: "Identity orchestration failed",
+                detail: "The BFF could not complete the identity orchestration request.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://foodsocial/errors/bff/identity-orchestration-failed",
+                traceId: httpContext.TraceIdentifier));
+        }
+
+        if (!IsIdentityRefreshAllowed(ensuredIdentity))
+        {
+            return CreateForbiddenIdentitySessionResult(httpContext);
         }
 
         return Results.Ok(new RefreshSessionResponse(
@@ -160,6 +203,17 @@ internal static class BffAuthEndpoints
         return authenticateResult.Principal;
     }
 
+    private static bool IsIdentitySessionAllowed(EnsureIdentityResponse ensuredIdentity)
+    {
+        ArgumentNullException.ThrowIfNull(ensuredIdentity);
+
+        return !string.Equals(ensuredIdentity.State, "Suspended", StringComparison.Ordinal)
+            && !string.Equals(ensuredIdentity.State, "Deleted", StringComparison.Ordinal);
+    }
+
+    private static bool IsIdentityRefreshAllowed(EnsureIdentityResponse ensuredIdentity) =>
+        IsIdentitySessionAllowed(ensuredIdentity);
+
     private static async Task<string?> ResolveAccessTokenAsync(HttpContext httpContext)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
@@ -200,6 +254,18 @@ internal static class BffAuthEndpoints
             detail: "The return URL must be a relative path within the BFF.",
             statusCode: StatusCodes.Status400BadRequest,
             type: "https://foodsocial/errors/bff/invalid-return-url",
+            traceId: httpContext.TraceIdentifier));
+    }
+
+    private static IResult CreateForbiddenIdentitySessionResult(HttpContext httpContext)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        return Results.Problem(CreateProblemDetails(
+            title: "Identity session is not allowed",
+            detail: "The current identity state is not allowed to use this session.",
+            statusCode: StatusCodes.Status403Forbidden,
+            type: "https://foodsocial/errors/bff/identity-session-forbidden",
             traceId: httpContext.TraceIdentifier));
     }
 
