@@ -13,7 +13,7 @@ const UI_BUTTON_TONE_CLASSES: Record<UiButtonTone, string> = {
 };
 
 @Directive({
-  selector: 'button[appUiButton]',
+  selector: 'button[appUiButton], a[appUiButton]',
 })
 export class UiButtonDirective {
   readonly appUiButton = input<UiButtonTone>('primary');

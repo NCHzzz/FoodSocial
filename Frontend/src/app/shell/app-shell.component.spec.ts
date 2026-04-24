@@ -9,7 +9,7 @@ import { AppShellComponent } from './app-shell.component';
 
 describe('AppShellComponent', () => {
   const createAuthSessionServiceMock = (state: AuthSessionState) => ({
-    state: signal(state),
+    authState: signal(state),
     loadSession: vi.fn().mockResolvedValue(state),
     ensureSession: vi.fn().mockResolvedValue(state),
     startLogin: vi.fn(),
