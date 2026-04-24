@@ -80,6 +80,8 @@ var identityApi = builder
 
 var userProfileApi = builder
     .AddProject<Projects.FoodSocial_UserProfile_Api>("userprofile-api")
+    .WithEnvironment("Keycloak__Audience", "foodsocial-api")
+    .WithEnvironment("Keycloak__Realm", "foodsocial")
     .WithReference(userprofileDb)
     .WithReference(keycloak)
     .WithReference(rabbitMq)
