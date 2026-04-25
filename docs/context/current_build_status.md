@@ -66,6 +66,16 @@ This file is a current-state snapshot, not a history log.
 - AppHost now supplies local BFF client secret, demo-user password, and internal trust secret through Aspire secret parameters at runtime
 - AppHost-backed verification now uses session-scoped local infrastructure resources and service-owned database creation before migrations, which keeps fresh local verification runs reproducible
 
+### Ops, CI, and observability assets
+
+- repository-level GitHub Actions CI exists at `.github/workflows/ci.yml` for backend restore/build/non-AppHost tests, frontend `npm ci`/test/build verification, and default syntax validation for committed ops JSON/YAML assets
+- AppHost container-backed tests are available through a manual GitHub Actions `workflow_dispatch` opt-in with `run-apphost-tests=true`; they require Docker on the runner and remain outside default CI
+- lightweight ops assets now live under `ops/`, including OTLP collector, Prometheus scrape, Grafana starter dashboard, and Kubernetes service deployment/probe templates
+- observability examples are aligned with the existing `ServiceDefaults` OTLP exporter and use `OTEL_EXPORTER_OTLP_ENDPOINT` rather than replacing application telemetry setup
+- Prometheus starter alerts now cover telemetry target availability, HTTP 5xx rate, and HTTP p95 latency as initial non-production thresholds
+- observability dashboard and alert queries are starter examples and still require validation against actual collector-exported metric names and labels in the target environment
+- Kubernetes guidance documents `/alive` as liveness and `/health` as readiness-style health behavior, with non-development endpoint exposure controlled explicitly through `ServiceDefaults__ExposeHealthEndpoints=true`
+
 ### Authentication and identity flow state
 
 - BFF now also contains the browser-facing Keycloak OpenID Connect login/session/logout edge flow
@@ -92,28 +102,35 @@ This file is a current-state snapshot, not a history log.
 - Identity domain, application, and API tests pass successfully
 - AppHost builds successfully
 - BFF and Identity.Api build successfully after Aspire Keycloak client integration
+- backend solution restore/build now passes on WSL with .NET SDK 10.0.203 installed user-locally under `~/.dotnet`
+- backend CI-scope tests now pass for BFF, Identity Domain/Application/API, and UserProfile API after the Profile UX and Ops/CI changes
+- backend vulnerable-package scan reports no vulnerable packages after the OpenTelemetry package patch update in central package management
 - initial Identity and UserProfile EF Core migrations were generated and applied successfully for the current production path
 - AppHost brings up PostgreSQL, Redis, RabbitMQ, and Keycloak successfully for local development
+- Docker Desktop is reachable from the Ubuntu-24.04 WSL environment through the `desktop-linux` context, and container execution is verified with `docker run --rm hello-world`
 - Keycloak issues access tokens successfully through the imported `foodsocial` realm
 - BFF login now redirects correctly to the Keycloak login page through the local auth edge
 - the BFF browser auth edge, authenticated session path, refresh behavior, and POST-only logout behavior are verified through AppHost-backed tests
 - focused BFF tests verify blocked lifecycle-state handling for session/refresh and explicit browser-cookie settings
 - focused BFF tests verify UserProfile facade forwarding, protected-route 401 behavior, cookie access-token propagation, and upstream ProblemDetails/status preservation
 - Identity lifecycle, claim-driven ensure flow, duplicate-safe persistence, RBAC enforcement, trusted-service authorization, and durable outbox publication are covered by backend tests
-- UserProfile bootstrap consumption and explicit completion signaling back to Identity are verified through the production-path AppHost suite after hosted Keycloak configuration and bounded-retry dead-letter terminal handling fixes
+- UserProfile bootstrap consumption and explicit completion signaling back to Identity are verified through the production-path AppHost suite after hosted Keycloak configuration, bounded-retry dead-letter handling, and AppHost test-isolation hardening for RabbitMQ topology/reset races
 - direct UserProfile API and persistence regression tests now cover profile retrieval/update, ownership enforcement, self-follow rejection, follow graph behavior, and owner-only saved items
-- the full AppHost-backed verification suite for the completed Identity slice passes end to end against the live local platform
+- the full AppHost-backed verification suite passes end to end against the live local Docker-backed platform: `17/17` tests pass from WSL
 - frontend Angular app structure exists, but local build still depends on installed frontend packages in the working environment
 - frontend dependency remediation is in place and `npm audit --package-lock-only` now reports zero vulnerabilities for the current checked-in lockfile
 - frontend unit tests now cover the auth session service plus guest/authenticated shell rendering for the login/logout UI slice
 - frontend production build now succeeds with the auth-aware shell changes
 - frontend now includes typed UserProfile BFF facade models/client coverage plus a minimal public profile route foundation at `/profiles/:identityId` and a guarded own-profile entry scaffold
 - frontend unit tests and production build pass for the UserProfile facade foundation slice
+- frontend unit tests and production build pass for the completed Profile UX slice, including owner-only saved-state handling, delayed session hydration on public owner profiles, and public follow/follow-graph behavior
 
 ### Platform maturity notes
 
 - Redis is provisioned and available, but it is not yet used by a concrete cache or ephemeral-state implementation in the current codebase
 - RabbitMQ-backed async delivery is implemented for the Identity bootstrap workflow, but broader cross-service messaging coverage is still limited to this first production path
+- Kubernetes manifests are templates only; production image build, secret management, dependency provisioning, ingress, TLS, alert tuning, retention, and environment-specific rollout strategy remain future infrastructure work
+- AppHost container-backed tests require a working Docker environment and are intentionally gated outside the default CI workflow
 
 ## Important Clarifications
 
@@ -126,6 +143,7 @@ This file is a current-state snapshot, not a history log.
 
 - Dish and Post still remain earlier-stage service slices compared with the completed Identity path
 - Redis usage is still intentionally deferred until a measured cache or short-lived-state need exists
+- non-development Kubernetes use of `/alive` and `/health` now has an explicit `ServiceDefaults__ExposeHealthEndpoints` switch, but production dependency-aware readiness checks still need to be designed per service
 
 ## Current Priority
 
