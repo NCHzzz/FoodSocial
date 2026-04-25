@@ -163,7 +163,7 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
             };
             using var keycloakClient = new HttpClient(keycloakHandler, disposeHandler: true)
             {
-                BaseAddress = _resources.GetEndpoint("keycloak", "https")
+                BaseAddress = _resources.GetEndpoint("keycloak", "http")
             };
             using var request = new HttpRequestMessage(HttpMethod.Post, $"/realms/{RealmName}/protocol/openid-connect/token")
             {
