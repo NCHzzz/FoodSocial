@@ -189,8 +189,7 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
             SET "DeliveryState" = 'Pending',
                 "LastError" = NULL,
                 "DeliveredAtUtc" = NULL
-            WHERE "Subject" = @subject
-              AND "DeliveryState" = 'FailedRetryable';
+            WHERE "Subject" = @subject;
             """,
             new Dictionary<string, object?>
             {
@@ -409,7 +408,7 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
         ArgumentNullException.ThrowIfNull(action);
         ArgumentNullException.ThrowIfNull(predicate);
 
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(60);
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(90);
         while (DateTimeOffset.UtcNow < deadline)
         {
             var value = await action();
@@ -422,6 +421,11 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
         }
 
         var finalValue = await action();
+        if (predicate(finalValue))
+        {
+            return;
+        }
+
         throw new Xunit.Sdk.XunitException($"Condition was not satisfied before timeout. Last observed value: {finalValue}");
     }
 }

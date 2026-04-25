@@ -22,12 +22,7 @@ internal sealed class AppHostRabbitMqHelper : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        await _channel.ExchangeDeclareAsync(
-            exchange: "identity.events",
-            type: ExchangeType.Topic,
-            durable: true,
-            autoDelete: false,
-            cancellationToken: cancellationToken);
+        await EnsureUserProvisionedTopologyAsync(cancellationToken);
 
         var payload = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(integrationEvent));
         var properties = new BasicProperties
@@ -53,12 +48,7 @@ internal sealed class AppHostRabbitMqHelper : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        await _channel.ExchangeDeclareAsync(
-            exchange: "identity.events",
-            type: ExchangeType.Topic,
-            durable: true,
-            autoDelete: false,
-            cancellationToken: cancellationToken);
+        await EnsureBootstrapCompletedTopologyAsync(cancellationToken);
 
         var payload = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(integrationEvent));
         var properties = new BasicProperties
@@ -91,6 +81,9 @@ internal sealed class AppHostRabbitMqHelper : IAsyncDisposable
     public async Task PurgeQueuesIfPresentAsync(IEnumerable<string> queueNames, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(queueNames);
+
+        await EnsureUserProvisionedTopologyAsync(cancellationToken);
+        await EnsureBootstrapCompletedTopologyAsync(cancellationToken);
 
         foreach (var queueName in queueNames)
         {
@@ -143,5 +136,119 @@ internal sealed class AppHostRabbitMqHelper : IAsyncDisposable
         };
 
         return factory.CreateConnectionAsync().GetAwaiter().GetResult();
+    }
+
+    private async Task EnsureUserProvisionedTopologyAsync(CancellationToken cancellationToken)
+    {
+        await EnsureBoundedRetryTopologyAsync(
+            mainExchangeName: "identity.events",
+            queueName: "userprofile.bootstrap.user-provisioned.v2",
+            routingKey: "identity.user.provisioned.v1",
+            retryExchangeName: "userprofile.bootstrap.user-provisioned.retry.v2",
+            retryQueueName: "userprofile.bootstrap.user-provisioned.retry.v2",
+            retryRoutingKey: "userprofile.bootstrap.user-provisioned.retry.v2",
+            deadLetterExchangeName: "userprofile.bootstrap.user-provisioned.dead-letter.v2",
+            deadLetterQueueName: "userprofile.bootstrap.user-provisioned.dead-letter.v2",
+            deadLetterRoutingKey: "userprofile.bootstrap.user-provisioned.dead-letter.v2",
+            cancellationToken);
+    }
+
+    private async Task EnsureBootstrapCompletedTopologyAsync(CancellationToken cancellationToken)
+    {
+        await EnsureBoundedRetryTopologyAsync(
+            mainExchangeName: "identity.events",
+            queueName: "identity.bootstrap.completed.v2",
+            routingKey: "identity.bootstrap.completed.v2",
+            retryExchangeName: "identity.bootstrap.completed.retry.v2",
+            retryQueueName: "identity.bootstrap.completed.retry.v2",
+            retryRoutingKey: "identity.bootstrap.completed.retry.v2",
+            deadLetterExchangeName: "identity.bootstrap.completed.dead-letter.v2",
+            deadLetterQueueName: "identity.bootstrap.completed.dead-letter.v2",
+            deadLetterRoutingKey: "identity.bootstrap.completed.dead-letter.v2",
+            cancellationToken);
+    }
+
+    private async Task EnsureBoundedRetryTopologyAsync(
+        string mainExchangeName,
+        string queueName,
+        string routingKey,
+        string retryExchangeName,
+        string retryQueueName,
+        string retryRoutingKey,
+        string deadLetterExchangeName,
+        string deadLetterQueueName,
+        string deadLetterRoutingKey,
+        CancellationToken cancellationToken)
+    {
+        await _channel.ExchangeDeclareAsync(
+            exchange: mainExchangeName,
+            type: ExchangeType.Topic,
+            durable: true,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
+
+        await _channel.ExchangeDeclareAsync(
+            exchange: retryExchangeName,
+            type: ExchangeType.Direct,
+            durable: true,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
+
+        await _channel.ExchangeDeclareAsync(
+            exchange: deadLetterExchangeName,
+            type: ExchangeType.Direct,
+            durable: true,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
+
+        await _channel.QueueDeclareAsync(
+            queue: queueName,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            arguments: new Dictionary<string, object?>
+            {
+                ["x-dead-letter-exchange"] = deadLetterExchangeName,
+                ["x-dead-letter-routing-key"] = deadLetterRoutingKey,
+            },
+            cancellationToken: cancellationToken);
+
+        await _channel.QueueDeclareAsync(
+            queue: retryQueueName,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            arguments: new Dictionary<string, object?>
+            {
+                ["x-dead-letter-exchange"] = mainExchangeName,
+                ["x-dead-letter-routing-key"] = routingKey,
+                ["x-message-ttl"] = 500,
+            },
+            cancellationToken: cancellationToken);
+
+        await _channel.QueueDeclareAsync(
+            queue: deadLetterQueueName,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
+
+        await _channel.QueueBindAsync(
+            queue: queueName,
+            exchange: mainExchangeName,
+            routingKey: routingKey,
+            cancellationToken: cancellationToken);
+
+        await _channel.QueueBindAsync(
+            queue: retryQueueName,
+            exchange: retryExchangeName,
+            routingKey: retryRoutingKey,
+            cancellationToken: cancellationToken);
+
+        await _channel.QueueBindAsync(
+            queue: deadLetterQueueName,
+            exchange: deadLetterExchangeName,
+            routingKey: deadLetterRoutingKey,
+            cancellationToken: cancellationToken);
     }
 }

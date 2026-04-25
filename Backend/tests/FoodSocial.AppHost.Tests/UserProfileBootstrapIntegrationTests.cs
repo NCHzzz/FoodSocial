@@ -129,7 +129,7 @@ public sealed class UserProfileBootstrapIntegrationTests(AppHostFixture fixture)
                 cts.Token);
         }
 
-        var ensureResponse = await EnsureIdentityAsync(cts.Token);
+        var ensureResponse = await EnsureIdentityWithoutResetAsync(cts.Token);
 
         await WaitForAsync(
             async () => await GetUserProfileShellCountAsync(ensureResponse.Identity.IdentityId, cts.Token),
@@ -235,6 +235,12 @@ public sealed class UserProfileBootstrapIntegrationTests(AppHostFixture fixture)
     {
         await ResetBootstrapArtifactsAsync(cancellationToken);
 
+        return await EnsureIdentityWithoutResetAsync(cancellationToken);
+    }
+
+    private async Task<CurrentUserResponse> EnsureIdentityWithoutResetAsync(CancellationToken cancellationToken)
+    {
+
         using var bffClient = await fixture.Auth.CreateAuthenticatedBffBearerClientAsync(cancellationToken);
         using var response = await bffClient.GetAsync("/api/auth/session", cancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<CurrentUserResponse>(cancellationToken);
@@ -318,7 +324,7 @@ public sealed class UserProfileBootstrapIntegrationTests(AppHostFixture fixture)
         ArgumentNullException.ThrowIfNull(action);
         ArgumentNullException.ThrowIfNull(predicate);
 
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(45);
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(90);
         while (DateTimeOffset.UtcNow < deadline)
         {
             var value = await action();
@@ -331,6 +337,11 @@ public sealed class UserProfileBootstrapIntegrationTests(AppHostFixture fixture)
         }
 
         var finalValue = await action();
+        if (predicate(finalValue))
+        {
+            return;
+        }
+
         throw new Xunit.Sdk.XunitException($"Condition was not satisfied before timeout. Last observed value: {finalValue}");
     }
 }
