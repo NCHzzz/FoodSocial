@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
@@ -14,6 +15,7 @@ public static class ServiceDefaultsExtensions
     private const string LivenessHealthTag = "live";
     private const string HealthEndpointPath = "/health";
     private const string LivenessEndpointPath = "/alive";
+    private const string ExposeHealthEndpointsConfigurationKey = "ServiceDefaults:ExposeHealthEndpoints";
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
@@ -85,7 +87,7 @@ public static class ServiceDefaultsExtensions
 
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
+        if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>(ExposeHealthEndpointsConfigurationKey))
         {
             app.MapHealthChecks(HealthEndpointPath);
 

@@ -32,6 +32,8 @@ Desktop.ini
 *.tmp
 *.temp
 *.pid
+**/__pycache__/
+*.py[cod]
 
 # .NET build outputs
 **/bin/
