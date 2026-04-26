@@ -19,33 +19,10 @@ This file defines repository-wide engineering expectations that go beyond generi
 - Prefer present needs over speculative flexibility; do not add abstractions or extension points without a real second use case
 - Keep changes surgical and directly traceable to the requested outcome, except cleanup forced by the change itself
 - Define verifiable success criteria before editing when behavior, diagnostics, or validation could drift
-
 ## Execution Principles
 
-### Think Before Coding
-
-- Do not guess silently when multiple interpretations are plausible.
-- Surface assumptions, trade-offs, and uncertainty before locking into an implementation.
-- Resolve uncertainty from repo truth first; ask only when the codebase and approved docs cannot answer.
-- If a simpler or safer approach exists, state it instead of silently following a weaker plan.
-
-### Simplicity First
-
-- Solve the requested problem with the minimum code that clearly works.
-- Do not add configurability, abstraction, or flexibility without a real second use case.
-- If a solution feels broader than the problem, simplify it before shipping.
-
-### Surgical Changes
-
-- Touch only the code and docs required by the task.
-- Do not opportunistically refactor adjacent code, comments, or formatting without a direct reason.
-- Remove only the dead code or drift created by your own change, unless broader cleanup is explicitly requested.
-
-### Goal-Driven Execution
-
-- Translate vague implementation requests into verifiable goals before editing.
-- Prefer changes that can be checked by tests, diagnostics, builds, or explicit observable behavior.
-- For multi-step work, keep the path from request -> change -> verification obvious.
+These principles are now covered by the `karpathy-guidelines` skill.
+Load the skill when needed: `skill({ name: "karpathy-guidelines" })`
 
 ## Professional Standards
 
