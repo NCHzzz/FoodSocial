@@ -1,3 +1,5 @@
+using FoodSocial.Messaging;
+using FoodSocial.UserProfile.Api.Health;
 using FoodSocial.UserProfile.Application;
 using FoodSocial.UserProfile.Infrastructure;
 using FoodSocial.UserProfile.Infrastructure.Messaging;
@@ -27,6 +29,9 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHealthChecks()
+    .AddCheck<UserProfilePostgresHealthCheck>("userprofile-postgres")
+    .AddCheck<RabbitMqHealthCheck>("userprofile-rabbitmq");
 builder.Services.AddHostedService<UserProvisionedConsumerBackgroundService>();
 
 builder.Services
