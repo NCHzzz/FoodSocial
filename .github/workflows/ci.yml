@@ -34,6 +34,9 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
       - name: Install ops validation dependencies
         run: python -m pip install --disable-pip-version-check --quiet PyYAML
 
@@ -45,7 +48,11 @@ jobs:
 
           import yaml
 
-          yaml_paths = sorted(Path("ops").rglob("*.yml")) + sorted(Path("ops").rglob("*.yaml"))
+          yaml_paths = [
+              path
+              for path in sorted(Path("ops").rglob("*.yml")) + sorted(Path("ops").rglob("*.yaml"))
+              if "templates" not in path.parts
+          ]
           json_paths = sorted(Path("ops").rglob("*.json"))
 
           if not yaml_paths and not json_paths:
@@ -63,6 +70,12 @@ jobs:
                   json.load(stream)
               print(f"validated JSON: {path}")
           PY
+
+      - name: Validate Helm chart
+        run: |
+          helm lint ops/helm/foodsocial
+          helm template foodsocial ops/helm/foodsocial --values ops/helm/foodsocial/values.staging.yaml >/tmp/foodsocial-staging.yaml
+          helm template foodsocial ops/helm/foodsocial --values ops/helm/foodsocial/values.production.yaml >/tmp/foodsocial-production.yaml
 
   backend:
     name: Backend restore, build, and tests
@@ -118,6 +131,40 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+
+  container-build:
+    name: Container build validation
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: foodsocial-bff
+            context: Backend
+            dockerfile: Backend/src/FoodSocial.Bff/Dockerfile
+          - image: foodsocial-identity-api
+            context: Backend
+            dockerfile: Backend/src/Identity/Api/Dockerfile
+          - image: foodsocial-userprofile-api
+            context: Backend
+            dockerfile: Backend/src/UserProfile/Api/Dockerfile
+          - image: foodsocial-dish-api
+            context: Backend
+            dockerfile: Backend/src/Dish/Api/Dockerfile
+          - image: foodsocial-post-api
+            context: Backend
+            dockerfile: Backend/src/Post/Api/Dockerfile
+          - image: foodsocial-web
+            context: Frontend
+            dockerfile: Frontend/Dockerfile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build ${{ matrix.image }} image
+        run: docker build --file "${{ matrix.dockerfile }}" --tag "${{ matrix.image }}:ci" "${{ matrix.context }}"
 
   apphost-integration:
     name: AppHost container-backed integration tests

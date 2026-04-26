@@ -1,0 +1,68 @@
+name: Deploy Kubernetes
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: GitHub Environment containing KUBE_CONFIG and deployment secrets.
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image-tag:
+        description: Image tag to deploy.
+        required: true
+        type: string
+      namespace:
+        description: Kubernetes namespace.
+        required: true
+        default: foodsocial
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Helm upgrade
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.kube"
+          printf '%s' "${{ secrets.KUBE_CONFIG }}" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Deploy FoodSocial
+        shell: bash
+        run: |
+          helm upgrade --install foodsocial ops/helm/foodsocial \
+            --namespace "${{ inputs.namespace }}" \
+            --create-namespace \
+            --values "ops/helm/foodsocial/values.${{ inputs.environment }}.yaml" \
+            --set global.imageRegistry="ghcr.io" \
+            --set global.imageRepository="${{ github.repository_owner }}/foodsocial" \
+            --set global.imageTag="${{ inputs.image-tag }}" \
+            --wait \
+            --timeout 10m
+
+      - name: Verify rollout
+        shell: bash
+        run: |
+          kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-bff --timeout=5m
+          kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-identity-api --timeout=5m
+          kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-userprofile-api --timeout=5m
+          kubectl -n "${{ inputs.namespace }}" get pods -l app.kubernetes.io/part-of=foodsocial
