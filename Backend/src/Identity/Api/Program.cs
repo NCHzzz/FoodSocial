@@ -1,9 +1,11 @@
 using FoodSocial.Identity.Application;
 using FoodSocial.Identity.Api.Authorization;
+using FoodSocial.Identity.Api.Health;
 using FoodSocial.Identity.Domain;
 using FoodSocial.Identity.Infrastructure;
 using FoodSocial.Identity.Infrastructure.Messaging;
 using FoodSocial.Identity.Infrastructure.Persistence;
+using FoodSocial.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +32,9 @@ builder.Services.AddProblemDetails();
 builder.Services.AddApplication();
 
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHealthChecks()
+    .AddCheck<IdentityPostgresHealthCheck>("identity-postgres")
+    .AddCheck<RabbitMqHealthCheck>("identity-rabbitmq");
 builder.Services.AddHostedService<IdentityOutboxPublisherBackgroundService>();
 builder.Services.AddHostedService<UserProfileBootstrapCompletedConsumerBackgroundService>();
 
