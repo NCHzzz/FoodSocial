@@ -1,577 +1,343 @@
-# 🏷️ FoodSocial
-
-<p align="center">
-  <a href="https://github.com/NCHzzz/FoodSocial/stargazers">
-    <img src="https://img.shields.io/github/stars/NCHzzz/FoodSocial?style=flat&color=FFD93D" alt="Stars"/>
-  </a>
-  <a href="https://github.com/NCHzzz/FoodSocial/fork">
-    <img src="https://img.shields.io/github/forks/NCHzzz/FoodSocial?style=flat&color=6BCB77" alt="Forks"/>
-  </a>
-  <a href="https://github.com/NCHzzz/FoodSocial/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/NCHzzz/FoodSocial?style=flat&color=4ECDC4" alt="License"/>
-  </a>
-  <a href="https://github.com/NCHzzz/FoodSocial/actions/workflows">
-    <img src="https://img.shields.io/github/actions/workflow/status/NCHzzz/FoodSocial/ci?branch=main&style=flat" alt="CI Status"/>
-  </a>
-</p>
-
----
-
-> 🎯 **AI-native Food-first social platform** | Built with .NET 10 microservices & Angular | 🚀 Launching in Vietnam 🇻🇳
-
----
-
-
----
-
-## 📋 Table of Contents
-
-- [✨ Features](#-features)
-- [🛠️ Tech Stack](#🛠️-tech-stack)
-- [🏗️ Architecture](#🏗️-architecture)
-- [📁 Project Structure](#-project-structure)
-- [🚀 Quick Start](#-quick-start)
-- [⚙️ Configuration](#️-configuration)
-- [🧪 Testing](#-testing)
-- [📦 Deployment](#-deployment)
-- [📖 Documentation](#-documentation)
-- [🤝 Contributing](#-contributing)
-- [💬 Community](#-community)
-- [📄 License](#-license)
-- [🙏 Acknowledgments](#-acknowledgments)
-
----
-
-## ✨ Features
-
-| Feature | Description |
-|---------|-------------|
-| 🖼️ **Dish & Place Discovery** | Share and discover dishes and places in your community |
-| 👥 **Social Interactions** | Connect with food enthusiasts, follow friends, and join food communities |
-| 📸 **Rich Media** | Share photos, videos, and reviews of your culinary experiences |
-| 🔍 **Smart Search** | AI-powered recommendations for dishes, restaurants, and food trends |
-| 🔔 **Real-time Notifications** | Stay updated with likes, comments, and new followers |
-| 🏆 **Leaderboards & Gamification** | Earn badges and climb ranks as a food critic |
-| 🍴 **Dish Cataloging** | Create and manage personal dish collections |
-| 📍 **Place Management** | Add and review restaurants, street food stalls, and home kitchens |
-| ⭐ **Rating & Reviews** | Rate dishes and places with detailed reviews |
-| 👀 **Watch List** | Follow dishes, places, and users |
-
----
-
-## 🛠️ Tech Stack
-
-### Backend 🖥️
-<p align="left">
-  <img src="https://img.shields.io/badge/.NET_10-512BD4?style=flat&logo=.net&logoColor=white" alt=".NET 10"/>
-  <img src="https://img.shields.io/badge/C%23-239120?style=flat&logo=c-sharp&logoColor=white" alt="C#"/>
-  <img src="https://img.shields.io/badge/ASP.NET_Core-512BD4?style=flat&logo=aspnetcore&logoColor=white" alt="ASP.NET Core"/>
-  <img src="https://img.shields.io/badge/Entity_Framework-512BD4?style=flat&logo=entityframework&logoColor=white" alt="EF Core"/>
-  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
-  <img src="https://img.shields.io/badge/RabbitMQ-FF6600?style=flat&logo=rabbitmq&logoColor=white" alt="RabbitMQ"/>
-  <img src="https://img.shields.io/badge/Keycloak-FF6B6B?style=flat&logo=keycloak&logoColor=white" alt="Keycloak"/>
-</p>
-
-### DevOps 🚀
-<p align="left">
-  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white" alt="Docker"/>
-  <img src="https://img.shields.io/badge/Kubernetes-326CE8?style=flat&logo=kubernetes&logoColor=white" alt="Kubernetes"/>
-  <img src="https://img.shields.io/badge/Helm-2771BB?style=flat&logo=helm&logoColor=white" alt="Helm"/>
-  <img src="https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat&logo=github-actions&logoColor=white" alt="GitHub Actions"/>
-  <img src="https://img.shields.io/badge/Prometheus-E6522C?style=flat&logo=prometheus&logoColor=white" alt="Prometheus"/>
-  <img src="https://img.shields.io/badge/Grafana-F46800?style=flat&logo=grafana&logoColor=white" alt="Grafana"/>
-</p>
-
-### Frontend 🎨
-<p align="left">
-  <img src="https://img.shields.io/badge/Angular-DD0031?style=flat&logo=angular&logoColor=white" alt="Angular"/>
-  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript"/>
-  <img src="https://img.shields.io/badge/TailwindCSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white" alt="Tailwind CSS"/>
-  <img src="https://img.shields.io/badge/NgRx-BA68C8?style=flat&logo=ngrx&logoColor=white" alt="NgRx"/>
-  <img src="https://img.shields.io/badge/SignalR-FF6B6B?style=flat&logo=signalr&logoColor=white" alt="SignalR"/>
-</p>
-
-### Patterns & Practices 📐
-<p align="left">
-  <img src="https://img.shields.io/badge/Microservices-FF6B6B?style=flat" alt="Microservices"/>
-  <img src="https://img.shields.io/badge/CQRS-4ECDC4?style=flat" alt="CQRS"/>
-  <img src="https://img.shields.io/badge/Event_Sourcing-5865F2?style=flat" alt="Event Sourcing"/>
-  <img src="https://img.shields.io/badge/Repository_Pattern-6BCB77?style=flat" alt="Repository"/>
-  <img src="https://img.shields.io/badge/Unit_of_Work-4D96FF?style=flat" alt="Unit of Work"/>
-  <img src="https://img.shields.io/badge/DDD-FF6B6B?style=flat" alt="DDD"/>
-</p>
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              CLIENT (Angular)                            │
-│                    http://localhost:4200 | https://foodsocial.vn         │
-└─────────────────────────────────────────┬───────────────────────────────┘
-                                          │
-                                          ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         API GATEWAY (YARP)                               │
-│                    http://localhost:8080 | reverse proxy                │
-│                              │                                           │
-│         ┌───────────────────┼───────────────────┐                       │
-│         ▼                   ▼                   ▼                        │
-│   ┌──────────┐       ┌──────────┐       ┌──────────┐                 │
-│   │ Identity │       │   Dish   │       │  Place   │                   │
-│   │ Service  │       │ Service  │       │ Service  │                   │
-│   └────┬─────┘       └────┬─────┘       └────┬─────┘                   │
-│        │                  │                  │                          │
-│        ▼                  ▼                  ▼                          │
-│   ┌─────────────────────────────────────────────────────────┐          │
-│   │                    MESSAGE BUS (RabbitMQ)                │          │
-│   │         Event-driven communication between services      │          │
-│   └─────────────────────────────────────────────────────────┘          │
-│        │                  │                  │                          │
-│        ▼                  ▼                  ▼                          │
-│   ┌──────────┐       ┌──────────┐       ┌──────────┐       ┌──────────┐  │
-│   │   Auth   │       │ Database │       │ Database │       │   Notif  │  │
-│   │ (Keycloak│◄─────►│ (User)   │       │ (Content)│◄─────►│ Service │  │
-│   └──────────┘       └──────────┘       └──────────┘       └──────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### Microservices
-
-| Service | Port | Responsibility |
-|---------|------|----------------|
-| **API Gateway** | 8080 | Request routing, rate limiting, authentication |
-| **Identity Service** | 5001 | User authentication, authorization via Keycloak |
-| **Dish Service** | 5002 | Dish CRUD, ratings, reviews |
-| **Place Service** | 5003 | Place/Restaurant management |
-| **Social Service** | 5004 | Follows, feed, activity |
-| **Notification Service** | 5005 | Push notifications, real-time via SignalR |
-
----
-
-## 📁 Project Structure
-
-```
-FoodSocial/
-│
-├── 📂 Backend/                          # .NET 10 microservices
-│   ├── src/
-│   │   ├── AppHost/                    # .NET Aspire orchestration
-│   │   ├── API Gateway/                 # YARP reverse proxy
-│   │   ├── Services/
-│   │   │   ├── Identity/               # Auth & user management
-│   │   │   ├── Dish/                   # Dish management
-│   │   │   ├── Place/                  # Place management
-│   │   │   ├── Social/                 # Social features
-│   │   │   └── Notification/           # Real-time notifications
-│   │   └── Shared/                      # Shared kernel, contracts
-│   ├── tests/                           # Integration & unit tests
-│   └── docker-compose.yml               # Local development stack
-│
-├── 📂 Frontend/                         # Angular 17+ application
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── core/                   # Auth, guards, interceptors
-│   │   │   ├── shared/                 # Components, pipes, directives
-│   │   │   ├── features/               # Lazy-loaded feature modules
-│   │   │   │   ├── home/               # Home & feed
-│   │   │   │   ├── dish/               # Dish discovery
-│   │   │   │   ├── place/              # Place discovery
-│   │   │   │   ├── profile/            # User profiles
-│   │   │   │   └── admin/              # Admin panel
-│   │   │   └── pages/                  # Standalone pages
-│   │   ├── assets/                     # Images, icons, fonts
-│   │   └── styles/                      # Global SCSS, themes
-│   ├── angular.json
-│   └── tailwind.config.js
-│
-├── 📂 docs/                             # Project documentation
-│   ├── project-discovery/              # Product & architecture truth
-│   │   ├── product-vision.md            # Product vision & roadmap
-│   │   ├── architecture.md              # System architecture
-│   │   ├── domain-models.md             # Domain models & entities
-│   │   └── api-contracts/                # API contract specifications
-│   ├── ai/                              # AI agent rules
-│   │   ├── AGENTS.md                    # Agent operating contract
-│   │   ├── engineering-rules.md         # Engineering guidelines
-│   │   ├── workflows.md                 # Development workflows
-│   │   └── stack-rules/                 # Stack-specific rules
-│   └── delivery/                        # Release documentation
-│
-├── 📂 .github/                          # GitHub configuration
-│   ├── workflows/                      # CI/CD pipelines
-│   ├── ISSUE_TEMPLATE/                # Issue templates
-│   └── PULL_REQUEST_TEMPLATE.md        # PR templates
-│
-└── 📂 openspec/                        # OpenSpec change definitions
-```
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-| Tool | Version | Installation |
-|------|---------|--------------|
-| .NET SDK | 10.0+ | [Download](https://dotnet.microsoft.com/download/dotnet/10.0) |
-| Node.js | 20+ | [Download](https://nodejs.org/) |
-| Docker Desktop | Latest | [Download](https://www.docker.com/products/docker-desktop) |
-| Git | 2.0+ | [Download](https://git-scm.com/) |
-
-### Option 1: .NET Aspire (Recommended) 🚀
-
-```bash
-# Clone the repository
-git clone https://github.com/NCHzzz/FoodSocial.git
-cd FoodSocial
-
-# Run with Aspire dashboard
-cd Backend/src/AppHost
-dotnet run --dashboard
-
-# Access dashboard at http://localhost:18888
-```
-
-### Option 2: Docker Compose 🐳
-
-```bash
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-```
-
-### Option 3: Manual Setup 🔧
-
-**Backend:**
-```bash
-cd Backend/src/API Gateway
-dotnet run
-
-# Or run specific service
-cd Backend/src/Services/Dish
-dotnet run
-```
-
-**Frontend:**
-```bash
-cd Frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm start
-
-# Build for production
-npm run build
-```
-
-### Access Points
-
-| Service | URL | Description |
-|---------|-----|-------------|
-| 🌐 Frontend | http://localhost:4200 | Angular dev server |
-| 🔌 API Gateway | http://localhost:8080 | Main API endpoint |
-| 📊 Aspire Dashboard | http://localhost:18888 | Service orchestration |
-| 🐘 PostgreSQL | localhost:5432 | Database |
-| 🐰 RabbitMQ | http://localhost:15672 | Message queue admin |
-| 🔐 Keycloak | http://localhost:8080/auth | Identity provider |
-
----
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-Create a `.env` file in `Backend/src/`:
-
-```env
-# Database
-ConnectionStrings__DefaultConnection=Host=localhost;Database=foodsocial;Username=postgres;Password=your_password
-
-# RabbitMQ
-RabbitMQ__Host=localhost
-RabbitMQ__Port=5672
-RabbitMQ__Username=guest
-RabbitMQ__Password=guest
-
-# Keycloak
-Keycloak__Url=http://localhost:8080/auth
-Keycloak__Realm=foodsocial
-Keycloak__ClientId=foodsocial-api
-
-# JWT
-Jwt__Key=your-256-bit-secret-key-here
-Jwt__Issuer=FoodSocial
-Jwt__Audience=FoodSocialAPI
-Jwt__ExpirationMinutes=60
-
-# Frontend URL
-AppSettings__FrontendUrl=http://localhost:4200
-
-# Logging
-Logging__LogLevel__Default=Information
-```
-
-### Frontend Configuration
-
-Update `Frontend/src/environments/`:
-
-```typescript
-export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:8080',
-  keycloakUrl: 'http://localhost:8080/auth',
-  keycloakRealm: 'foodsocial',
-  keycloakClientId: 'foodsocial-web'
-};
-```
-
----
-
-## 🧪 Testing
-
-### Backend Tests
-
-```bash
-# Run all tests
-dotnet test
-
-# Run with coverage
-dotnet test --collect:"XPlat Code Coverage"
-
-# Run specific test project
-dotnet test --filter "FullyQualifiedName~DishServiceTests"
-```
-
-### Frontend Tests
-
-```bash
-# Run unit tests
-ng test
-
-# Run with coverage
-ng test --code-coverage
-
-# Run e2e tests
-ng e2e
-```
-
-### Test Coverage
-
-| Type | Tool | Coverage Target |
-|------|------|-----------------|
-| Unit Tests | xUnit, NUnit | 80%+ |
-| Integration Tests | TestContainers | Core flows |
-| E2E Tests | Playwright | Critical paths |
-
----
-
-## 📦 Deployment
-
-### Docker 🐳
-
-```bash
-# Build all services
-docker-compose build
-
-# Run production stack
-docker-compose -f docker-compose.prod.yml up -d
-
-# Scale specific service
-docker-compose up -d --scale dish-service=3
-```
-
-### Kubernetes ☸️
-
-```bash
-# Add Helm repo
-helm repo add foodsocial https://charts.foodsocial.vn
-
-# Install chart
-helm install foodsocial foodsocial/foodsocial \
-  --set image.tag=v1.0.0 \
-  --set ingress.enabled=true \
-  --set ingress.host=foodsocial.vn
-
-# Upgrade
-helm upgrade foodsocial foodsocial/foodsocial \
-  --set image.tag=v1.1.0
-```
-
-### Cloud Providers
-
-| Provider | Guide |
-|----------|-------|
-| 🟣 Azure | [Deploy to Azure Container Apps](./docs/deployment/azure.md) |
-| 🟢 AWS | [Deploy to EKS](./docs/deployment/aws.md) |
-| 🔵 GCP | [Deploy to GKE](./docs/deployment/gcp.md) |
-
----
-
-## 📖 Documentation
-
-📚 **Explore our documentation:**
-
-- 📘 [Project Discovery](./docs/project-discovery/) - Product vision & specifications
-- 🏗️ [Architecture](./docs/project-discovery/architecture.md) - System design
-- 📐 [Domain Models](./docs/project-discovery/domain-models.md) - Entity definitions
-- 🤖 [AI Agent Rules](./docs/ai/AGENTS.md) - Engineering guidelines
-- 🛠️ [API Reference](./docs/api/) - REST API documentation
-- 🧩 [Stack Rules](./docs/ai/stack-rules/) - Framework-specific guidelines
-- 📦 [Release Notes](./CHANGELOG.md) - Version history
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-### 1. Setup Development Environment
-
-```bash
-# Fork the repository
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/FoodSocial.git
-cd FoodSocial
-
-# Add upstream remote
-git remote add upstream https://github.com/NCHzzz/FoodSocial.git
-```
-
-### 2. Create a Feature Branch
-
-```bash
-# Update main branch
-git fetch upstream
-git checkout main
-git merge upstream/main
-
-# Create feature branch
-git checkout -b feature/your-feature-name
-```
-
-### 3. Make Changes & Test
-
-```bash
-# Make your changes
-# Write tests
-# Run tests locally
-dotnet test  # Backend
-npm test     # Frontend
-```
-
-### 4. Commit & Push
-
-```bash
-# Stage changes
-git add .
-
-# Commit with descriptive message
-git commit -m "feat: add new feature description"
-
-# Push to your fork
-git push origin feature/your-feature-name
-```
-
-### 5. Open a Pull Request
-
-> ⚠️ **Important:** All PRs must pass CI checks and be reviewed before merging.
-
-- Fill out the PR template completely
-- Reference related issues
-- Include screenshots for UI changes
-- Update documentation if needed
-
-### Coding Standards
-
-| Area | Standard |
-|------|-----------|
-| 📝 Commits | [Conventional Commits](https://www.conventionalcommits.org/) |
-| 🎨 Code Style | [StyleCop](https://github.com/DotNetAnalyzers/StyleCopAnalyzers) (Backend), [ESLint](https://eslint.org/) (Frontend) |
-| ✅ Tests | Minimum 80% coverage for new code |
-| 📖 Docs | Update README and inline docs for public APIs |
-
----
-
-## 💬 Community
-
-<p align="center">
-  <a href="https://discord.gg/foodsocial">
-    <img src="https://img.shields.io/discord/123456789?label=Join%20our%20Discord&style=for-the-badge&color=5865F2" alt="Discord"/>
-  </a>
-  <a href="https://twitter.com/foodsocial">
-    <img src="https://img.shields.io/twitter/follow/foodsocial?style=for-the-badge&color=1DA1F2" alt="Twitter"/>
-  </a>
-</p>
-
-- 💬 **Discord** - Join our community chat
-- 🐦 **Twitter** - Follow for updates
-- 📧 **Email** - Contact: hello@foodsocial.vn
-- 📝 **Blog** - Read our [engineering blog](https://blog.foodsocial.vn)
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License
-
-Copyright (c) 2024-present NCHzzz and FoodSocial Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
----
-
-## 🙏 Acknowledgments
+<a id="top"></a>
 
 <div align="center">
 
-| Thanks to | For |
-|-----------|-----|
-| [Awesome Readme](https://github.com/matiassingers/awesome-readme) | README inspiration |
-| [OpenCode](https://opencode.ai/) | AI coding assistant |
-| [Microsoft](https://dotnet.microsoft.com/) | .NET ecosystem |
-| [Angular](https://angular.io/) | Frontend framework |
-| [Keycloak](https://www.keycloak.org/) | Identity & access management |
-| [All Contributors](https://github.com/NCHzzz/FoodSocial/graphs/contributors) | Making this project awesome |
+<!-- Hero -->
+
+![FoodSocial banner](./docs/assets/foodsocial-banner.svg)
+
+# 🍜 FoodSocial
+
+### AI-native food discovery for people who keep asking: _“What should I eat next?”_
+
+FoodSocial is a Vietnam-first, food-only social platform for sharing food stories,
+discovering dishes and places, and building toward practical AI-assisted food decisions.
+
+<br />
+
+![Build](https://img.shields.io/badge/build-CI%20configured-16A34A?style=for-the-badge)
+![Status](https://img.shields.io/badge/status-MVP%20foundation-FFB020?style=for-the-badge)
+![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+![Angular](https://img.shields.io/badge/Angular-21-DD0031?style=for-the-badge&logo=angular&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-service--owned-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+
+<br />
+<br />
+
+<a href="#why-foodsocial"><strong>Why</strong></a> ·
+<a href="#product-surface"><strong>Product</strong></a> ·
+<a href="#architecture"><strong>Architecture</strong></a> ·
+<a href="#quick-start"><strong>Quick Start</strong></a> ·
+<a href="#documentation"><strong>Docs</strong></a>
+
+<br />
+<br />
+
+<table>
+  <tr>
+    <td align="center"><strong>🍽️ Food-first</strong><br />Dishes and places are core entities, not tags.</td>
+    <td align="center"><strong>🧠 AI-native</strong><br />Designed for discovery, recommendations, and agent-friendly APIs.</td>
+    <td align="center"><strong>🇻🇳 Vietnam launch</strong><br />Built around a focused first market and real beta learning.</td>
+  </tr>
+</table>
 
 </div>
 
 ---
 
-<p align="center">
-  <a href="#top">
-    <img src="https://img.shields.io/badge/Back%20to%20top-↑-FF6B6B?style=flat" alt="Back to top"/>
-  </a>
-</p>
+## Contents
 
-<p align="center">
-  Made with ❤️ by <a href="https://github.com/NCHzzz">NCHzzz</a> • 🇻🇳 Vietnam
-</p>
+- [Why FoodSocial](#why-foodsocial)
+- [Product Surface](#product-surface)
+- [Build Status](#build-status)
+- [Technology](#technology)
+- [Architecture](#architecture)
+- [Repository Map](#repository-map)
+- [Quick Start](#quick-start)
+- [Validation](#validation)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+
+---
+
+## Why FoodSocial
+
+General social platforms are noisy. Map apps are place-first. Short-form video is inspiring, but not always retrievable or trustworthy when someone simply wants to decide what to eat.
+
+FoodSocial narrows the product around a food decision loop:
+
+```text
+Share a food experience → structure dish/place signals → discover better options → decide what to eat
+```
+
+The MVP direction is a responsive web product where users can publish food posts, discover dishes and places, follow people, save useful content, and progressively receive AI-assisted recommendations. The engineering direction intentionally keeps domain boundaries explicit so FoodSocial can grow without losing the distinction between posts, dishes, places, profiles, search, moderation, and AI-assisted discovery.
+
+> Current stage: **MVP foundation in progress**. Identity, UserProfile, BFF, AppHost orchestration, Angular shell/profile foundations, CI, and starter ops assets are present; Dish and Post remain earlier-stage slices.
+
+---
+
+## Product Surface
+
+<table>
+  <tr>
+    <td width="50%">
+      <h3>🍱 Food posts</h3>
+      <p>Structured posts about dishes, places, recipes, and memorable food experiences.</p>
+    </td>
+    <td width="50%">
+      <h3>🔎 Discovery</h3>
+      <p>A food-first discovery surface optimized for “what should I eat?” instead of generic social browsing.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>👤 Profiles and graph</h3>
+      <p>User profiles, follows, saved items, and social signals that can later improve recommendations.</p>
+    </td>
+    <td width="50%">
+      <h3>📍 Dish and place search</h3>
+      <p>PostgreSQL-first search by dish, place, area, and structured food metadata for the MVP.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>🧠 AI assistance</h3>
+      <p>Provider-agnostic AI support for discovery, suggestions, and food decision help with deterministic fallback.</p>
+    </td>
+    <td width="50%">
+      <h3>🛡️ Moderation</h3>
+      <p>Manual-review-first moderation and reporting, preserving safety without over-automating the MVP.</p>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Build Status
+
+| Area | Status |
+| --- | --- |
+| Backend solution | `Backend/FoodSocial.slnx` with .NET 10 source under `Backend/src/`. |
+| API edge | `FoodSocial.Bff` handles browser auth/session and UserProfile facade routes. |
+| Identity | Production-oriented slice with Keycloak integration, lifecycle state, RBAC, and outbox-backed bootstrap events. |
+| UserProfile | Profile, follow graph, saved-item ownership APIs, persistence, and Identity bootstrap consumer path. |
+| Dish and Post | Earlier-stage service slices compared with Identity/UserProfile. |
+| Local platform | Aspire AppHost composes PostgreSQL, Redis, RabbitMQ, Keycloak, BFF, and service projects. |
+| Frontend | Angular 21 app with auth-aware shell, lazy route areas, TailwindCSS, and profile UX foundation. |
+| Ops | CI, observability starter assets, and Kubernetes templates exist; production rollout remains future work. |
+
+Read the live snapshot in [`docs/context/current_build_status.md`](./docs/context/current_build_status.md).
+
+---
+
+## Technology
+
+<div align="center">
+
+| Frontend | Backend | Platform | Operations |
+| --- | --- | --- | --- |
+| Angular 21 | .NET 10 | .NET Aspire | GitHub Actions |
+| TypeScript | ASP.NET Core | PostgreSQL per service | Kubernetes templates |
+| TailwindCSS v4 | BFF/API edge | Keycloak | Prometheus starter config |
+| Standalone components | Service layering | RabbitMQ | Grafana starter dashboard |
+| Signals for local state | Shared contracts | Redis available selectively | OTLP collector starter config |
+
+</div>
+
+Architecture principles:
+
+- **Food-first domain:** `Dish` and `Place` remain first-class product concepts.
+- **BFF edge:** browser-facing auth and frontend aggregation stay at the edge.
+- **Service-owned persistence:** PostgreSQL is the source of truth per service boundary.
+- **Hybrid integration:** REST for synchronous service calls; RabbitMQ for async workflows.
+- **Pragmatic AI:** provider-agnostic integration with graceful deterministic fallback.
+- **MVP restraint:** PostgreSQL-first search, selective caching, lightweight feature controls, manual-review-first moderation.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+    classDef client fill:#fff4e6,stroke:#f59e0b,color:#111827,stroke-width:1px
+    classDef edge fill:#ecfeff,stroke:#06b6d4,color:#111827,stroke-width:1px
+    classDef service fill:#eef2ff,stroke:#6366f1,color:#111827,stroke-width:1px
+    classDef data fill:#f0fdf4,stroke:#22c55e,color:#111827,stroke-width:1px
+    classDef platform fill:#fdf2f8,stroke:#ec4899,color:#111827,stroke-width:1px
+
+    Web[Angular 21 Web App]:::client --> Bff[FoodSocial.Bff<br/>browser-facing API edge]:::edge
+
+    Bff --> Identity[Identity Service]:::service
+    Bff --> UserProfile[UserProfile Service]:::service
+    Bff --> Dish[Dish Service]:::service
+    Bff --> Post[Post Service]:::service
+
+    Identity --> Keycloak[Keycloak]:::platform
+    Identity --> IdentityDb[(Identity PostgreSQL)]:::data
+    UserProfile --> UserProfileDb[(UserProfile PostgreSQL)]:::data
+    Dish --> DishDb[(Dish PostgreSQL)]:::data
+    Post --> PostDb[(Post PostgreSQL)]:::data
+
+    Identity -- bootstrap events --> RabbitMQ[(RabbitMQ)]:::platform
+    RabbitMQ --> UserProfile
+
+    AppHost[.NET Aspire AppHost<br/>local orchestration]:::platform -. resources .-> Keycloak
+    AppHost -. resources .-> RabbitMQ
+    AppHost -. resources .-> IdentityDb
+    AppHost -. resources .-> UserProfileDb
+    AppHost -. resources .-> DishDb
+    AppHost -. resources .-> PostDb
+    AppHost -. runs .-> Bff
+```
+
+<details>
+<summary><strong>Architecture notes</strong></summary>
+
+- The BFF is the browser-facing contract boundary and owns auth-aware request shaping.
+- Identity and UserProfile currently represent the strongest vertical foundation.
+- RabbitMQ is already exercised by the Identity-to-UserProfile bootstrap path.
+- Redis is provisioned but intentionally not treated as a required source of truth.
+- Kubernetes assets are starter templates, not a completed production platform.
+
+</details>
+
+Canonical architecture detail lives in [`docs/project-discovery/10_architecture.md`](./docs/project-discovery/10_architecture.md).
+
+---
+
+## Repository Map
+
+```text
+FoodSocial/
+├── Backend/
+│   ├── FoodSocial.slnx
+│   ├── src/
+│   │   ├── FoodSocial.AppHost/          # Aspire local orchestration
+│   │   ├── FoodSocial.Bff/              # Browser-facing API edge
+│   │   ├── FoodSocial.Contracts/        # Shared integration contracts
+│   │   ├── FoodSocial.ServiceDefaults/  # Shared service defaults
+│   │   ├── Identity/                    # Identity service layers
+│   │   ├── UserProfile/                 # Profile, graph, saved items
+│   │   ├── Dish/                        # Dish service layers
+│   │   └── Post/                        # Post service layers
+│   └── tests/                           # Backend tests
+├── Frontend/                            # Angular 21 workspace
+├── docs/
+│   ├── project-discovery/               # Product and architecture truth
+│   ├── context/                         # Current implementation state
+│   └── ai/                              # Repo and agent engineering rules
+├── openspec/                            # Structured change workflow
+├── ops/                                 # Observability and Kubernetes starters
+└── .github/workflows/ci.yml             # CI workflow
+```
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+| Tool | Version / note |
+| --- | --- |
+| .NET SDK | 10.0.x |
+| Node.js | 24.x, matching CI |
+| npm | Lockfile-managed; `Frontend/package.json` declares npm 11.5.1 |
+| Docker Desktop | Required for local AppHost resources and AppHost-backed tests |
+
+### 1. Run the local platform
+
+```bash
+git clone https://github.com/NCHzzz/FoodSocial.git
+cd FoodSocial
+
+dotnet restore Backend/FoodSocial.slnx
+dotnet run --project Backend/src/FoodSocial.AppHost/FoodSocial.AppHost.csproj
+```
+
+The Aspire AppHost composes PostgreSQL databases, Redis, RabbitMQ, Keycloak realm bootstrap, BFF, and service projects for local development.
+
+### 2. Run the web app
+
+```bash
+cd Frontend
+npm ci
+npm start
+```
+
+Open <http://localhost:4200>. Browser auth flows require the AppHost stack because Angular proxies auth routes through the BFF.
+
+---
+
+## Validation
+
+### Backend
+
+```bash
+dotnet restore Backend/FoodSocial.slnx
+dotnet build Backend/FoodSocial.slnx --configuration Release --no-restore
+dotnet test Backend/tests/FoodSocial.Bff.Tests/FoodSocial.Bff.Tests.csproj --configuration Release --no-restore
+dotnet test Backend/tests/Identity/Domain.Tests/FoodSocial.Identity.Domain.Tests.csproj --configuration Release --no-restore
+dotnet test Backend/tests/Identity/Application.Tests/FoodSocial.Identity.Application.Tests.csproj --configuration Release --no-restore
+dotnet test Backend/tests/Identity/Api.Tests/FoodSocial.Identity.Api.Tests.csproj --configuration Release --no-restore
+dotnet test Backend/tests/UserProfile/Api.Tests/FoodSocial.UserProfile.Api.Tests.csproj --configuration Release --no-restore
+```
+
+### Frontend
+
+```bash
+cd Frontend
+npm ci
+npm test -- --watch=false
+npm run build
+```
+
+### Optional AppHost integration suite
+
+Requires Docker and local container resources:
+
+```bash
+dotnet test Backend/tests/FoodSocial.AppHost.Tests/FoodSocial.AppHost.Tests.csproj --configuration Release --no-restore
+```
+
+---
+
+## Documentation
+
+| Start here | Why it matters |
+| --- | --- |
+| [`docs/project-discovery/00_project_overview.md`](./docs/project-discovery/00_project_overview.md) | Product goals, MVP direction, launch market, stack snapshot. |
+| [`docs/project-discovery/03_scope_mvp.md`](./docs/project-discovery/03_scope_mvp.md) | In-scope and out-of-scope MVP boundaries. |
+| [`docs/project-discovery/04_functional_requirements.md`](./docs/project-discovery/04_functional_requirements.md) | Product behavior requirements. |
+| [`docs/project-discovery/07_domain_model.md`](./docs/project-discovery/07_domain_model.md) | Core entities and domain relationships. |
+| [`docs/project-discovery/10_architecture.md`](./docs/project-discovery/10_architecture.md) | Architecture decisions, trade-offs, and deferred complexity. |
+| [`docs/context/current_build_status.md`](./docs/context/current_build_status.md) | Current implementation state and blockers. |
+| [`Frontend/README.md`](./Frontend/README.md) | Frontend workspace setup and structure. |
+| [`ops/README.md`](./ops/README.md) | Starter operational assets. |
+
+---
+
+## Contributing
+
+FoodSocial is currently a personal MVP build. Contributions should preserve the project-discovery truth and current architecture direction.
+
+Before changing implementation:
+
+1. Read [`AGENTS.md`](./AGENTS.md), [`docs/ai/repo-map.md`](./docs/ai/repo-map.md), and [`docs/ai/workflows.md`](./docs/ai/workflows.md).
+2. Keep repository markdown in English.
+3. Do not introduce product behavior that is not approved in `docs/project-discovery/`.
+4. Keep `Dish` and `Place` as first-class entities.
+5. Run the relevant validation commands before opening a pull request.
+
+---
+
+<div align="center">
+
+Built with .NET, Angular, PostgreSQL, RabbitMQ, Keycloak, and practical MVP restraint.
+
+Inspired by [`awesome-readme`](https://github.com/matiassingers/awesome-readme).
+
+<br />
+
+[Back to top](#top)
+
+</div>
