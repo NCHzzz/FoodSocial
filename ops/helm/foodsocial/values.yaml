@@ -1,0 +1,77 @@
+global:
+  imageRegistry: ghcr.io
+  imageRepository: OWNER/foodsocial
+  imageTag: latest
+  imagePullPolicy: IfNotPresent
+  otlpEndpoint: http://otel-collector.observability.svc.cluster.local:4317
+
+commonEnv:
+  ASPNETCORE_URLS: http://+:8080
+  ServiceDefaults__ExposeHealthEndpoints: "true"
+
+services:
+  bff:
+    enabled: true
+    image: bff
+    replicas: 2
+    port: 8080
+    env: {}
+  identity-api:
+    enabled: true
+    image: identity-api
+    replicas: 2
+    port: 8080
+    env: {}
+  userprofile-api:
+    enabled: true
+    image: userprofile-api
+    replicas: 2
+    port: 8080
+    env: {}
+  dish-api:
+    enabled: true
+    image: dish-api
+    replicas: 1
+    port: 8080
+    env: {}
+  post-api:
+    enabled: true
+    image: post-api
+    replicas: 1
+    port: 8080
+    env: {}
+  web:
+    enabled: true
+    image: web
+    replicas: 2
+    port: 8080
+    env: {}
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+probes:
+  startup:
+    failureThreshold: 30
+    periodSeconds: 2
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  liveness:
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+ingress:
+  enabled: false
+  className: ""
+  hosts: []
+  tls: []
