@@ -61,3 +61,6 @@ pnpm-debug.log*
 
 # AI agent local state
 .sisyphus/
+
+# Local OpenCode skill checkouts
+.opencode/skills/obsidian-skills/
