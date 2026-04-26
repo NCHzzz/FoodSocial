@@ -1,34 +1,26 @@
-# 🍔 FoodSocial
+# 🏷️ FoodSocial
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/NCHzzz/FoodSocial/main/.github/assets/banner.svg" alt="FoodSocial Banner" width="100%"/>
-</p>
-
-<p align="center">
-  <a href="https://github.com/NCHzzz/FoodSocial/releases">
-    <img src="https://img.shields.io/github/v/release/NCHzzz/FoodSocial?include_prereleases&style=flat&color=FF6B6B" alt="Latest Release"/>
-  </a>
   <a href="https://github.com/NCHzzz/FoodSocial/stargazers">
     <img src="https://img.shields.io/github/stars/NCHzzz/FoodSocial?style=flat&color=FFD93D" alt="Stars"/>
   </a>
   <a href="https://github.com/NCHzzz/FoodSocial/fork">
     <img src="https://img.shields.io/github/forks/NCHzzz/FoodSocial?style=flat&color=6BCB77" alt="Forks"/>
   </a>
-  <a href="https://github.com/NCHzzz/FoodSocial/issues">
-    <img src="https://img.shields.io/github/issues/NCHzzz/FoodSocial?style=flat&color=4D96FF" alt="Issues"/>
+  <a href="https://github.com/NCHzzz/FoodSocial/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/NCHzzz/FoodSocial?style=flat&color=4ECDC4" alt="License"/>
   </a>
   <a href="https://github.com/NCHzzz/FoodSocial/actions/workflows">
     <img src="https://img.shields.io/github/actions/workflow/status/NCHzzz/FoodSocial/ci?branch=main&style=flat" alt="CI Status"/>
   </a>
-  <a href="https://github.com/NCHzzz/FoodSocial/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/NCHzzz/FoodSocial?style=flat&color=4ECDC4" alt="License"/>
-  </a>
-  <a href="https://discord.gg/foodsocial">
-    <img src="https://img.shields.io/discord/123456789?label=Discord&style=flat&color=5865F2" alt="Discord"/>
-  </a>
 </p>
 
-> 🎯 AI-native Food-first social platform | Built with .NET 10 microservices & Angular | Launching in Vietnam 🇻🇳
+---
+
+> 🎯 **AI-native Food-first social platform** | Built with .NET 10 microservices & Angular | 🚀 Launching in Vietnam 🇻🇳
+
+---
+
 
 ---
 
@@ -582,8 +574,4 @@ SOFTWARE.
 
 <p align="center">
   Made with ❤️ by <a href="https://github.com/NCHzzz">NCHzzz</a> • 🇻🇳 Vietnam
-</p>
-
-<p align="center">
-  <img src="https://komarev.com/ghpvc/?username=NCHzzz&repo=FoodSocial&style=flat&color=FF6B6B&label=Views" alt="Profile views"/>
 </p>
