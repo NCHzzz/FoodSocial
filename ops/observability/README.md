@@ -1,6 +1,6 @@
 # Observability Examples
 
-FoodSocial services already use `FoodSocial.ServiceDefaults` for OpenTelemetry logs, metrics, and traces. The OTLP exporter is enabled by setting `OTEL_EXPORTER_OTLP_ENDPOINT`; these examples show how to collect that output without replacing the application telemetry setup.
+FoodSocial services already use `FoodSocial.ServiceDefaults` for OpenTelemetry logs, metrics, and traces. Identity and UserProfile also register dependency-aware readiness checks for PostgreSQL and RabbitMQ. The OTLP exporter is enabled by setting `OTEL_EXPORTER_OTLP_ENDPOINT`; these examples show how to collect that output without replacing the application telemetry setup.
 
 ## Local collector example
 
@@ -28,6 +28,16 @@ In Kubernetes, prefer service discovery or `ServiceMonitor`/equivalent objects f
 `ops/observability/grafana/foodsocial-overview-dashboard.json` is a starter dashboard for service health and HTTP server latency/request rate metrics commonly produced by OpenTelemetry .NET instrumentation. Treat it as a seed dashboard, not a production SLO contract.
 
 Validate metric names and labels against the real collector output before production use. The starter queries assume Prometheus-normalized OpenTelemetry HTTP metric names and labels such as `http_server_request_duration_seconds_*`, `http_response_status_code`, and `service_name`.
+
+## Production extensions
+
+Additional production-oriented starter assets are provided alongside the local examples:
+
+- `alertmanager.yml` for alert routing placeholders.
+- `tempo.yaml` for trace storage.
+- `loki.yaml` for log storage.
+- `grafana/provisioning/` for Prometheus, Tempo, Loki, and dashboard provisioning.
+- `README-production.md` for environment-specific production decisions and validation.
 
 ## Important limits
 
