@@ -7,7 +7,7 @@ FoodSocial targets Kubernetes for deployment, while Aspire remains the local orc
 Shared service defaults define two HTTP endpoints:
 
 - `/alive` for liveness probes: checks the process can respond.
-- `/health` for readiness-style health checks: use this for traffic routing once services add dependency checks that reflect whether they can safely serve traffic.
+- `/health` for readiness-style health checks: use this for traffic routing. Identity and UserProfile currently include PostgreSQL and RabbitMQ readiness checks; earlier-stage services only expose the shared self-check until they gain real dependencies.
 
 Current `ServiceDefaults` maps these endpoints in development and when `ServiceDefaults__ExposeHealthEndpoints=true` is set. The deployment template enables that setting explicitly so Kubernetes probes do not depend on the local-development environment name.
 
@@ -26,7 +26,7 @@ This matches the existing `FoodSocial.ServiceDefaults` OTLP exporter behavior an
 
 Use `service-deployment-template.yaml` once per deployable API/BFF service, replacing placeholders such as `SERVICE_NAME`, `IMAGE`, and port values. Keep PostgreSQL, RabbitMQ, Redis, Keycloak, and service credentials in environment-specific configuration or Kubernetes Secrets; do not commit real values.
 
-CI validates this template for YAML syntax only. That validation is useful for preventing malformed committed assets, but it does not prove image availability, namespace policy, service account permissions, ingress/TLS, autoscaling, network policy, secret wiring, rollout safety, or production readiness.
+CI validates this template for YAML syntax only and validates that service images can be built from the committed Dockerfiles. Those checks are useful for preventing malformed assets and broken container build paths, but they do not prove registry availability, namespace policy, service account permissions, ingress/TLS, autoscaling, network policy, secret wiring, rollout safety, or production readiness.
 
 Suggested initial service names from AppHost:
 
