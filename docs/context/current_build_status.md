@@ -68,13 +68,14 @@ This file is a current-state snapshot, not a history log.
 
 ### Ops, CI, and observability assets
 
-- repository-level GitHub Actions CI exists at `.github/workflows/ci.yml` for backend restore/build/non-AppHost tests, frontend `npm ci`/test/build verification, and default syntax validation for committed ops JSON/YAML assets
+- repository-level GitHub Actions CI exists at `.github/workflows/ci.yml` for backend restore/build/non-AppHost tests, frontend `npm ci`/test/build verification, default syntax validation for committed ops JSON/YAML assets, and secret-free container build validation for the frontend plus deployable backend API/BFF projects
+- release and deployment workflows now exist for GHCR image publishing and environment-gated Helm deployment through GitHub Environments with `KUBE_CONFIG`
 - AppHost container-backed tests are available through a manual GitHub Actions `workflow_dispatch` opt-in with `run-apphost-tests=true`; they require Docker on the runner and remain outside default CI
-- lightweight ops assets now live under `ops/`, including OTLP collector, Prometheus scrape, Grafana starter dashboard, and Kubernetes service deployment/probe templates
+- lightweight ops assets now live under `ops/`, including OTLP collector, Prometheus scrape, Alertmanager, Tempo, Loki, Grafana provisioning, Grafana starter dashboard, Helm deployment chart, and Kubernetes service deployment/probe templates with rolling-update, startup, liveness, readiness, resource, and baseline security-context settings
 - observability examples are aligned with the existing `ServiceDefaults` OTLP exporter and use `OTEL_EXPORTER_OTLP_ENDPOINT` rather than replacing application telemetry setup
 - Prometheus starter alerts now cover telemetry target availability, HTTP 5xx rate, and HTTP p95 latency as initial non-production thresholds
 - observability dashboard and alert queries are starter examples and still require validation against actual collector-exported metric names and labels in the target environment
-- Kubernetes guidance documents `/alive` as liveness and `/health` as readiness-style health behavior, with non-development endpoint exposure controlled explicitly through `ServiceDefaults__ExposeHealthEndpoints=true`
+- Kubernetes guidance documents `/alive` as liveness and `/health` as readiness-style health behavior, with non-development endpoint exposure controlled explicitly through `ServiceDefaults__ExposeHealthEndpoints=true`; Identity and UserProfile now add PostgreSQL and RabbitMQ readiness checks while earlier-stage services remain self-check only until their dependencies are implemented
 
 ### Authentication and identity flow state
 
@@ -129,7 +130,7 @@ This file is a current-state snapshot, not a history log.
 
 - Redis is provisioned and available, but it is not yet used by a concrete cache or ephemeral-state implementation in the current codebase
 - RabbitMQ-backed async delivery is implemented for the Identity bootstrap workflow, but broader cross-service messaging coverage is still limited to this first production path
-- Kubernetes manifests are templates only; production image build, secret management, dependency provisioning, ingress, TLS, alert tuning, retention, and environment-specific rollout strategy remain future infrastructure work
+- Kubernetes manifests and Helm chart are deployment starters; external dependency provisioning, cloud secret management, ingress/TLS, alert receiver wiring, retention backends, and environment-specific infrastructure remain operator-owned production work
 - AppHost container-backed tests require a working Docker environment and are intentionally gated outside the default CI workflow
 
 ## Important Clarifications
@@ -143,7 +144,7 @@ This file is a current-state snapshot, not a history log.
 
 - Dish and Post still remain earlier-stage service slices compared with the completed Identity path
 - Redis usage is still intentionally deferred until a measured cache or short-lived-state need exists
-- non-development Kubernetes use of `/alive` and `/health` now has an explicit `ServiceDefaults__ExposeHealthEndpoints` switch, but production dependency-aware readiness checks still need to be designed per service
+- Dish and Post still expose only self health checks until their concrete infrastructure dependencies are implemented
 
 ## Current Priority
 
