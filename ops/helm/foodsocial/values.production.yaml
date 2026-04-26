@@ -1,0 +1,15 @@
+global:
+  imageRegistry: ghcr.io
+  imageRepository: OWNER/foodsocial
+  imageTag: production
+  otlpEndpoint: http://otel-collector.observability.svc.cluster.local:4317
+
+services:
+  bff:
+    replicas: 2
+  identity-api:
+    replicas: 2
+  userprofile-api:
+    replicas: 2
+  web:
+    replicas: 2
