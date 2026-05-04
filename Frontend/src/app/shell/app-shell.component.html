@@ -11,7 +11,7 @@
             FoodSocial
           </a>
           <p class="mt-1 max-w-xl text-sm text-slate-600 sm:text-base">
-            Discover dishes and places worth trying, then sign in when you want to save, follow, and share your own picks.
+            Discover dishes and places worth trying. Sign in when you want to save, follow, and share your own picks.
           </p>
         </div>
       </div>
@@ -29,23 +29,21 @@
 
       <div class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
         <div appUiSurface="soft" appUiSurfacePadding="compact">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Session</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Account</p>
           <p class="mt-1 text-sm font-medium text-slate-900">
             @if (isAuthenticated()) {
               <span [textContent]="session()?.user?.preferredUsername || session()?.user?.email || 'Signed in'"></span>
             } @else {
-              Guest mode
+              Guest browser
             }
           </p>
           <p class="mt-1 text-xs text-slate-500" aria-live="polite" [textContent]="sessionSummary()"></p>
         </div>
 
         @if (isAuthenticated()) {
-          <form method="post" [attr.action]="logoutAction()" class="contents" (submit)="markLogoutPending()">
-            <button appUiButton="primary" type="submit">
-              <span [textContent]="authState().isLoggingOut ? 'Logging out…' : 'Log out'"></span>
-            </button>
-          </form>
+          <button appUiButton="secondary" type="button" (click)="submitLogout()">
+            <span [textContent]="authState().isLoggingOut ? 'Logging out…' : 'Log out'"></span>
+          </button>
         } @else {
           <button appUiButton="accent" type="button" (click)="startLogin()">
             Log in

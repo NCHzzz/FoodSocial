@@ -11,6 +11,7 @@ import { AuthSessionApi } from './infrastructure/auth-session.api';
 describe('AuthSessionService', () => {
   const locationAssign = vi.fn();
   const browserWindow = {
+    document,
     location: {
       pathname: '/',
       search: '',
@@ -140,11 +141,51 @@ describe('AuthSessionService', () => {
     );
   });
 
-  it('builds the logout URL with the current relative return URL', () => {
+  it('submits logout as a CSRF-protected POST form with the current relative return URL', async () => {
     browserWindow.location.pathname = '/profile';
     browserWindow.location.search = '?view=saved';
+    const submit = vi.fn();
+    const formElement = document.createElement('form');
+    formElement.submit = submit;
+    const originalCreateElement = document.createElement.bind(document);
+    const createElementSpy = vi.spyOn(document, 'createElement');
+    createElementSpy.mockImplementation((tagName: string) => {
+      if (tagName === 'form') {
+        return formElement;
+      }
 
-    expect(service.buildLogoutUrl()).toBe('/api/auth/logout?returnUrl=%2Fprofile%3Fview%3Dsaved');
+      return originalCreateElement(tagName);
+    });
+
+    const logoutPromise = service.submitLogout();
+    expect(service.authState().isLoggingOut).toBe(true);
+
+    const csrfRequest = httpTestingController.expectOne('/api/auth/csrf');
+    expect(csrfRequest.request.method).toBe('GET');
+    expect(csrfRequest.request.withCredentials).toBe(true);
+    csrfRequest.flush({ requestToken: 'csrf-token', headerName: 'X-XSRF-TOKEN' });
+
+    try {
+      await logoutPromise;
+
+      expect(formElement.method).toBe('post');
+      expect(formElement.action).toContain('/api/auth/logout?returnUrl=%2Fprofile%3Fview%3Dsaved');
+      expect((formElement.querySelector('input[name="__RequestVerificationToken"]') as HTMLInputElement).value).toBe('csrf-token');
+      expect(submit).toHaveBeenCalledOnce();
+    } finally {
+      createElementSpy.mockRestore();
+    }
+  });
+
+  it('clears logout pending state when CSRF token retrieval fails', async () => {
+    const logoutPromise = service.submitLogout();
+    expect(service.authState().isLoggingOut).toBe(true);
+
+    const csrfRequest = httpTestingController.expectOne('/api/auth/csrf');
+    csrfRequest.flush('csrf unavailable', { status: 503, statusText: 'Service Unavailable' });
+
+    await expect(logoutPromise).rejects.toBeTruthy();
+    expect(service.authState().isLoggingOut).toBe(false);
   });
 
   it('reuses the active session request when a route guard asks for auth state during bootstrap', async () => {

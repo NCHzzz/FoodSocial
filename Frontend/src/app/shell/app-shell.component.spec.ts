@@ -13,8 +13,7 @@ describe('AppShellComponent', () => {
     loadSession: vi.fn().mockResolvedValue(state),
     ensureSession: vi.fn().mockResolvedValue(state),
     startLogin: vi.fn(),
-    markLogoutPending: vi.fn(),
-    buildLogoutUrl: vi.fn().mockReturnValue('/api/auth/logout?returnUrl=%2Fdiscover'),
+    submitLogout: vi.fn().mockResolvedValue(undefined),
   });
 
   let authSessionServiceMock = createAuthSessionServiceMock({

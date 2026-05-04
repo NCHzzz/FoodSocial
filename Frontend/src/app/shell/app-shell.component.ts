@@ -22,7 +22,6 @@ export class AppShellComponent implements OnInit {
   protected readonly session = computed(() => this.authState().session);
   protected readonly sessionLoadFailed = computed(() => this.authState().loadStatus === 'unavailable');
   protected readonly sessionStatusClasses = computed(() => getAuthSessionBadgeClasses(this.authState()));
-  protected readonly logoutAction = computed(() => this.authSessionService.buildLogoutUrl());
   protected readonly sessionSummary = computed(() => getAuthSessionSummary(this.authState()));
   protected readonly navigationItems = computed(() =>
     this.isAuthenticated() ? AUTHENTICATED_NAVIGATION_ITEMS : GUEST_NAVIGATION_ITEMS,
@@ -36,7 +35,7 @@ export class AppShellComponent implements OnInit {
     this.authSessionService.startLogin();
   }
 
-  protected markLogoutPending(): void {
-    this.authSessionService.markLogoutPending();
+  protected submitLogout(): void {
+    void this.authSessionService.submitLogout();
   }
 }

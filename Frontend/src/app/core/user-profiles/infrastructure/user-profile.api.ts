@@ -1,6 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, switchMap } from 'rxjs';
+
+import { CsrfTokenApi } from '../../auth/infrastructure/csrf-token.api';
 
 import {
   FollowUserResponse,
@@ -16,6 +18,7 @@ type SavedItemKind = 'posts' | 'dishes' | 'places';
 @Injectable({ providedIn: 'root' })
 export class UserProfileApi {
   private readonly httpClient = inject(HttpClient);
+  private readonly csrfTokenApi = inject(CsrfTokenApi);
 
   private static readonly usersEndpoint = '/api/users';
 
@@ -26,9 +29,9 @@ export class UserProfileApi {
   }
 
   updateProfile(identityId: string, request: UpdateUserProfileRequest): Observable<UserProfileResponse> {
-    return this.httpClient.patch<UserProfileResponse>(this.buildUserEndpoint(identityId), request, {
-      withCredentials: true,
-    });
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.patch<UserProfileResponse>(this.buildUserEndpoint(identityId), request, options)),
+    );
   }
 
   getFollowers(identityId: string): Observable<UserProfileListResponse> {
@@ -44,15 +47,15 @@ export class UserProfileApi {
   }
 
   follow(identityId: string): Observable<FollowUserResponse> {
-    return this.httpClient.post<FollowUserResponse>(`${this.buildUserEndpoint(identityId)}/follow`, null, {
-      withCredentials: true,
-    });
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.post<FollowUserResponse>(`${this.buildUserEndpoint(identityId)}/follow`, null, options)),
+    );
   }
 
   unfollow(identityId: string): Observable<FollowUserResponse> {
-    return this.httpClient.delete<FollowUserResponse>(`${this.buildUserEndpoint(identityId)}/follow`, {
-      withCredentials: true,
-    });
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.delete<FollowUserResponse>(`${this.buildUserEndpoint(identityId)}/follow`, options)),
+    );
   }
 
   getSavedItems(identityId: string): Observable<UserSavedItemsResponse> {
@@ -86,15 +89,15 @@ export class UserProfileApi {
   }
 
   private saveItem(identityId: string, kind: SavedItemKind, targetId: string): Observable<SaveUserItemResponse> {
-    return this.httpClient.put<SaveUserItemResponse>(this.buildSavedItemEndpoint(identityId, kind, targetId), null, {
-      withCredentials: true,
-    });
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.put<SaveUserItemResponse>(this.buildSavedItemEndpoint(identityId, kind, targetId), null, options)),
+    );
   }
 
   private unsaveItem(identityId: string, kind: SavedItemKind, targetId: string): Observable<SaveUserItemResponse> {
-    return this.httpClient.delete<SaveUserItemResponse>(this.buildSavedItemEndpoint(identityId, kind, targetId), {
-      withCredentials: true,
-    });
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.delete<SaveUserItemResponse>(this.buildSavedItemEndpoint(identityId, kind, targetId), options)),
+    );
   }
 
   private buildUserEndpoint(identityId: string): string {

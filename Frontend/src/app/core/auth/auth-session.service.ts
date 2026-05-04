@@ -7,11 +7,13 @@ import {
   createLoadingAuthSessionState,
 } from './auth-session.models';
 import { AuthSessionApi } from './infrastructure/auth-session.api';
+import { CsrfTokenApi } from './infrastructure/csrf-token.api';
 
 @Injectable({ providedIn: 'root' })
 export class AuthSessionService {
   private readonly authSessionApi = inject(AuthSessionApi);
   private readonly browserWindow = inject(BROWSER_WINDOW);
+  private readonly csrfTokenApi = inject(CsrfTokenApi);
   private sessionLoadPromise: Promise<AuthSessionState> | null = null;
 
   private static readonly loginEndpoint = '/api/auth/login';
@@ -66,8 +68,35 @@ export class AuthSessionService {
     }));
   }
 
-  buildLogoutUrl(): string {
-    return `${AuthSessionService.logoutEndpoint}?returnUrl=${encodeURIComponent(this.resolveReturnUrl())}`;
+  markLogoutIdle(): void {
+    this.authSessionState.update((currentState) => ({
+      ...currentState,
+      isLoggingOut: false,
+    }));
+  }
+
+  async submitLogout(): Promise<void> {
+    this.markLogoutPending();
+    try {
+      const token = await firstValueFrom(this.csrfTokenApi.getToken());
+      const form = this.browserWindow.document.createElement('form');
+
+      form.method = 'post';
+      form.action = `${AuthSessionService.logoutEndpoint}?returnUrl=${encodeURIComponent(this.resolveReturnUrl())}`;
+      form.style.display = 'none';
+
+      const tokenInput = this.browserWindow.document.createElement('input');
+      tokenInput.type = 'hidden';
+      tokenInput.name = '__RequestVerificationToken';
+      tokenInput.value = token.requestToken;
+
+      form.appendChild(tokenInput);
+      this.browserWindow.document.body.appendChild(form);
+      form.submit();
+    } catch (error: unknown) {
+      this.markLogoutIdle();
+      throw error;
+    }
   }
 
   private buildLoginUrl(): string {

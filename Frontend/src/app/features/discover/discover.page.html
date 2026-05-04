@@ -4,10 +4,10 @@
       Discover what to eat
     </div>
     <h1 class="mt-5 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-      Browse a food-first feed built around dishes, quick verdicts, and place context.
+      Browse food-first discovery, then explore the real Dish and Place catalogs already behind the BFF.
     </h1>
     <p class="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-      FoodSocial should help people decide what to try next without burying the dish behind profile noise. Guests can explore safely, while signed-in users unlock saves, follows, and posting.
+      FoodSocial should help people decide what to try next without burying the dish behind profile noise. Guests can explore public catalog search safely, while signed-in users unlock saves, follows, and future posting.
     </p>
 
     <dl class="mt-8 grid gap-4 sm:grid-cols-3">
@@ -80,4 +80,54 @@
       </section>
     </div>
   </aside>
+</section>
+
+<section class="mt-8 grid gap-5 xl:grid-cols-2">
+  <app-dish-search-select initialQuery="phở" (dishSelected)="selectDish($event)" />
+  <app-place-search-select initialQuery="quán" (placeSelected)="selectPlace($event)" />
+</section>
+
+<section class="mt-5 rounded-[2rem] border border-orange-100 bg-orange-50/80 p-5 shadow-[0_18px_45px_-35px_rgba(194,65,12,0.7)] sm:p-6">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-700">Catalog context</p>
+      <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Explore the catalog without creating drafts</h2>
+      <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
+        Dish and Place search are live backend-backed surfaces today. Draft persistence and post publishing stay locked until media upload and publish orchestration are enabled.
+      </p>
+    </div>
+    <a appUiButton="secondary" routerLink="/post-create">See creation readiness</a>
+  </div>
+
+  @if (hasCatalogContext()) {
+    <div class="mt-5 grid gap-3 md:grid-cols-2">
+      @if (selectedDish(); as dish) {
+        <article class="rounded-2xl border border-orange-200 bg-white px-4 py-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-orange-700">Dish selected</p>
+          <h3 class="mt-2 text-base font-semibold text-slate-950" [textContent]="dish.name"></h3>
+          <p class="mt-1 text-sm text-slate-600">
+            <span [textContent]="dish.category ?? 'Category pending'"></span>
+            <span aria-hidden="true"> · </span>
+            <span [textContent]="dish.cuisineType ?? 'Cuisine pending'"></span>
+          </p>
+        </article>
+      }
+
+      @if (selectedPlace(); as place) {
+        <article class="rounded-2xl border border-orange-200 bg-white px-4 py-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-orange-700">Place selected</p>
+          <h3 class="mt-2 text-base font-semibold text-slate-950" [textContent]="place.name"></h3>
+          <p class="mt-1 text-sm text-slate-600">
+            <span [textContent]="place.area"></span>
+            <span aria-hidden="true"> · </span>
+            <span [textContent]="place.city"></span>
+          </p>
+        </article>
+      }
+    </div>
+  } @else {
+    <p class="mt-5 rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+      Select a dish or place above to inspect canonical context. Nothing is saved as a draft from this surface.
+    </p>
+  }
 </section>

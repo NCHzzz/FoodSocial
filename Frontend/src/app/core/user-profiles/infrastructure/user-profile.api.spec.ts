@@ -76,11 +76,93 @@ describe('UserProfileApi', () => {
       expect(profile.displayName).toBe('Updated Explorer');
     });
 
+    const csrfRequest = httpTestingController.expectOne('/api/auth/csrf');
+    expect(csrfRequest.request.method).toBe('GET');
+    expect(csrfRequest.request.withCredentials).toBe(true);
+    csrfRequest.flush({ requestToken: 'csrf-token', headerName: 'X-XSRF-TOKEN' });
+
     const request = httpTestingController.expectOne(`/api/users/${identityId}`);
     expect(request.request.method).toBe('PATCH');
     expect(request.request.withCredentials).toBe(true);
+    expect(request.request.headers.get('X-XSRF-TOKEN')).toBe('csrf-token');
     expect(request.request.body).toEqual(updateRequest);
 
     request.flush({ ...profileResponse, ...updateRequest });
+  });
+
+  it('sends the CSRF token header for follow mutations', () => {
+    api.follow(identityId).subscribe((response) => {
+      expect(response.following).toBe(true);
+    });
+
+    const csrfRequest = httpTestingController.expectOne('/api/auth/csrf');
+    csrfRequest.flush({ requestToken: 'csrf-token', headerName: 'X-XSRF-TOKEN' });
+
+    const request = httpTestingController.expectOne(`/api/users/${identityId}/follow`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.withCredentials).toBe(true);
+    expect(request.request.headers.get('X-XSRF-TOKEN')).toBe('csrf-token');
+
+    request.flush({ targetIdentityId: identityId, following: true });
+  });
+
+  it('sends the CSRF token header for unfollow mutations', () => {
+    api.unfollow(identityId).subscribe((response) => {
+      expect(response.following).toBe(false);
+    });
+
+    const csrfRequest = httpTestingController.expectOne('/api/auth/csrf');
+    csrfRequest.flush({ requestToken: 'csrf-token', headerName: 'X-XSRF-TOKEN' });
+
+    const request = httpTestingController.expectOne(`/api/users/${identityId}/follow`);
+    expect(request.request.method).toBe('DELETE');
+    expect(request.request.withCredentials).toBe(true);
+    expect(request.request.headers.get('X-XSRF-TOKEN')).toBe('csrf-token');
+
+    request.flush({ targetIdentityId: identityId, following: false });
+  });
+
+  it('sends the CSRF token header for save and unsave mutations', () => {
+    api.saveDish(identityId, 'dish-123').subscribe((response) => {
+      expect(response.saved).toBe(true);
+    });
+
+    const saveCsrfRequest = httpTestingController.expectOne('/api/auth/csrf');
+    saveCsrfRequest.flush({ requestToken: 'save-token', headerName: 'X-XSRF-TOKEN' });
+
+    const saveRequest = httpTestingController.expectOne(`/api/users/${identityId}/saved/dishes/dish-123`);
+    expect(saveRequest.request.method).toBe('PUT');
+    expect(saveRequest.request.withCredentials).toBe(true);
+    expect(saveRequest.request.headers.get('X-XSRF-TOKEN')).toBe('save-token');
+    saveRequest.flush({ targetId: 'dish-123', saved: true });
+
+    api.unsaveDish(identityId, 'dish-123').subscribe((response) => {
+      expect(response.saved).toBe(false);
+    });
+
+    const unsaveCsrfRequest = httpTestingController.expectOne('/api/auth/csrf');
+    unsaveCsrfRequest.flush({ requestToken: 'unsave-token', headerName: 'X-XSRF-TOKEN' });
+
+    const unsaveRequest = httpTestingController.expectOne(`/api/users/${identityId}/saved/dishes/dish-123`);
+    expect(unsaveRequest.request.method).toBe('DELETE');
+    expect(unsaveRequest.request.withCredentials).toBe(true);
+    expect(unsaveRequest.request.headers.get('X-XSRF-TOKEN')).toBe('unsave-token');
+    unsaveRequest.flush({ targetId: 'dish-123', saved: false });
+  });
+
+  it('encodes identity and target identifiers in BFF paths', () => {
+    const encodedIdentityId = 'identity/with space';
+    const encodedTargetId = 'place/with space';
+
+    api.savePlace(encodedIdentityId, encodedTargetId).subscribe((response) => {
+      expect(response.saved).toBe(true);
+    });
+
+    const csrfRequest = httpTestingController.expectOne('/api/auth/csrf');
+    csrfRequest.flush({ requestToken: 'csrf-token', headerName: 'X-XSRF-TOKEN' });
+
+    const request = httpTestingController.expectOne('/api/users/identity%2Fwith%20space/saved/places/place%2Fwith%20space');
+    expect(request.request.method).toBe('PUT');
+    request.flush({ targetId: encodedTargetId, saved: true });
   });
 });
