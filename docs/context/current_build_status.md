@@ -46,7 +46,7 @@ This file is a current-state snapshot, not a history log.
 
 - clean architecture layering exists for the first four services
 - BFF exists as a separate API edge project
-- BFF now exposes narrow browser-facing facades for UserProfile profile/graph/saved-item routes, Dish and Place read/search routes, and the Post MVP read/search/feed/create/like/comment/report pass-through routes, forwarding through Aspire service discovery while preserving upstream status and ProblemDetails responses and translating downstream network failures into safe BFF ProblemDetails responses
+- BFF now exposes narrow browser-facing facades for UserProfile profile/graph/saved-item routes, Dish and Place read/search routes, and the Post MVP read/search/feed/create/like/comment/report plus moderator report-review pass-through routes, forwarding through Aspire service discovery while preserving upstream status and ProblemDetails responses and translating downstream network failures into safe BFF ProblemDetails responses
 - BFF now uses Redis-backed distributed caching as its first concrete Redis consumer for short-lived Dish/Place read/search response caching, with memory-cache fallback when no Redis connection string is configured and safe uncached degradation on cache failures
 - `ServiceDefaults` is referenced by the API projects
 - default WeatherForecast sample files were removed
@@ -98,7 +98,7 @@ This file is a current-state snapshot, not a history log.
 - BFF session and refresh behavior are wired through the verified browser auth edge and identity orchestration path, and now reject blocked Identity lifecycle states such as Suspended and Deleted at the auth edge
 - BFF browser session cookies now have explicit HttpOnly, Secure, SameSite, expiration, and sliding-expiration settings
 - BFF cookie-authenticated state-changing browser endpoints now require an explicit CSRF token header; bearer-authenticated API calls are not treated as cookie-CSRF flows
-- BFF Post mutations now require an authenticated browser/API identity at the edge, validate CSRF for cookie-backed writes, replace caller-supplied author/actor/reporter identifiers with the Identity orchestration identity before forwarding to Post.Api, and attach explicit internal trust headers for Post.Api mutation routes
+- BFF Post mutations now require an authenticated browser/API identity at the edge, validate CSRF for cookie-backed writes, replace caller-supplied author/actor/reporter/moderator identifiers with the Identity orchestration identity before forwarding to Post.Api, and attach explicit internal trust headers plus role context for Post.Api mutation/moderation routes
 - BFF logout is now POST-only and verified through the AppHost browser flow
 - Identity.Api uses authenticated claim-driven ensure behavior instead of caller-supplied subject input
 - service-side auth relies on Aspire Keycloak resource wiring instead of a hardcoded localhost authority
@@ -109,12 +109,12 @@ This file is a current-state snapshot, not a history log.
 
 - Angular 21 application now lives directly at `Frontend/`
 - TailwindCSS is integrated using the current Angular/Tailwind flow
-- frontend structure uses `src/app/core/`, `src/app/shell/`, `src/app/features/`, and lazy route areas/foundations for discover, posts, profiles, following, post-create, notifications, profile, and Dish/Place search-select behavior
+- frontend structure uses `src/app/core/`, `src/app/shell/`, `src/app/features/`, and lazy route areas/foundations for discover, search, posts, profiles, following, post-create, notifications, profile, and Dish/Place search-select behavior
 - frontend now includes the first auth-aware shell with guest-safe login entry, authenticated logout entry, and BFF session-state wiring
 - frontend authenticated mutation calls now fetch the BFF CSRF token and send it with cookie-authenticated profile/follow/save/logout requests
 - Angular local development now proxies auth-related browser routes to the BFF and depends on the local Keycloak realm allowing `http://localhost:4200` callback/origin entries for dev-server auth round-trips
 - frontend now follows a clearer production Angular 21 structure with standalone bootstrap, shell-owned layout, lazy route areas, signal-driven local auth state, typed Dish/Place BFF clients, and reusable Dish/Place search-select foundations
-- frontend Discover and Create readiness surfaces now compose the real Dish/Place search-select components against existing BFF catalog APIs, while keeping Post publishing/feed behavior explicitly locked until Post/media APIs exist
+- frontend Discover now composes real Dish/Place catalog selectors plus a live Post-backed Discover feed surface through the BFF; Search queries Dish, Place, and Post BFF facades through a deterministic fallback route; Following derives a trusted feed from the follow graph plus bounded Post search; Create now publishes URL-backed food-first posts to the real Post BFF facade; Moderation now gives moderator/admin sessions a manual report-review queue backed by the BFF/Post.Api moderation facade while clearly leaving binary upload storage, derivatives, and cleanup as the remaining media-lifecycle slice
 
 ### Verification already completed
 
@@ -141,7 +141,7 @@ This file is a current-state snapshot, not a history log.
 - focused BFF tests now verify Dish read/search facade forwarding, query preservation, upstream ProblemDetails preservation, downstream network-failure ProblemDetails translation, and cache hits for repeated successful catalog search responses
 - direct Place API and persistence regression tests now cover canonical place creation, validation, normalization, duplicate safety, default active search behavior, city/area/cuisine/price filters, lifecycle status changes, empty-id ProblemDetails, management wrong-key rejection, persistence, and API ProblemDetails behavior
 - focused BFF tests now verify Place read/search facade forwarding, query preservation, upstream ProblemDetails preservation, downstream network-failure ProblemDetails translation, and cache hits for repeated successful catalog search responses
-- focused BFF tests now verify Post write-route auth rejection, CSRF rejection, and edge-side author/reporter identity replacement before forwarding to Post.Api
+- focused BFF tests now verify Post write-route auth rejection, CSRF rejection, edge-side author/reporter/moderator identity replacement, and moderator-role forwarding before forwarding to Post.Api
 - the full AppHost-backed verification suite passes end to end against the live local Docker-backed platform: `17/17` tests pass from WSL after Post internal-trust/catalog-validation wiring
 - frontend Angular app structure exists, but local build still depends on installed frontend packages in the working environment
 - frontend dependency remediation is in place and `npm audit --package-lock-only` now reports zero vulnerabilities for the current checked-in lockfile
@@ -153,7 +153,7 @@ This file is a current-state snapshot, not a history log.
 - frontend unit tests and production build pass for the completed Profile UX slice, including owner-only saved-state handling, delayed session hydration on public owner profiles, and public follow/follow-graph behavior
 - focused frontend unit tests now cover the typed Dish BFF client and Dish search/select loading, empty, error, selected, and stale-response guard states
 - focused frontend unit tests now cover the typed Place BFF client and Place search/select loading, empty, error, selected, and stale-response guard states
-- focused frontend unit tests now cover Discover catalog-context composition and Create readiness catalog selection without enabling unavailable Post publishing, while API tests cover Dish/Place search parameter normalization and broader UserProfile mutation paths
+- focused frontend unit tests now cover typed Post BFF client behavior, Discover feed composition, deterministic Search aggregation, Following feed assembly, URL-backed post creation, moderator report-review UI, Dish/Place search-select behavior, and broader UserProfile mutation paths
 
 ### Platform maturity notes
 
@@ -171,11 +171,12 @@ This file is a current-state snapshot, not a history log.
 
 ## Current Blockers
 
-- Separate Feed, Search, Moderation, and Notification services remain deferred; the Post service owns the MVP content/feed/search/report basics until extraction is justified
+- Separate Feed, Search, Moderation, and Notification services remain deferred; the Post service owns the current MVP content/feed/search/report basics until extraction is justified
+- Full MVP still lacks binary media upload/storage/derivative cleanup, dedicated Feed service/read model, AI-assisted search/recommendation, notification stream, and repost/share backend flow
 
 ## Current Priority
 
-- keep Post.Api internal-trust secrets environment-owned, apply the generated Post migration in the target PostgreSQL environment, and continue toward frontend media upload and publish orchestration
+- keep Post.Api internal-trust secrets environment-owned, apply the generated Post migration in the target PostgreSQL environment, and continue with binary media lifecycle plus AI/Notification/Repost slices
 
 ## Delivery Artifact Note
 
