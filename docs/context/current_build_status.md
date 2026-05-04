@@ -46,22 +46,22 @@ This file is a current-state snapshot, not a history log.
 
 - clean architecture layering exists for the first four services
 - BFF exists as a separate API edge project
-- BFF now exposes narrow browser-facing facades for UserProfile profile/graph/saved-item routes, Dish and Place read/search routes, and the Post MVP read/search/feed/create/like/comment/report plus moderator report-review pass-through routes, forwarding through Aspire service discovery while preserving upstream status and ProblemDetails responses and translating downstream network failures into safe BFF ProblemDetails responses
+- BFF now exposes narrow browser-facing facades for UserProfile profile/graph/saved-item/follow-notification routes, Dish and Place read/search routes, and the Post MVP read/search/feed/create/media-upload/like/comment/repost/report/interaction-notification routes, plus moderator report-review pass-through routes, forwarding through Aspire service discovery while preserving upstream status and ProblemDetails responses and translating downstream network failures into safe BFF ProblemDetails responses
 - BFF now uses Redis-backed distributed caching as its first concrete Redis consumer for short-lived Dish/Place read/search response caching, with memory-cache fallback when no Redis connection string is configured and safe uncached degradation on cache failures
 - `ServiceDefaults` is referenced by the API projects
 - default WeatherForecast sample files were removed
 - Identity now has a production-oriented business slice with lifecycle state, claim-driven ensure flow, app-owned RBAC, trusted-service authorization rules, and durable outbox-backed bootstrap event publication
 - UserProfile now includes the first bootstrap consumer/completion path for identity-driven shell creation and explicit completion signaling back to Identity
-- UserProfile now also exposes the first application-owned profile graph slice, including profile retrieval/update, follow graph reads and mutations, and saved-item ownership APIs backed by additive EF Core persistence
+- UserProfile now also exposes the first application-owned profile graph slice, including profile retrieval/update, follow graph reads and mutations, owner-scoped follow notifications, and saved-item ownership APIs backed by additive EF Core persistence
 - Dish now includes the backend canonical catalog foundation across domain/application/contracts/persistence/API: creation validation and normalization, active/deprecated lifecycle, database-bounded name/alias search, get-by-id, management-key-protected creation/deprecation with fixed-time key comparison, EF Core persistence, and API ProblemDetails behavior
 - Place now includes the backend canonical catalog foundation across domain/application/contracts/persistence/API: creation validation and normalization, active/closed/suspended lifecycle, bounded restaurant/location search, get-by-id, management-key-protected creation/status updates with fixed-time key comparison, EF Core persistence, and API ProblemDetails behavior
-- Post now includes the MVP content-core foundation across contracts/domain/application/persistence/API: trusted-caller author/dish/caption/primary-media food post creation, active Dish and optional active Place catalog-reference validation at the publish boundary, read/search/discover feed retrieval, idempotent likes, owner comment soft-delete, report intake without auto-hide, manual report resolution with hide/dismiss actions, EF Core-owned Post persistence, and API ProblemDetails behavior
-- Post now has an initial EF Core migration for the content-core schema covering `posts`, `post_media`, `post_likes`, `post_comments`, and `content_reports`, with Post-owned foreign keys only inside the Post boundary
+- Post now includes the MVP content-core foundation across contracts/domain/application/persistence/API: trusted-caller author/dish/caption/primary-media food post creation, bounded JPEG/PNG/WebP media upload with stored original plus placeholder thumbnail reference, active Dish and optional active Place catalog-reference validation at the publish boundary, read/search/discover feed retrieval, idempotent likes, owner comment soft-delete, idempotent repost/reshare records, Post-owned interaction notifications for likes/comments/reposts, report intake without auto-hide, manual report resolution with hide/dismiss actions, EF Core-owned Post persistence, and API ProblemDetails behavior
+- Post now has EF Core migrations for the content-core schema covering `posts`, `post_media`, `post_likes`, `post_comments`, `post_reposts`, `post_notifications`, and `content_reports`, with Post-owned foreign keys only inside the Post boundary
 - FoodSocial.Contracts contains the active auth, identity, and bootstrap integration contracts used by the BFF, Identity, and UserProfile services
-- FoodSocial.Contracts now also contains the current UserProfile API contracts for profile, follow, and saved-item flows
+- FoodSocial.Contracts now also contains the current UserProfile API contracts for profile, follow, saved-item, and follow-notification flows
 - FoodSocial.Contracts now also contains Dish API contracts for details, summaries, search, creation, and lifecycle responses
 - FoodSocial.Contracts now also contains Place API contracts for details, summaries, search, creation, and lifecycle responses
-- FoodSocial.Contracts now also contains Post API contracts for create/read/search/feed/like/comment/report/moderation flows
+- FoodSocial.Contracts now also contains Post API contracts for create/read/search/feed/like/comment/repost/report/notification/moderation flows
 
 ### Local orchestration state
 
@@ -98,7 +98,7 @@ This file is a current-state snapshot, not a history log.
 - BFF session and refresh behavior are wired through the verified browser auth edge and identity orchestration path, and now reject blocked Identity lifecycle states such as Suspended and Deleted at the auth edge
 - BFF browser session cookies now have explicit HttpOnly, Secure, SameSite, expiration, and sliding-expiration settings
 - BFF cookie-authenticated state-changing browser endpoints now require an explicit CSRF token header; bearer-authenticated API calls are not treated as cookie-CSRF flows
-- BFF Post mutations now require an authenticated browser/API identity at the edge, validate CSRF for cookie-backed writes, replace caller-supplied author/actor/reporter/moderator identifiers with the Identity orchestration identity before forwarding to Post.Api, and attach explicit internal trust headers plus role context for Post.Api mutation/moderation routes
+- BFF Post mutations now require an authenticated browser/API identity at the edge, validate CSRF for cookie-backed writes, replace caller-supplied author/actor/reporter/moderator identifiers with the Identity orchestration identity before forwarding to Post.Api, and attach explicit internal trust headers plus role context for Post.Api mutation/notification/moderation routes
 - BFF logout is now POST-only and verified through the AppHost browser flow
 - Identity.Api uses authenticated claim-driven ensure behavior instead of caller-supplied subject input
 - service-side auth relies on Aspire Keycloak resource wiring instead of a hardcoded localhost authority
@@ -114,7 +114,7 @@ This file is a current-state snapshot, not a history log.
 - frontend authenticated mutation calls now fetch the BFF CSRF token and send it with cookie-authenticated profile/follow/save/logout requests
 - Angular local development now proxies auth-related browser routes to the BFF and depends on the local Keycloak realm allowing `http://localhost:4200` callback/origin entries for dev-server auth round-trips
 - frontend now follows a clearer production Angular 21 structure with standalone bootstrap, shell-owned layout, lazy route areas, signal-driven local auth state, typed Dish/Place BFF clients, and reusable Dish/Place search-select foundations
-- frontend Discover now composes real Dish/Place catalog selectors plus a live Post-backed Discover feed surface through the BFF; Search queries Dish, Place, and Post BFF facades through a deterministic fallback route; Following derives a trusted feed from the follow graph plus bounded Post search; Create now publishes URL-backed food-first posts to the real Post BFF facade; Moderation now gives moderator/admin sessions a manual report-review queue backed by the BFF/Post.Api moderation facade while clearly leaving binary upload storage, derivatives, and cleanup as the remaining media-lifecycle slice
+- frontend Discover now composes real Dish/Place catalog selectors plus a live Post-backed Discover feed surface through the BFF; Search queries Dish, Place, Post, and deterministic assist BFF facades; Following derives a trusted feed from the follow graph plus bounded Post search; Create now publishes URL-backed or BFF-upload-backed food-first posts to the real Post BFF facade; Notifications now show Post-owned like/comment/repost activity plus UserProfile-owned follow activity; Repost is BFF-backed from feed cards and post detail; Moderation now gives moderator/admin sessions a manual report-review queue backed by the BFF/Post.Api moderation facade
 
 ### Verification already completed
 
@@ -132,16 +132,16 @@ This file is a current-state snapshot, not a history log.
 - BFF login now redirects correctly to the Keycloak login page through the local auth edge
 - the BFF browser auth edge, authenticated session path, refresh behavior, and POST-only logout behavior are verified through AppHost-backed tests
 - focused BFF tests verify blocked lifecycle-state handling for session/refresh and explicit browser-cookie settings
-- focused BFF tests verify UserProfile facade forwarding, protected-route 401 behavior, cookie access-token propagation, upstream ProblemDetails/status preservation, and CSRF rejection for cookie-authenticated mutations without a token header
+- focused BFF tests verify UserProfile facade forwarding, protected-route 401 behavior, cookie access-token propagation, follow-notification proxying, upstream ProblemDetails/status preservation, and CSRF rejection for cookie-authenticated mutations without a token header
 - Identity lifecycle, claim-driven ensure flow, duplicate-safe persistence, RBAC enforcement, trusted-service authorization, and durable outbox publication are covered by backend tests
 - UserProfile bootstrap consumption and explicit completion signaling back to Identity are verified through the production-path AppHost suite after hosted Keycloak configuration, bounded-retry dead-letter handling, and AppHost test-isolation hardening for RabbitMQ topology/reset races
-- direct UserProfile API and persistence regression tests now cover profile retrieval/update, ownership enforcement, self-follow rejection, follow graph behavior, and owner-only saved items
+- direct UserProfile API and persistence regression tests now cover profile retrieval/update, ownership enforcement, self-follow rejection, follow graph behavior, owner-only saved items, and owner-only follow notifications
 - direct Dish API and persistence regression tests now cover canonical dish creation, validation, normalization, default active search behavior, deprecation, persistence, and API ProblemDetails behavior
 - direct Dish regression tests now also cover database-bounded alias search, alias-search filter correctness, empty-id ProblemDetails, unauthenticated management mutation rejection, and wrong-key management rejection
 - focused BFF tests now verify Dish read/search facade forwarding, query preservation, upstream ProblemDetails preservation, downstream network-failure ProblemDetails translation, and cache hits for repeated successful catalog search responses
 - direct Place API and persistence regression tests now cover canonical place creation, validation, normalization, duplicate safety, default active search behavior, city/area/cuisine/price filters, lifecycle status changes, empty-id ProblemDetails, management wrong-key rejection, persistence, and API ProblemDetails behavior
 - focused BFF tests now verify Place read/search facade forwarding, query preservation, upstream ProblemDetails preservation, downstream network-failure ProblemDetails translation, and cache hits for repeated successful catalog search responses
-- focused BFF tests now verify Post write-route auth rejection, CSRF rejection, edge-side author/reporter/moderator identity replacement, and moderator-role forwarding before forwarding to Post.Api
+- focused BFF tests now verify Post write-route auth rejection, CSRF rejection, edge-side author/reporter/moderator identity replacement, repost actor replacement, notification forwarding, and moderator-role forwarding before forwarding to Post.Api
 - the full AppHost-backed verification suite passes end to end against the live local Docker-backed platform: `17/17` tests pass from WSL after Post internal-trust/catalog-validation wiring
 - frontend Angular app structure exists, but local build still depends on installed frontend packages in the working environment
 - frontend dependency remediation is in place and `npm audit --package-lock-only` now reports zero vulnerabilities for the current checked-in lockfile
@@ -153,7 +153,7 @@ This file is a current-state snapshot, not a history log.
 - frontend unit tests and production build pass for the completed Profile UX slice, including owner-only saved-state handling, delayed session hydration on public owner profiles, and public follow/follow-graph behavior
 - focused frontend unit tests now cover the typed Dish BFF client and Dish search/select loading, empty, error, selected, and stale-response guard states
 - focused frontend unit tests now cover the typed Place BFF client and Place search/select loading, empty, error, selected, and stale-response guard states
-- focused frontend unit tests now cover typed Post BFF client behavior, Discover feed composition, deterministic Search aggregation, Following feed assembly, URL-backed post creation, moderator report-review UI, Dish/Place search-select behavior, and broader UserProfile mutation paths
+- focused frontend unit tests now cover typed Post BFF client behavior, Discover feed composition, deterministic Search aggregation with AI-assist fallback hints, Following feed assembly, upload-or-URL-backed post creation, repost/combined notification UI, moderator report-review UI, Dish/Place search-select behavior, and broader UserProfile mutation paths
 
 ### Platform maturity notes
 
@@ -171,12 +171,12 @@ This file is a current-state snapshot, not a history log.
 
 ## Current Blockers
 
-- Separate Feed, Search, Moderation, and Notification services remain deferred; the Post service owns the current MVP content/feed/search/report basics until extraction is justified
-- Full MVP still lacks binary media upload/storage/derivative cleanup, dedicated Feed service/read model, AI-assisted search/recommendation, notification stream, and repost/share backend flow
+- Separate Feed, Search, Moderation, and Notification services remain deferred; Post and UserProfile own the current MVP content/feed/search/report/repost/interaction/follow-notification basics until extraction is justified
+- Full MVP now has bounded MVP implementations for media storage, AI assistance, feeds/search, moderation, and notifications; production hardening remains for object storage, real derivatives/cleanup jobs, provider-backed recommendations, dedicated read models/services where justified, account/system notifications, and rule-based anti-spam/user restriction automation
 
 ## Current Priority
 
-- keep Post.Api internal-trust secrets environment-owned, apply the generated Post migration in the target PostgreSQL environment, and continue with binary media lifecycle plus AI/Notification/Repost slices
+- keep internal-trust secrets environment-owned, apply generated Post and UserProfile migrations in the target PostgreSQL environment, then harden production media, recommendation, notification, and moderation automation paths without expanding MVP scope
 
 ## Delivery Artifact Note
 
