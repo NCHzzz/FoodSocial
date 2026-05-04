@@ -6,7 +6,7 @@ import { getAuthSessionBadgeClasses, getAuthSessionSummary, isAuthenticatedSessi
 import { UiButtonDirective } from '../shared/ui/button/ui-button.directive';
 import { ShellNavLinkDirective } from '../shared/ui/shell/shell-nav-link.directive';
 import { UiSurfaceDirective } from '../shared/ui/surface/ui-surface.directive';
-import { AUTHENTICATED_NAVIGATION_ITEMS, GUEST_NAVIGATION_ITEMS } from './app-shell.navigation';
+import { AUTHENTICATED_NAVIGATION_ITEMS, GUEST_NAVIGATION_ITEMS, MODERATOR_NAVIGATION_ITEMS } from './app-shell.navigation';
 
 @Component({
   selector: 'app-app-shell',
@@ -23,12 +23,23 @@ export class AppShellComponent implements OnInit {
   protected readonly sessionLoadFailed = computed(() => this.authState().loadStatus === 'unavailable');
   protected readonly sessionStatusClasses = computed(() => getAuthSessionBadgeClasses(this.authState()));
   protected readonly sessionSummary = computed(() => getAuthSessionSummary(this.authState()));
-  protected readonly navigationItems = computed(() =>
-    this.isAuthenticated() ? AUTHENTICATED_NAVIGATION_ITEMS : GUEST_NAVIGATION_ITEMS,
-  );
+  protected readonly navigationItems = computed(() => {
+    if (!this.isAuthenticated()) {
+      return GUEST_NAVIGATION_ITEMS;
+    }
+
+    const roles = this.session()?.user.roles ?? [];
+    return this.hasModerationRole(roles)
+      ? [...AUTHENTICATED_NAVIGATION_ITEMS, ...MODERATOR_NAVIGATION_ITEMS]
+      : AUTHENTICATED_NAVIGATION_ITEMS;
+  });
 
   ngOnInit(): void {
     void this.authSessionService.loadSession();
+  }
+
+  private hasModerationRole(roles: string[]): boolean {
+    return roles.some((role) => role.toLowerCase() === 'moderator' || role.toLowerCase() === 'admin');
   }
 
   protected startLogin(): void {

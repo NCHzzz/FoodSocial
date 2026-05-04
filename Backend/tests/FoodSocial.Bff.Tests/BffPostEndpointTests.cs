@@ -151,6 +151,74 @@ public sealed class BffPostEndpointTests
         forwardedBody.ReporterId.Should().NotBe(spoofedReporterId);
     }
 
+    [Fact]
+    public async Task GetAdminReports_WithNonModeratorRole_ReturnsForbiddenWithoutForwarding()
+    {
+        await using var factory = new BffPostTestApplicationFactory(_ => JsonResponse(HttpStatusCode.OK, new AdminReportsResponse([], 20)));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("post-access-token"));
+
+        using var response = await client.GetAsync("/api/admin/reports?limit=10");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        factory.PostHandler.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAdminReports_WithModeratorRole_ForwardsTrustedIdentityAndRoles()
+    {
+        await using var factory = new BffPostTestApplicationFactory(
+            _ => JsonResponse(HttpStatusCode.OK, new AdminReportsResponse([], 20)),
+            ["user", "moderator"]);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("post-access-token"));
+
+        using var response = await client.GetAsync("/api/admin/reports?limit=10");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
+        forwardedRequest.Method.Should().Be(HttpMethod.Get);
+        forwardedRequest.RequestUri!.PathAndQuery.Should().Be("/api/admin/reports?limit=10");
+        forwardedRequest.Headers.GetValues("X-FoodSocial-Internal-Secret").Should().ContainSingle().Which.Should().Be("test-post-shared-secret");
+        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be("11111111-1111-1111-1111-111111111111");
+        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Roles").Should().ContainSingle().Which.Should().Be("moderator,user");
+    }
+
+    [Fact]
+    public async Task ResolveReport_WithModeratorRole_ReplacesCallerModeratorIdWithSessionIdentity()
+    {
+        var spoofedModeratorId = Guid.Parse("77777777-7777-7777-7777-777777777777");
+        var expectedSessionIdentityId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var reportId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+        var upstreamResponse = new ContentReportResponse(
+            reportId,
+            "Post",
+            Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            Guid.Parse("33333333-3333-3333-3333-333333333333"),
+            "spam",
+            null,
+            "ResolvedNoAction",
+            expectedSessionIdentityId,
+            "Reviewed manually.",
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow);
+
+        await using var factory = new BffPostTestApplicationFactory(_ => JsonResponse(HttpStatusCode.OK, upstreamResponse), ["admin"]);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("post-access-token"));
+        await factory.AddCsrfHeaderAsync(client);
+
+        using var response = await client.PostAsJsonAsync($"/api/admin/reports/{reportId}/resolve", new ResolveContentReportRequest(spoofedModeratorId, "dismiss", "Reviewed manually."));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
+        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Roles").Should().ContainSingle().Which.Should().Be("admin");
+        var forwardedBody = await forwardedRequest.Content!.ReadFromJsonAsync<ResolveContentReportRequest>();
+        forwardedBody.Should().NotBeNull();
+        forwardedBody!.ModeratorId.Should().Be(expectedSessionIdentityId);
+        forwardedBody.ModeratorId.Should().NotBe(spoofedModeratorId);
+    }
+
     private static CreatePostRequest CreatePostRequestWithAuthor(Guid authorId) =>
         new(
             authorId,
@@ -167,7 +235,7 @@ public sealed class BffPostEndpointTests
             Content = JsonContent.Create(value)
         };
 
-    private sealed class BffPostTestApplicationFactory(Func<HttpRequestMessage, HttpResponseMessage> responseFactory) : WebApplicationFactory<Program>
+    private sealed class BffPostTestApplicationFactory(Func<HttpRequestMessage, HttpResponseMessage> responseFactory, IReadOnlyList<string>? roles = null) : WebApplicationFactory<Program>
     {
         private static readonly string FullTypedPostClientName = typeof(Program).Assembly
             .GetType("FoodSocial.Bff.PostHttpClient", throwOnError: true)!
@@ -177,7 +245,7 @@ public sealed class BffPostEndpointTests
             .FullName!;
         private const string ShortTypedPostClientName = "PostHttpClient";
         private const string ShortTypedIdentityClientName = "IdentityOrchestrationHttpClient";
-        private readonly IdentityStateHttpMessageHandler _identityHandler = new();
+        private readonly IdentityStateHttpMessageHandler _identityHandler = new(roles ?? ["user"]);
 
         internal PostCaptureHttpMessageHandler PostHandler { get; } = new(responseFactory);
 
@@ -259,8 +327,10 @@ public sealed class BffPostEndpointTests
 
     private sealed record CsrfTokenResponse(string RequestToken, string HeaderName);
 
-    private sealed class IdentityStateHttpMessageHandler : HttpMessageHandler
+    private sealed class IdentityStateHttpMessageHandler(IReadOnlyList<string> roles) : HttpMessageHandler
     {
+        private readonly IReadOnlyList<string> _roles = roles;
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var response = new EnsureIdentityResponse(
@@ -268,7 +338,7 @@ public sealed class BffPostEndpointTests
                 "post-subject",
                 "post-user",
                 "post@example.test",
-                ["user"],
+                _roles,
                 Created: false,
                 "Active",
                 DownstreamBootstrapPending: false);

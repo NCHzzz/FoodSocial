@@ -9,6 +9,9 @@ import { AuthSessionService } from '../../core/auth/auth-session.service';
 import { DishApi } from '../../core/dishes/infrastructure/dish.api';
 import { DishSearchRequest, DishSearchResponse } from '../../core/dishes/dish.models';
 import { PlaceApi } from '../../core/places/infrastructure/place.api';
+import { PostApi } from '../../core/posts/infrastructure/post.api';
+import { DiscoverFeedResponse } from '../../core/posts/post.models';
+import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
 import { PlaceSearchRequest, PlaceSearchResponse } from '../../core/places/place.models';
 import { DishSearchSelectComponent } from '../dishes/dish-search-select.component';
 import { PlaceSearchSelectComponent } from '../places/place-search-select.component';
@@ -57,6 +60,27 @@ describe('DiscoverPage', () => {
     limit: 10,
   };
 
+  const discoverFeedResponse: DiscoverFeedResponse = {
+    items: [
+      {
+        id: '44444444-4444-4444-4444-444444444444',
+        authorId: '33333333-3333-3333-3333-333333333333',
+        dishId: '11111111-1111-1111-1111-111111111111',
+        placeId: '22222222-2222-2222-2222-222222222222',
+        caption: 'Real phở broth from the live feed.',
+        rating: 5,
+        priceRange: '$$',
+        tags: ['pho'],
+        primaryMediaUrl: 'https://example.com/pho.jpg',
+        isHidden: false,
+        likeCount: 2,
+        commentCount: 1,
+        createdAtUtc: '2026-05-04T00:00:00Z',
+      },
+    ],
+    limit: 12,
+  };
+
   const placeSearchResponse: PlaceSearchResponse = {
     items: [
       {
@@ -101,6 +125,19 @@ describe('DiscoverPage', () => {
             searchPlaces: (_request: PlaceSearchRequest) => of(placeSearchResponse),
           },
         },
+        {
+          provide: PostApi,
+          useValue: {
+            getDiscoverFeed: (_limit: number) => of(discoverFeedResponse),
+            likePost: (_postId: string) => of({ postId: discoverFeedResponse.items[0].id, actorId: authenticatedState.session!.identity.identityId, liked: true, likeCount: 3 }),
+          },
+        },
+        {
+          provide: UserProfileApi,
+          useValue: {
+            savePost: (_identityId: string, _postId: string) => of({ userIdentityId: authenticatedState.session!.identity.identityId, targetId: discoverFeedResponse.items[0].id, targetType: 'Post', saved: true }),
+          },
+        },
       ],
     }).compileComponents();
   });
@@ -119,6 +156,8 @@ describe('DiscoverPage', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.textContent).toContain('Catalog context');
+    expect(compiled.textContent).toContain('Live Discover feed');
+    expect(compiled.textContent).toContain('Real phở broth from the live feed.');
     expect(compiled.textContent).toContain('Phở bò');
     expect(compiled.textContent).toContain('Quán Ăn Ngon');
     expect(compiled.textContent).toContain('Select a dish or place above');

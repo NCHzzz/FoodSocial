@@ -7,14 +7,16 @@ internal sealed class PostHttpClient(HttpClient httpClient, IConfiguration confi
 {
     private const string InternalSecretHeaderName = "X-FoodSocial-Internal-Secret";
     private const string IdentityIdHeaderName = "X-FoodSocial-Identity-Id";
+    private const string RolesHeaderName = "X-FoodSocial-Identity-Roles";
     private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     private readonly ILogger<PostHttpClient> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    public async Task<HttpResponseMessage> ForwardAsync(HttpRequest sourceRequest, string targetPathAndQuery, CancellationToken cancellationToken)
+    public async Task<HttpResponseMessage> ForwardAsync(HttpRequest sourceRequest, string targetPathAndQuery, Guid identityId = default, IReadOnlyList<string>? roles = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(sourceRequest); ArgumentException.ThrowIfNullOrWhiteSpace(targetPathAndQuery);
         using var request = new HttpRequestMessage(new HttpMethod(sourceRequest.Method), targetPathAndQuery);
+        AddInternalTrustHeaders(request, identityId, roles);
         if (RequiresBody(sourceRequest.Method))
         {
             request.Content = new StreamContent(sourceRequest.Body);
@@ -31,7 +33,7 @@ internal sealed class PostHttpClient(HttpClient httpClient, IConfiguration confi
         }
     }
 
-    public async Task<HttpResponseMessage> ForwardJsonAsync<TRequest>(string method, string targetPathAndQuery, TRequest body, Guid identityId, CancellationToken cancellationToken)
+    public async Task<HttpResponseMessage> ForwardJsonAsync<TRequest>(string method, string targetPathAndQuery, TRequest body, Guid identityId, IReadOnlyList<string>? roles, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(method);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPathAndQuery);
@@ -40,7 +42,7 @@ internal sealed class PostHttpClient(HttpClient httpClient, IConfiguration confi
         {
             Content = JsonContent.Create(body)
         };
-        AddInternalTrustHeaders(request, identityId);
+        AddInternalTrustHeaders(request, identityId, roles);
 
         try
         {
@@ -53,8 +55,13 @@ internal sealed class PostHttpClient(HttpClient httpClient, IConfiguration confi
         }
     }
 
-    private void AddInternalTrustHeaders(HttpRequestMessage request, Guid identityId)
+    private void AddInternalTrustHeaders(HttpRequestMessage request, Guid identityId, IReadOnlyList<string>? roles)
     {
+        if (identityId == Guid.Empty)
+        {
+            return;
+        }
+
         var sharedSecret = _configuration["Post:InternalTrust:SharedSecret"];
         if (string.IsNullOrWhiteSpace(sharedSecret))
         {
@@ -62,9 +69,18 @@ internal sealed class PostHttpClient(HttpClient httpClient, IConfiguration confi
         }
 
         request.Headers.TryAddWithoutValidation(InternalSecretHeaderName, sharedSecret);
-        if (identityId != Guid.Empty)
+        request.Headers.TryAddWithoutValidation(IdentityIdHeaderName, identityId.ToString());
+
+        var roleHeader = roles is null
+            ? string.Empty
+            : string.Join(',', roles
+                .Where(role => !string.IsNullOrWhiteSpace(role))
+                .Select(role => role.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(role => role, StringComparer.Ordinal));
+        if (!string.IsNullOrWhiteSpace(roleHeader))
         {
-            request.Headers.TryAddWithoutValidation(IdentityIdHeaderName, identityId.ToString());
+            request.Headers.TryAddWithoutValidation(RolesHeaderName, roleHeader);
         }
     }
 

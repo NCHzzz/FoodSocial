@@ -18,6 +18,10 @@ export const routes: Routes = [
         loadChildren: () => import('./features/discover/discover.routes').then((module) => module.DISCOVER_ROUTES),
       },
       {
+        path: 'search',
+        loadChildren: () => import('./features/search/search.routes').then((module) => module.SEARCH_ROUTES),
+      },
+      {
         path: 'posts',
         loadChildren: () => import('./features/posts/posts.routes').then((module) => module.POSTS_ROUTES),
       },
@@ -34,6 +38,11 @@ export const routes: Routes = [
         path: 'post-create',
         canActivate: [authenticatedRouteGuard],
         loadChildren: () => import('./features/post-create/post-create.routes').then((module) => module.POST_CREATE_ROUTES),
+      },
+      {
+        path: 'moderation',
+        canActivate: [authenticatedRouteGuard],
+        loadChildren: () => import('./features/moderation/moderation.routes').then((module) => module.MODERATION_ROUTES),
       },
       {
         path: 'notifications',

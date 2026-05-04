@@ -48,6 +48,7 @@ describe('AppShellComponent', () => {
 
     expect(compiled.textContent).toContain('FoodSocial');
     expect(compiled.textContent).toContain('Discover');
+    expect(compiled.textContent).toContain('Search');
     expect(compiled.textContent).toContain('Posts');
     expect(compiled.textContent).toContain('Profiles');
     expect(compiled.textContent).not.toContain('Create');
@@ -92,10 +93,53 @@ describe('AppShellComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
 
+    expect(compiled.textContent).toContain('Search');
     expect(compiled.textContent).toContain('Following');
     expect(compiled.textContent).toContain('Create');
     expect(compiled.textContent).toContain('Notifications');
     expect(compiled.textContent).toContain('Profile');
+    expect(compiled.textContent).not.toContain('Moderation');
     expect(compiled.textContent).toContain('Log out');
   });
+  it('should add moderation navigation for moderator roles', async () => {
+    authSessionServiceMock = createAuthSessionServiceMock({
+      loadStatus: 'authenticated',
+      session: {
+        user: {
+          subject: 'subject-123',
+          preferredUsername: 'moderator-user',
+          email: 'moderator@foodsocial.local',
+          roles: ['user', 'moderator'],
+        },
+        identity: {
+          identityId: '6f4ad594-e916-4f0c-9d08-b1043e15db4b',
+          state: 'Active',
+          bootstrapPending: false,
+          downstreamBootstrapPending: false,
+        },
+        serverTimeUtc: '2026-04-13T03:00:00Z',
+      },
+      isLoggingOut: false,
+      lastLoadFailed: false,
+    });
+
+    await TestBed.resetTestingModule()
+      .configureTestingModule({
+        imports: [AppShellComponent],
+        providers: [
+          provideRouter([]),
+          { provide: AuthSessionService, useValue: authSessionServiceMock },
+        ],
+      })
+      .compileComponents();
+
+    const fixture = TestBed.createComponent(AppShellComponent);
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.textContent).toContain('Moderation');
+    expect(compiled.textContent).toContain('Log out');
+  });
+
 });

@@ -23,6 +23,8 @@ internal static class BffPostEndpoints
         endpoints.MapDelete("/api/comments/{commentId:guid}", ForwardDeleteCommentAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapPost("/api/posts/{postId:guid}/report", ForwardCreateReportAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapPost("/api/comments/{commentId:guid}/report", ForwardCreateReportAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        endpoints.MapGet("/api/admin/reports", ForwardModeratorReadAsync);
+        endpoints.MapPost("/api/admin/reports/{reportId:guid}/resolve", ForwardResolveReportAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         return endpoints;
     }
 
@@ -34,7 +36,7 @@ internal static class BffPostEndpoints
         var request = await DeserializeOrProblemAsync<CreatePostRequest>(httpContext, "Post request body is required.", cancellationToken);
         if (request.Result is not null) return request.Result;
         var securedRequest = request.Value! with { AuthorId = session.IdentityId };
-        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, securedRequest, session.IdentityId, cancellationToken);
+        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, securedRequest, session.IdentityId, session.Roles, cancellationToken);
     }
 
     private static async Task<IResult> ForwardActorMutationAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
@@ -42,7 +44,7 @@ internal static class BffPostEndpoints
         var session = await ResolveAllowedSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
         if (session.Result is not null) return session.Result;
 
-        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, new ActorRequest(session.IdentityId), session.IdentityId, cancellationToken);
+        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, new ActorRequest(session.IdentityId), session.IdentityId, session.Roles, cancellationToken);
     }
 
     private static async Task<IResult> ForwardCreateCommentAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
@@ -53,7 +55,7 @@ internal static class BffPostEndpoints
         var request = await DeserializeOrProblemAsync<CreatePostCommentRequest>(httpContext, "Comment request body is required.", cancellationToken);
         if (request.Result is not null) return request.Result;
         var securedRequest = request.Value! with { AuthorId = session.IdentityId };
-        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, securedRequest, session.IdentityId, cancellationToken);
+        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, securedRequest, session.IdentityId, session.Roles, cancellationToken);
     }
 
     private static async Task<IResult> ForwardDeleteCommentAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
@@ -61,7 +63,7 @@ internal static class BffPostEndpoints
         var session = await ResolveAllowedSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
         if (session.Result is not null) return session.Result;
 
-        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, new DeletePostCommentRequest(session.IdentityId), session.IdentityId, cancellationToken);
+        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, new DeletePostCommentRequest(session.IdentityId), session.IdentityId, session.Roles, cancellationToken);
     }
 
     private static async Task<IResult> ForwardCreateReportAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
@@ -72,42 +74,71 @@ internal static class BffPostEndpoints
         var request = await DeserializeOrProblemAsync<CreateContentReportRequest>(httpContext, "Report request body is required.", cancellationToken);
         if (request.Result is not null) return request.Result;
         var securedRequest = request.Value! with { ReporterId = session.IdentityId };
-        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, securedRequest, session.IdentityId, cancellationToken);
+        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, securedRequest, session.IdentityId, session.Roles, cancellationToken);
+    }
+
+    private static async Task<IResult> ForwardModeratorReadAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
+    {
+        var session = await ResolveModeratorSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
+        if (session.Result is not null) return session.Result;
+
+        return await ForwardAuthenticatedAsync(httpContext, postClient, loggerFactory, session.IdentityId, session.Roles, cancellationToken);
+    }
+
+    private static async Task<IResult> ForwardResolveReportAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
+    {
+        var session = await ResolveModeratorSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
+        if (session.Result is not null) return session.Result;
+
+        var request = await DeserializeOrProblemAsync<ResolveContentReportRequest>(httpContext, "Report resolution request body is required.", cancellationToken);
+        if (request.Result is not null) return request.Result;
+        var securedRequest = request.Value! with { ModeratorId = session.IdentityId };
+        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, securedRequest, session.IdentityId, session.Roles, cancellationToken);
     }
 
     private static async Task<IResult> ForwardAsync(HttpContext httpContext, PostHttpClient postClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(httpContext); ArgumentNullException.ThrowIfNull(postClient); ArgumentNullException.ThrowIfNull(loggerFactory);
         var targetPathAndQuery = CreatePublicForwardPathAndQuery(httpContext);
-        using var upstreamResponse = await ForwardToPostApiAsync(httpContext, postClient, loggerFactory, targetPathAndQuery, cancellationToken);
+        using var upstreamResponse = await ForwardToPostApiAsync(httpContext, postClient, loggerFactory, targetPathAndQuery, Guid.Empty, [], cancellationToken);
         if (upstreamResponse is null) return CreateUnavailableProblem(httpContext);
         var contentType = upstreamResponse.Content.Headers.ContentType?.ToString();
         var responseBytes = await upstreamResponse.Content.ReadAsByteArrayAsync(cancellationToken);
         return new BffUpstreamHttpResult((int)upstreamResponse.StatusCode, contentType, responseBytes);
     }
 
-    private static async Task<IResult> ForwardJsonAsync<TRequest>(HttpContext httpContext, PostHttpClient postClient, ILoggerFactory loggerFactory, TRequest request, Guid identityId, CancellationToken cancellationToken)
+    private static async Task<IResult> ForwardAuthenticatedAsync(HttpContext httpContext, PostHttpClient postClient, ILoggerFactory loggerFactory, Guid identityId, IReadOnlyList<string> roles, CancellationToken cancellationToken)
     {
         var targetPathAndQuery = $"{httpContext.Request.Path}{httpContext.Request.QueryString}";
-        using var upstreamResponse = await ForwardJsonToPostApiAsync(httpContext, postClient, loggerFactory, targetPathAndQuery, request, identityId, cancellationToken);
+        using var upstreamResponse = await ForwardToPostApiAsync(httpContext, postClient, loggerFactory, targetPathAndQuery, identityId, roles, cancellationToken);
         if (upstreamResponse is null) return CreateUnavailableProblem(httpContext);
         var contentType = upstreamResponse.Content.Headers.ContentType?.ToString();
         var responseBytes = await upstreamResponse.Content.ReadAsByteArrayAsync(cancellationToken);
         return new BffUpstreamHttpResult((int)upstreamResponse.StatusCode, contentType, responseBytes);
     }
 
-    private static async Task<HttpResponseMessage?> ForwardToPostApiAsync(HttpContext httpContext, PostHttpClient postClient, ILoggerFactory loggerFactory, string targetPathAndQuery, CancellationToken cancellationToken)
+    private static async Task<IResult> ForwardJsonAsync<TRequest>(HttpContext httpContext, PostHttpClient postClient, ILoggerFactory loggerFactory, TRequest request, Guid identityId, IReadOnlyList<string> roles, CancellationToken cancellationToken)
+    {
+        var targetPathAndQuery = $"{httpContext.Request.Path}{httpContext.Request.QueryString}";
+        using var upstreamResponse = await ForwardJsonToPostApiAsync(httpContext, postClient, loggerFactory, targetPathAndQuery, request, identityId, roles, cancellationToken);
+        if (upstreamResponse is null) return CreateUnavailableProblem(httpContext);
+        var contentType = upstreamResponse.Content.Headers.ContentType?.ToString();
+        var responseBytes = await upstreamResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+        return new BffUpstreamHttpResult((int)upstreamResponse.StatusCode, contentType, responseBytes);
+    }
+
+    private static async Task<HttpResponseMessage?> ForwardToPostApiAsync(HttpContext httpContext, PostHttpClient postClient, ILoggerFactory loggerFactory, string targetPathAndQuery, Guid identityId, IReadOnlyList<string> roles, CancellationToken cancellationToken)
     {
         var logger = loggerFactory.CreateLogger(typeof(BffPostEndpoints).FullName!);
-        try { return await postClient.ForwardAsync(httpContext.Request, targetPathAndQuery, cancellationToken); }
+        try { return await postClient.ForwardAsync(httpContext.Request, targetPathAndQuery, identityId, roles, cancellationToken); }
         catch (HttpRequestException exception) { logger.LogWarning(exception, "Post service request failed for {TargetPathAndQuery}. TraceId: {TraceId}", targetPathAndQuery, httpContext.TraceIdentifier); return null; }
         catch (InvalidOperationException exception) when (exception.InnerException is OperationCanceledException) { logger.LogWarning(exception, "Post service request timed out for {TargetPathAndQuery}. TraceId: {TraceId}", targetPathAndQuery, httpContext.TraceIdentifier); return null; }
     }
 
-    private static async Task<HttpResponseMessage?> ForwardJsonToPostApiAsync<TRequest>(HttpContext httpContext, PostHttpClient postClient, ILoggerFactory loggerFactory, string targetPathAndQuery, TRequest request, Guid identityId, CancellationToken cancellationToken)
+    private static async Task<HttpResponseMessage?> ForwardJsonToPostApiAsync<TRequest>(HttpContext httpContext, PostHttpClient postClient, ILoggerFactory loggerFactory, string targetPathAndQuery, TRequest request, Guid identityId, IReadOnlyList<string> roles, CancellationToken cancellationToken)
     {
         var logger = loggerFactory.CreateLogger(typeof(BffPostEndpoints).FullName!);
-        try { return await postClient.ForwardJsonAsync(httpContext.Request.Method, targetPathAndQuery, request, identityId, cancellationToken); }
+        try { return await postClient.ForwardJsonAsync(httpContext.Request.Method, targetPathAndQuery, request, identityId, roles, cancellationToken); }
         catch (HttpRequestException exception) { logger.LogWarning(exception, "Post service request failed for {TargetPathAndQuery}. TraceId: {TraceId}", targetPathAndQuery, httpContext.TraceIdentifier); return null; }
         catch (InvalidOperationException exception) when (exception.InnerException is OperationCanceledException) { logger.LogWarning(exception, "Post service request timed out for {TargetPathAndQuery}. TraceId: {TraceId}", targetPathAndQuery, httpContext.TraceIdentifier); return null; }
     }
@@ -178,7 +209,7 @@ internal static class BffPostEndpoints
                 return ResolvedBffIdentity.Forbidden(httpContext);
             }
 
-            return ResolvedBffIdentity.Success(ensuredIdentity.IdentityId);
+            return ResolvedBffIdentity.Success(ensuredIdentity.IdentityId, ensuredIdentity.Roles);
         }
         catch (Exception exception)
         {
@@ -186,6 +217,19 @@ internal static class BffPostEndpoints
             return ResolvedBffIdentity.Problem(httpContext);
         }
     }
+
+    private static async Task<ResolvedBffIdentity> ResolveModeratorSessionAsync(HttpContext httpContext, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
+    {
+        var session = await ResolveAllowedSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
+        if (session.Result is not null) return session;
+        return HasModeratorRole(session.Roles)
+            ? session
+            : ResolvedBffIdentity.ModerationForbidden(httpContext);
+    }
+
+    private static bool HasModeratorRole(IReadOnlyList<string> roles) =>
+        roles.Any(role => string.Equals(role, "moderator", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase));
 
     private static IResult CreateUnavailableProblem(HttpContext httpContext) => Results.Problem(new Microsoft.AspNetCore.Mvc.ProblemDetails
     {
@@ -211,11 +255,11 @@ internal static class BffPostEndpoints
         internal static DeserializedRequest<TRequest> Problem(IResult result) => new(default, result);
     }
 
-    private sealed record ResolvedBffIdentity(Guid IdentityId, IResult? Result)
+    private sealed record ResolvedBffIdentity(Guid IdentityId, IReadOnlyList<string> Roles, IResult? Result)
     {
-        internal static ResolvedBffIdentity Success(Guid identityId) => new(identityId, null);
-        internal static ResolvedBffIdentity Unauthorized() => new(Guid.Empty, Results.Unauthorized());
-        internal static ResolvedBffIdentity Forbidden(HttpContext httpContext) => new(Guid.Empty, Results.Problem(new ProblemDetails
+        internal static ResolvedBffIdentity Success(Guid identityId, IReadOnlyList<string> roles) => new(identityId, roles, null);
+        internal static ResolvedBffIdentity Unauthorized() => new(Guid.Empty, [], Results.Unauthorized());
+        internal static ResolvedBffIdentity Forbidden(HttpContext httpContext) => new(Guid.Empty, [], Results.Problem(new ProblemDetails
         {
             Type = "https://foodsocial/errors/bff/identity-session-forbidden",
             Title = "Identity session is not allowed",
@@ -223,7 +267,15 @@ internal static class BffPostEndpoints
             Status = StatusCodes.Status403Forbidden,
             Extensions = { ["traceId"] = httpContext.TraceIdentifier }
         }));
-        internal static ResolvedBffIdentity Problem(HttpContext httpContext) => new(Guid.Empty, Results.Problem(new ProblemDetails
+        internal static ResolvedBffIdentity ModerationForbidden(HttpContext httpContext) => new(Guid.Empty, [], Results.Problem(new ProblemDetails
+        {
+            Type = "https://foodsocial/errors/bff/post-moderation-forbidden",
+            Title = "Post moderation role required",
+            Detail = "A moderator or admin role is required for Post report review.",
+            Status = StatusCodes.Status403Forbidden,
+            Extensions = { ["traceId"] = httpContext.TraceIdentifier }
+        }));
+        internal static ResolvedBffIdentity Problem(HttpContext httpContext) => new(Guid.Empty, [], Results.Problem(new ProblemDetails
         {
             Type = "https://foodsocial/errors/bff/identity-orchestration-failed",
             Title = "Identity orchestration failed",
