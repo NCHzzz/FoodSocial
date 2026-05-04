@@ -282,6 +282,10 @@ dotnet test Backend/tests/Identity/Api.Tests/FoodSocial.Identity.Api.Tests.cspro
 dotnet test Backend/tests/UserProfile/Api.Tests/FoodSocial.UserProfile.Api.Tests.csproj --configuration Release --no-restore
 ```
 
+### Database migrations
+
+FoodSocial uses service-owned EF Core migrations. Read [`Backend/MIGRATIONS.md`](./Backend/MIGRATIONS.md) only when generating, applying, reviewing, or troubleshooting backend database migrations.
+
 ### Frontend
 
 ```bash

@@ -195,6 +195,7 @@ Examples that belong in this layer:
 - Authorization, bounded list behavior, and duplicate-delivery/idempotency behavior **SHOULD** be tested where applicable
 - Each deployable service **MUST** stay independently releasable
 - Database migrations **MUST** remain the responsibility of the owning service
+- When generating, applying, reviewing, or troubleshooting EF Core migrations, load `Backend/MIGRATIONS.md`.
 - Critical data paths **SHOULD** have documented recovery expectations, and restore confidence matters more than backup existence alone
 
 ## AI-Assisted Engineering Rules
