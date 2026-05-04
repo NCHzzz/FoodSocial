@@ -74,6 +74,7 @@ describe('DiscoverPage', () => {
         primaryMediaUrl: 'https://example.com/pho.jpg',
         isHidden: false,
         likeCount: 2,
+        repostCount: 0,
         commentCount: 1,
         createdAtUtc: '2026-05-04T00:00:00Z',
       },

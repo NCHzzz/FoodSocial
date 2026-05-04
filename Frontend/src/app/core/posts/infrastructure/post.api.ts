@@ -9,12 +9,17 @@ import {
   CreateContentReportRequest,
   CreatePostCommentRequest,
   CreatePostRequest,
+  CreatePostRepostRequest,
   DiscoverFeedResponse,
-  ResolveContentReportRequest,
+  NotificationListResponse,
+  MediaUploadResponse,
+  NotificationResponse,
   PostDetailResponse,
   PostLikeResponse,
+  PostRepostResponse,
   PostSearchRequest,
   PostSearchResponse,
+  ResolveContentReportRequest,
 } from '../post.models';
 
 @Injectable({ providedIn: 'root' })
@@ -51,6 +56,14 @@ export class PostApi {
     );
   }
 
+  uploadMedia(file: File): Observable<MediaUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.post<MediaUploadResponse>('/api/media/uploads', formData, options)),
+    );
+  }
+
   likePost(postId: string): Observable<PostLikeResponse> {
     return this.csrfTokenApi.withCsrfHeader().pipe(
       switchMap((options) => this.httpClient.post<PostLikeResponse>(`${this.buildPostEndpoint(postId)}/likes`, null, options)),
@@ -60,6 +73,12 @@ export class PostApi {
   unlikePost(postId: string): Observable<PostLikeResponse> {
     return this.csrfTokenApi.withCsrfHeader().pipe(
       switchMap((options) => this.httpClient.delete<PostLikeResponse>(`${this.buildPostEndpoint(postId)}/likes`, options)),
+    );
+  }
+
+  repostPost(postId: string, request: CreatePostRepostRequest): Observable<PostRepostResponse> {
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.post<PostRepostResponse>(`${this.buildPostEndpoint(postId)}/repost`, request, options)),
     );
   }
 
@@ -74,6 +93,19 @@ export class PostApi {
     );
   }
 
+
+  getNotifications(limit: number | null = null): Observable<NotificationListResponse> {
+    return this.httpClient.get<NotificationListResponse>('/api/me/notifications', {
+      params: this.buildLimitParams(limit),
+      withCredentials: true,
+    });
+  }
+
+  markNotificationRead(notificationId: string): Observable<NotificationResponse> {
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.patch<NotificationResponse>(`/api/notifications/${encodeURIComponent(notificationId)}/read`, null, options)),
+    );
+  }
 
   getAdminReports(limit: number | null = null): Observable<AdminReportsResponse> {
     return this.httpClient.get<AdminReportsResponse>('/api/admin/reports', {

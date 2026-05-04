@@ -12,6 +12,8 @@ import { PlaceApi } from '../../core/places/infrastructure/place.api';
 import { PlaceSummaryResponse } from '../../core/places/place.models';
 import { PostApi } from '../../core/posts/infrastructure/post.api';
 import { PostSummaryResponse } from '../../core/posts/post.models';
+import { SearchAssistApi } from '../../core/search/infrastructure/search-assist.api';
+import { SearchAssistResponse } from '../../core/search/search-assist.models';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
 import { UiButtonDirective } from '../../shared/ui/button/ui-button.directive';
 import { UiPageScaffoldComponent } from '../../shared/ui/page-scaffold/ui-page-scaffold.component';
@@ -28,7 +30,7 @@ type SearchActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
     <app-ui-page-scaffold
       eyebrow="Food discovery search"
       title="Search"
-      description="Search posts, dishes, and places through deterministic BFF-backed paths while AI-assisted suggestions are still a later slice."
+      description="Search posts, dishes, and places with deterministic BFF-backed retrieval plus safe AI-assist fallback hints."
     >
       <section class="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <form appUiSurface="soft" appUiSurfacePadding="comfortable" (ngSubmit)="runSearch()">
@@ -53,9 +55,23 @@ type SearchActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
 
         <aside appUiSurface="default" appUiSurfacePadding="comfortable">
           <p class="text-sm font-semibold text-slate-950">AI assist status</p>
-          <p class="mt-3 text-sm leading-6 text-slate-600">
-            AI-assisted search and recommendation explanations remain pending. Deterministic results continue to work as the safe fallback path.
-          </p>
+          @if (assist(); as currentAssist) {
+            <p class="mt-3 text-sm leading-6 text-slate-600" [textContent]="currentAssist.explanation"></p>
+            <p class="mt-3 rounded-full bg-amber-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-800" [textContent]="currentAssist.assistStatus"></p>
+            <div class="mt-4 grid gap-2">
+              @for (suggestion of currentAssist.suggestions.slice(0, 4); track suggestion.type + suggestion.value) {
+                <p class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
+                  <span class="text-orange-700" [textContent]="suggestion.type"></span>
+                  <span> · </span>
+                  <span [textContent]="suggestion.value"></span>
+                </p>
+              }
+            </div>
+          } @else {
+            <p class="mt-3 text-sm leading-6 text-slate-600">
+              Search once to get AI-assist fallback hints. Core retrieval remains deterministic when AI providers are disabled or degraded.
+            </p>
+          }
           <a class="mt-5" appUiButton="secondary" routerLink="/discover">Back to Discover</a>
         </aside>
       </section>
@@ -147,6 +163,7 @@ type SearchActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
                     [post]="post"
                     (likeRequested)="likePost($event)"
                     (saveRequested)="savePost($event)"
+                    (repostRequested)="repostPost($event)"
                     (shareRequested)="sharePost($event)"
                   />
                 } @empty {
@@ -167,6 +184,7 @@ export class SearchPage {
   private readonly dishApi = inject(DishApi);
   private readonly placeApi = inject(PlaceApi);
   private readonly postApi = inject(PostApi);
+  private readonly searchAssistApi = inject(SearchAssistApi);
   private readonly userProfileApi = inject(UserProfileApi);
   private readonly authSessionService = inject(AuthSessionService);
   private readonly browserWindow = inject(BROWSER_WINDOW);
@@ -178,6 +196,7 @@ export class SearchPage {
   protected readonly dishes = signal<DishSummaryResponse[]>([]);
   protected readonly places = signal<PlaceSummaryResponse[]>([]);
   protected readonly posts = signal<PostSummaryResponse[]>([]);
+  protected readonly assist = signal<SearchAssistResponse | null>(null);
   protected readonly authState = this.authSessionService.authState;
   protected readonly isAuthenticated = computed(() => isAuthenticatedSession(this.authState()));
   protected readonly signedInIdentityId = computed(() => this.authState().session?.identity.identityId ?? null);
@@ -198,17 +217,20 @@ export class SearchPage {
       dishes: this.dishApi.searchDishes({ query, limit: 8 }),
       places: this.placeApi.searchPlaces({ query, limit: 8 }),
       posts: this.postApi.searchPosts({ query, limit: 12 }),
+      assist: this.searchAssistApi.assist({ query, location: null }),
     }).subscribe({
       next: (results) => {
         this.dishes.set(results.dishes.items);
         this.places.set(results.places.items);
         this.posts.set(results.posts.items);
+        this.assist.set(results.assist);
         this.status.set(this.hasResults() ? 'loaded' : 'empty');
       },
       error: () => {
         this.dishes.set([]);
         this.places.set([]);
         this.posts.set([]);
+        this.assist.set(null);
         this.status.set('error');
       },
     });
@@ -233,6 +255,19 @@ export class SearchPage {
     this.userProfileApi.savePost(identityId, postId).subscribe({
       next: () => this.showActionSuccess('Post saved.'),
       error: () => this.showActionError('Save failed. Retry when profile services are available.'),
+    });
+  }
+
+  protected repostPost(postId: string): void {
+    const actorId = this.signedInIdentityId();
+    if (!actorId || !this.requireAuthenticatedAction('Sign in to repost search-result posts.')) return;
+    this.actionStatus.set('pending');
+    this.postApi.repostPost(postId, { actorId, caption: null }).subscribe({
+      next: (response) => {
+        this.posts.update((posts) => posts.map((post) => post.id === postId ? { ...post, repostCount: response.repostCount } : post));
+        this.showActionSuccess('Post reposted.');
+      },
+      error: () => this.showActionError('Repost failed. Retry when Post.Api is available.'),
     });
   }
 

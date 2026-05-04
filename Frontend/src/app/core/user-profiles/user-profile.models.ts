@@ -62,3 +62,21 @@ export interface SaveUserItemResponse {
   targetType: string;
   saved: boolean;
 }
+
+
+export interface UserNotificationResponse {
+  id: string;
+  recipientIdentityId: string;
+  actorIdentityId: string;
+  type: string;
+  message: string;
+  isRead: boolean;
+  createdAtUtc: string;
+  readAtUtc: string | null;
+}
+
+export interface UserNotificationListResponse {
+  items: UserNotificationResponse[];
+  limit: number;
+  unreadCount: number;
+}

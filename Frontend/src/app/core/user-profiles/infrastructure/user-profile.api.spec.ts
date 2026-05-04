@@ -150,6 +150,52 @@ describe('UserProfileApi', () => {
     unsaveRequest.flush({ targetId: 'dish-123', saved: false });
   });
 
+  it('loads and marks owner notifications through the protected BFF facade', () => {
+    api.getNotifications(identityId).subscribe((response) => {
+      expect(response.unreadCount).toBe(1);
+    });
+
+    const listRequest = httpTestingController.expectOne(`/api/users/${identityId}/notifications`);
+    expect(listRequest.request.method).toBe('GET');
+    expect(listRequest.request.withCredentials).toBe(true);
+    listRequest.flush({
+      items: [{
+        id: 'notification-123',
+        recipientIdentityId: identityId,
+        actorIdentityId: 'actor-123',
+        type: 'UserFollowed',
+        message: 'followed you',
+        isRead: false,
+        createdAtUtc: '2026-05-05T00:00:00Z',
+        readAtUtc: null,
+      }],
+      limit: 50,
+      unreadCount: 1,
+    });
+
+    api.markNotificationRead(identityId, 'notification-123').subscribe((response) => {
+      expect(response.isRead).toBe(true);
+    });
+
+    const csrfRequest = httpTestingController.expectOne('/api/auth/csrf');
+    csrfRequest.flush({ requestToken: 'notification-token', headerName: 'X-XSRF-TOKEN' });
+
+    const readRequest = httpTestingController.expectOne(`/api/users/${identityId}/notifications/notification-123/read`);
+    expect(readRequest.request.method).toBe('PATCH');
+    expect(readRequest.request.withCredentials).toBe(true);
+    expect(readRequest.request.headers.get('X-XSRF-TOKEN')).toBe('notification-token');
+    readRequest.flush({
+      id: 'notification-123',
+      recipientIdentityId: identityId,
+      actorIdentityId: 'actor-123',
+      type: 'UserFollowed',
+      message: 'followed you',
+      isRead: true,
+      createdAtUtc: '2026-05-05T00:00:00Z',
+      readAtUtc: '2026-05-05T00:01:00Z',
+    });
+  });
+
   it('encodes identity and target identifiers in BFF paths', () => {
     const encodedIdentityId = 'identity/with space';
     const encodedTargetId = 'place/with space';

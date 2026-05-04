@@ -49,12 +49,15 @@ import { UiSurfaceDirective } from '../../shared/ui/surface/ui-surface.directive
           <span aria-hidden="true">·</span>
           <span>{{ post().commentCount }} comments</span>
           <span aria-hidden="true">·</span>
+          <span>{{ post().repostCount }} reposts</span>
+          <span aria-hidden="true">·</span>
           <span [textContent]="createdDateLabel()"></span>
         </div>
 
         <div class="flex flex-wrap gap-2">
           <button type="button" appUiButton="secondary" (click)="likeRequested.emit(post().id)">Like</button>
           <button type="button" appUiButton="secondary" (click)="saveRequested.emit(post().id)">Save</button>
+          <button type="button" appUiButton="secondary" (click)="repostRequested.emit(post().id)">Repost</button>
           <button type="button" appUiButton="secondary" (click)="shareRequested.emit(post().id)">Share</button>
           <a appUiButton="accent" [routerLink]="['/posts', post().id]">Open</a>
         </div>
@@ -67,6 +70,7 @@ export class PostCardComponent {
   readonly post = input.required<PostSummaryResponse>();
   readonly likeRequested = output<string>();
   readonly saveRequested = output<string>();
+  readonly repostRequested = output<string>();
   readonly shareRequested = output<string>();
 
   protected readonly primaryMediaUrl = computed(() => this.post().primaryMediaUrl?.trim() || null);

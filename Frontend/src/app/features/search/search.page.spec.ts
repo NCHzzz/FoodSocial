@@ -13,6 +13,7 @@ import { PlaceSearchRequest, PlaceSearchResponse } from '../../core/places/place
 import { PlaceApi } from '../../core/places/infrastructure/place.api';
 import { PostSearchRequest, PostSearchResponse } from '../../core/posts/post.models';
 import { PostApi } from '../../core/posts/infrastructure/post.api';
+import { SearchAssistApi } from '../../core/search/infrastructure/search-assist.api';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
 import { SearchPage } from './search.page';
 
@@ -81,6 +82,7 @@ describe('SearchPage', () => {
         primaryMediaUrl: 'https://example.com/pho.jpg',
         isHidden: false,
         likeCount: 2,
+        repostCount: 0,
         commentCount: 1,
         createdAtUtc: '2026-05-04T00:00:00Z',
       },
@@ -92,6 +94,7 @@ describe('SearchPage', () => {
   let placeApiMock: { searchPlaces: ReturnType<typeof vi.fn> };
   let postApiMock: { searchPosts: ReturnType<typeof vi.fn>; likePost: ReturnType<typeof vi.fn> };
   let userProfileApiMock: { savePost: ReturnType<typeof vi.fn>; saveDish: ReturnType<typeof vi.fn>; savePlace: ReturnType<typeof vi.fn> };
+  let searchAssistApiMock: { assist: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     dishApiMock = {
@@ -103,6 +106,16 @@ describe('SearchPage', () => {
     postApiMock = {
       searchPosts: vi.fn((_request: PostSearchRequest) => of(postSearchResponse)),
       likePost: vi.fn((postId: string) => of({ postId, actorId: identityId, liked: true, likeCount: 3 })),
+    };
+    searchAssistApiMock = {
+      assist: vi.fn((_request: { query: string; location: string | null }) => of({
+        normalizedQuery: 'phở',
+        assistStatus: 'ai-disabled-fallback',
+        fallbackUsed: true,
+        suggestions: [{ type: 'dish', value: 'phở', reason: 'Search dishes.' }],
+        filters: {},
+        explanation: 'Deterministic fallback.',
+      })),
     };
     userProfileApiMock = {
       savePost: vi.fn((_profileId: string, postId: string) => of({ userIdentityId: identityId, targetId: postId, targetType: 'Post', saved: true })),
@@ -124,6 +137,7 @@ describe('SearchPage', () => {
         { provide: PlaceApi, useValue: placeApiMock },
         { provide: PostApi, useValue: postApiMock },
         { provide: UserProfileApi, useValue: userProfileApiMock },
+        { provide: SearchAssistApi, useValue: searchAssistApiMock },
         {
           provide: BROWSER_WINDOW,
           useValue: {
@@ -158,8 +172,10 @@ describe('SearchPage', () => {
     expect(dishApiMock.searchDishes).toHaveBeenCalledWith({ query: 'phở', limit: 8 });
     expect(placeApiMock.searchPlaces).toHaveBeenCalledWith({ query: 'phở', limit: 8 });
     expect(postApiMock.searchPosts).toHaveBeenCalledWith({ query: 'phở', limit: 12 });
+    expect(searchAssistApiMock.assist).toHaveBeenCalledWith({ query: 'phở', location: null });
     expect(element.textContent).toContain('Phở bò');
     expect(element.textContent).toContain('Quán Ăn Ngon');
     expect(element.textContent).toContain('Search found rich phở broth.');
+    expect(element.textContent).toContain('ai-disabled-fallback');
   });
 });

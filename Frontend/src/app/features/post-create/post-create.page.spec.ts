@@ -78,6 +78,7 @@ describe('PostCreatePage', () => {
               status: 'Published',
               isHidden: false,
               likeCount: 0,
+              repostCount: 0,
               commentCount: 0,
               media: [{ id: '44444444-4444-4444-4444-444444444444', url: request.media[0].url, type: 'image', thumbnailUrl: null, caption: null, isPrimary: true, sortOrder: 0 }],
               comments: [],

@@ -13,6 +13,7 @@ import { UiPageScaffoldComponent } from '../../shared/ui/page-scaffold/ui-page-s
 import { UiSurfaceDirective } from '../../shared/ui/surface/ui-surface.directive';
 
 type PublishStatus = 'idle' | 'pending' | 'success' | 'error';
+type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
 
 @Component({
   selector: 'app-post-create-page',
@@ -21,7 +22,7 @@ type PublishStatus = 'idle' | 'pending' | 'success' | 'error';
     <app-ui-page-scaffold
       eyebrow="Authenticated food post"
       title="Create post"
-      description="Publish a food-first post with a canonical dish, primary media URL, and short caption."
+      description="Publish a food-first post with a canonical dish, uploaded or URL-based primary media, and short caption."
     >
       <div class="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <form appUiSurface="default" appUiSurfacePadding="comfortable" class="grid gap-6" [formGroup]="postForm" (ngSubmit)="publishPost()">
@@ -29,7 +30,7 @@ type PublishStatus = 'idle' | 'pending' | 'success' | 'error';
             <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Publish flow</p>
             <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Canonical dish first, place optional</h2>
             <p class="mt-2 text-sm leading-6 text-slate-600">
-              This MVP form submits to the real BFF Post facade. Binary upload storage is still a later media slice, so the primary image is captured as a URL with lifecycle limits stated clearly.
+              This MVP form submits to the real BFF Post facade. Upload an image through the BFF media pipeline or paste a bounded media URL before publishing.
             </p>
           </div>
 
@@ -61,16 +62,37 @@ type PublishStatus = 'idle' | 'pending' | 'success' | 'error';
             </article>
           </div>
 
+          <section class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <label class="grid gap-2 text-sm font-semibold text-slate-950">
+              Upload primary image
+              <input
+                class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-950 outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-orange-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-orange-700 focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                (change)="uploadMedia($event)"
+              />
+            </label>
+            @if (mediaUploadStatus() === 'pending') {
+              <p class="text-xs font-semibold text-amber-700">Uploading primary image.</p>
+            }
+            @if (mediaUploadStatus() === 'success') {
+              <p class="text-xs font-semibold text-emerald-700">Image stored with original and thumbnail references.</p>
+            }
+            @if (mediaUploadStatus() === 'error') {
+              <p class="text-xs font-semibold text-red-600">Image upload failed. Paste a media URL or retry.</p>
+            }
+          </section>
+
           <label class="grid gap-2 text-sm font-semibold text-slate-950">
             Primary media URL
             <input
               class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-              type="url"
+              type="text"
               formControlName="primaryMediaUrl"
-              placeholder="https://example.com/pho.jpg"
+              placeholder="/api/media/uploads/.../original or https://example.com/pho.jpg"
             />
             @if (postForm.controls.primaryMediaUrl.invalid && postForm.controls.primaryMediaUrl.touched) {
-              <span class="text-xs font-semibold text-red-600">A valid http or https primary media URL is required.</span>
+              <span class="text-xs font-semibold text-red-600">A BFF media path or valid http/https media URL is required.</span>
             }
           </label>
 
@@ -157,8 +179,8 @@ type PublishStatus = 'idle' | 'pending' | 'success' | 'error';
         <aside appUiSurface="soft" appUiSurfacePadding="comfortable" class="h-fit">
           <p class="text-sm font-semibold text-slate-950">Still not full media lifecycle</p>
           <ul class="mt-3 space-y-3 text-sm leading-6 text-slate-600">
-            <li>Original/thumbnail storage, derivatives, and cleanup jobs remain backend media work.</li>
-            <li>This route publishes valid Post.Api media references through URL input.</li>
+            <li>Uploads now store original and thumbnail references through the BFF/Post.Api media path.</li>
+            <li>Cleanup expectations are recorded on upload responses; deeper async cleanup jobs remain future hardening.</li>
             <li>Post moderation remains manual-review-first after reports.</li>
           </ul>
         </aside>
@@ -173,12 +195,13 @@ export class PostCreatePage {
   protected readonly selectedDish = signal<DishSummaryResponse | null>(null);
   protected readonly selectedPlace = signal<PlaceSummaryResponse | null>(null);
   protected readonly publishStatus = signal<PublishStatus>('idle');
+  protected readonly mediaUploadStatus = signal<MediaUploadStatus>('idle');
   protected readonly createdPost = signal<PostDetailResponse | null>(null);
 
   protected readonly postForm = new FormGroup({
     primaryMediaUrl: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.pattern(/^https?:\/\/.+/u)],
+      validators: [Validators.required, Validators.pattern(/^(https?:\/\/.+|\/api\/media\/uploads\/.+)/u)],
     }),
     caption: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(500)] }),
     rating: new FormControl<number | null>(null, { validators: [Validators.min(1), Validators.max(5)] }),
@@ -198,6 +221,23 @@ export class PostCreatePage {
 
   protected canPublish(): boolean {
     return this.postForm.valid && this.selectedDish() !== null && this.publishStatus() !== 'pending';
+  }
+
+  protected uploadMedia(event: Event): void {
+    const input = event.target instanceof HTMLInputElement ? event.target : null;
+    const file = input?.files?.item(0) ?? null;
+    if (file === null) return;
+
+    this.mediaUploadStatus.set('pending');
+    this.postApi.uploadMedia(file).subscribe({
+      next: (upload) => {
+        this.postForm.controls.primaryMediaUrl.setValue(upload.url);
+        this.mediaUploadStatus.set('success');
+      },
+      error: () => {
+        this.mediaUploadStatus.set('error');
+      },
+    });
   }
 
   protected publishPost(): void {

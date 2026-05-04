@@ -9,6 +9,8 @@ import {
   SaveUserItemResponse,
   UpdateUserProfileRequest,
   UserProfileListResponse,
+  UserNotificationListResponse,
+  UserNotificationResponse,
   UserProfileResponse,
   UserSavedItemsResponse,
 } from '../user-profile.models';
@@ -62,6 +64,18 @@ export class UserProfileApi {
     return this.httpClient.get<UserSavedItemsResponse>(`${this.buildUserEndpoint(identityId)}/saved`, {
       withCredentials: true,
     });
+  }
+
+  getNotifications(identityId: string): Observable<UserNotificationListResponse> {
+    return this.httpClient.get<UserNotificationListResponse>(`${this.buildUserEndpoint(identityId)}/notifications`, {
+      withCredentials: true,
+    });
+  }
+
+  markNotificationRead(identityId: string, notificationId: string): Observable<UserNotificationResponse> {
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.patch<UserNotificationResponse>(`${this.buildUserEndpoint(identityId)}/notifications/${encodeURIComponent(notificationId)}/read`, null, options)),
+    );
   }
 
   savePost(identityId: string, postId: string): Observable<SaveUserItemResponse> {

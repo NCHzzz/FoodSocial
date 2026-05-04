@@ -99,6 +99,19 @@ export class DiscoverPage {
     });
   }
 
+  protected repostPost(postId: string): void {
+    const actorId = this.signedInIdentityId();
+    if (!actorId || !this.requireAuthenticatedAction('Sign in to repost from Discover.')) return;
+    this.actionStatus.set('pending');
+    this.postApi.repostPost(postId, { actorId, caption: null }).subscribe({
+      next: (response) => {
+        this.feedPosts.update((posts) => posts.map((post) => post.id === postId ? { ...post, repostCount: response.repostCount } : post));
+        this.showActionSuccess('Post reposted.');
+      },
+      error: () => this.showActionError('Repost failed. Retry when Post.Api is available.'),
+    });
+  }
+
   protected sharePost(postId: string): void {
     const url = `${this.browserWindow.location.origin}/posts/${encodeURIComponent(postId)}`;
     void this.browserWindow.navigator.clipboard?.writeText(url);

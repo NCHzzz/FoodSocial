@@ -20,6 +20,7 @@ describe('PostApi', () => {
     status: 'Published',
     isHidden: false,
     likeCount: 2,
+    repostCount: 0,
     commentCount: 1,
     media: [
       {
@@ -50,6 +51,7 @@ describe('PostApi', () => {
         primaryMediaUrl: 'https://example.com/pho.jpg',
         isHidden: false,
         likeCount: 2,
+        repostCount: 0,
         commentCount: 1,
         createdAtUtc: '2026-05-04T00:00:00Z',
       },
@@ -112,6 +114,31 @@ describe('PostApi', () => {
     expect(request.request.withCredentials).toBe(true);
 
     request.flush(postDetail);
+  });
+
+
+  it('uploads media through CSRF-gated BFF route', () => {
+    const file = new File(['image-bytes'], 'pho.jpg', { type: 'image/jpeg' });
+
+    api.uploadMedia(file).subscribe((response) => {
+      expect(response.url).toBe('/api/media/uploads/11111111-1111-1111-1111-111111111111/original');
+    });
+
+    httpTestingController.expectOne('/api/auth/csrf').flush({ requestToken: 'upload-token', headerName: 'X-XSRF-TOKEN' });
+    const request = httpTestingController.expectOne('/api/media/uploads');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.withCredentials).toBe(true);
+    expect(request.request.headers.get('X-XSRF-TOKEN')).toBe('upload-token');
+    expect(request.request.body instanceof FormData).toBe(true);
+    request.flush({
+      uploadId: '11111111-1111-1111-1111-111111111111',
+      url: '/api/media/uploads/11111111-1111-1111-1111-111111111111/original',
+      thumbnailUrl: '/api/media/uploads/11111111-1111-1111-1111-111111111111/thumbnail',
+      contentType: 'image/jpeg',
+      sizeBytes: 10,
+      cleanupDueAtUtc: '2026-05-12T00:00:00Z',
+      status: 'StoredWithDerivativePlaceholder',
+    });
   });
 
   it('creates a post with CSRF-gated browser credentials', () => {
@@ -193,6 +220,63 @@ describe('PostApi', () => {
       moderatorId: postDetail.authorId,
       resolutionNote: 'Reviewed manually.',
       resolvedAtUtc: '2026-05-04T01:00:00Z',
+    });
+  });
+
+
+  it('reposts and reads notifications through CSRF-gated BFF routes', () => {
+    api.repostPost(postId, { actorId: '00000000-0000-0000-0000-000000000000', caption: null }).subscribe((response) => {
+      expect(response.repostCount).toBe(1);
+    });
+    httpTestingController.expectOne('/api/auth/csrf').flush({ requestToken: 'repost-token', headerName: 'X-XSRF-TOKEN' });
+    const repostRequest = httpTestingController.expectOne(`/api/posts/${postId}/repost`);
+    expect(repostRequest.request.method).toBe('POST');
+    expect(repostRequest.request.headers.get('X-XSRF-TOKEN')).toBe('repost-token');
+    repostRequest.flush({ id: '77777777-7777-7777-7777-777777777777', postId, actorId: postDetail.authorId, caption: null, repostCount: 1, createdAtUtc: '2026-05-04T00:00:00Z' });
+
+    api.getNotifications(20).subscribe((response) => {
+      expect(response.unreadCount).toBe(1);
+    });
+    const notificationsRequest = httpTestingController.expectOne('/api/me/notifications?limit=20');
+    expect(notificationsRequest.request.method).toBe('GET');
+    expect(notificationsRequest.request.withCredentials).toBe(true);
+    notificationsRequest.flush({
+      items: [{
+        id: '88888888-8888-8888-8888-888888888888',
+        recipientId: postDetail.authorId,
+        actorId: '99999999-9999-9999-9999-999999999999',
+        type: 'PostReposted',
+        targetType: 'Repost',
+        targetId: '77777777-7777-7777-7777-777777777777',
+        postId,
+        message: 'reposted your food post',
+        isRead: false,
+        createdAtUtc: '2026-05-04T00:00:00Z',
+        readAtUtc: null,
+      }],
+      limit: 20,
+      unreadCount: 1,
+    });
+
+    api.markNotificationRead('88888888-8888-8888-8888-888888888888').subscribe((response) => {
+      expect(response.isRead).toBe(true);
+    });
+    httpTestingController.expectOne('/api/auth/csrf').flush({ requestToken: 'notification-token', headerName: 'X-XSRF-TOKEN' });
+    const readRequest = httpTestingController.expectOne('/api/notifications/88888888-8888-8888-8888-888888888888/read');
+    expect(readRequest.request.method).toBe('PATCH');
+    expect(readRequest.request.headers.get('X-XSRF-TOKEN')).toBe('notification-token');
+    readRequest.flush({
+      id: '88888888-8888-8888-8888-888888888888',
+      recipientId: postDetail.authorId,
+      actorId: '99999999-9999-9999-9999-999999999999',
+      type: 'PostReposted',
+      targetType: 'Repost',
+      targetId: '77777777-7777-7777-7777-777777777777',
+      postId,
+      message: 'reposted your food post',
+      isRead: true,
+      createdAtUtc: '2026-05-04T00:00:00Z',
+      readAtUtc: '2026-05-04T01:00:00Z',
     });
   });
 

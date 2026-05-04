@@ -28,6 +28,16 @@ export interface PostMediaResponse {
   sortOrder: number;
 }
 
+export interface MediaUploadResponse {
+  uploadId: string;
+  url: string;
+  thumbnailUrl: string;
+  contentType: string;
+  sizeBytes: number;
+  cleanupDueAtUtc: string;
+  status: string;
+}
+
 export interface PostCommentResponse {
   id: string;
   postId: string;
@@ -51,6 +61,7 @@ export interface PostDetailResponse {
   status: string;
   isHidden: boolean;
   likeCount: number;
+  repostCount: number;
   commentCount: number;
   media: PostMediaResponse[];
   comments: PostCommentResponse[];
@@ -70,6 +81,7 @@ export interface PostSummaryResponse {
   primaryMediaUrl: string | null;
   isHidden: boolean;
   likeCount: number;
+  repostCount: number;
   commentCount: number;
   createdAtUtc: string;
 }
@@ -98,6 +110,20 @@ export interface PostLikeResponse {
   actorId: string;
   liked: boolean;
   likeCount: number;
+}
+
+export interface CreatePostRepostRequest {
+  actorId: string;
+  caption: string | null;
+}
+
+export interface PostRepostResponse {
+  id: string;
+  postId: string;
+  actorId: string;
+  caption: string | null;
+  repostCount: number;
+  createdAtUtc: string;
 }
 
 export interface CreatePostCommentRequest {
@@ -135,4 +161,25 @@ export interface ResolveContentReportRequest {
   moderatorId: string;
   action: string;
   auditNote: string;
+}
+
+
+export interface NotificationResponse {
+  id: string;
+  recipientId: string;
+  actorId: string;
+  type: string;
+  targetType: string;
+  targetId: string;
+  postId: string | null;
+  message: string;
+  isRead: boolean;
+  createdAtUtc: string;
+  readAtUtc: string | null;
+}
+
+export interface NotificationListResponse {
+  items: NotificationResponse[];
+  limit: number;
+  unreadCount: number;
 }

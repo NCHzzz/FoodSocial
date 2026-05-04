@@ -51,7 +51,7 @@ type PostListActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
           <ul class="mt-3 space-y-3 text-sm leading-6 text-slate-600">
             <li>Cards use real Post.Api summaries.</li>
             <li>Save, like, comment, and report stay gated for signed-in users.</li>
-            <li>AI search and repost remain later slices.</li>
+            <li>AI search remains degraded; repost is now BFF-backed.</li>
           </ul>
           <a class="mt-5" appUiButton="secondary" routerLink="/post-create">Create a post</a>
         </aside>
@@ -98,6 +98,7 @@ type PostListActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
                 [post]="post"
                 (likeRequested)="likePost($event)"
                 (saveRequested)="savePost($event)"
+                (repostRequested)="repostPost($event)"
                 (shareRequested)="sharePost($event)"
               />
             }
@@ -167,6 +168,19 @@ export class PostsPage {
     this.userProfileApi.savePost(identityId, postId).subscribe({
       next: () => this.showActionSuccess('Post saved to your profile.'),
       error: () => this.showActionError('Save failed. Retry when your profile session is active.'),
+    });
+  }
+
+  protected repostPost(postId: string): void {
+    const actorId = this.signedInIdentityId();
+    if (!actorId || !this.requireAuthenticatedAction('Sign in to repost posts.')) return;
+    this.actionStatus.set('pending');
+    this.postApi.repostPost(postId, { actorId, caption: null }).subscribe({
+      next: (response) => {
+        this.posts.update((posts) => posts.map((post) => post.id === postId ? { ...post, repostCount: response.repostCount } : post));
+        this.showActionSuccess('Post reposted.');
+      },
+      error: () => this.showActionError('Repost failed. Retry when the post service is available.'),
     });
   }
 

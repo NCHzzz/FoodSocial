@@ -81,12 +81,13 @@ type PostDetailActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated'
               <div>
                 <p class="text-sm font-semibold text-slate-950">Post actions</p>
                 <p class="mt-2 text-sm leading-6 text-slate-600">
-                  {{ loadedPost.likeCount }} likes · {{ loadedPost.commentCount }} comments · {{ createdDateLabel() }}
+                  {{ loadedPost.likeCount }} likes · {{ loadedPost.repostCount }} reposts · {{ loadedPost.commentCount }} comments · {{ createdDateLabel() }}
                 </p>
               </div>
               <div class="grid gap-2">
                 <button type="button" appUiButton="accent" (click)="likePost()">Like post</button>
                 <button type="button" appUiButton="secondary" (click)="savePost()">Save post</button>
+                <button type="button" appUiButton="secondary" (click)="repostPost()">Repost</button>
                 <button type="button" appUiButton="secondary" (click)="sharePost()">Copy share link</button>
                 <button type="button" appUiButton="secondary" (click)="reportPost()">Report for review</button>
               </div>
@@ -215,6 +216,19 @@ export class PostDetailPage {
     this.userProfileApi.savePost(identityId, this.postId).subscribe({
       next: () => this.showActionSuccess('Post saved to your profile.'),
       error: () => this.showActionError('Save failed. Retry when your profile session is active.'),
+    });
+  }
+
+  protected repostPost(): void {
+    const actorId = this.signedInIdentityId();
+    if (!actorId || !this.requireAuthenticatedAction('Sign in to repost this post.')) return;
+    this.actionStatus.set('pending');
+    this.postApi.repostPost(this.postId, { actorId, caption: null }).subscribe({
+      next: (response) => {
+        this.post.update((post) => post ? { ...post, repostCount: response.repostCount } : post);
+        this.showActionSuccess('Post reposted.');
+      },
+      error: () => this.showActionError('Repost failed. Retry when the post service is available.'),
     });
   }
 

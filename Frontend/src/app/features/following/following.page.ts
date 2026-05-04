@@ -85,6 +85,7 @@ type FollowingActionStatus = 'idle' | 'pending' | 'success' | 'error';
                 [post]="post"
                 (likeRequested)="likePost($event)"
                 (saveRequested)="savePost($event)"
+                (repostRequested)="repostPost($event)"
                 (shareRequested)="sharePost($event)"
               />
             }
@@ -163,6 +164,23 @@ export class FollowingPage {
     this.userProfileApi.savePost(identityId, postId).subscribe({
       next: () => this.showActionSuccess('Post saved.'),
       error: () => this.showActionError('Save failed. Retry when profile services are available.'),
+    });
+  }
+
+  protected repostPost(postId: string): void {
+    const actorId = this.signedInIdentityId();
+    if (!actorId) {
+      this.showActionError('Your session is required before reposting.');
+      return;
+    }
+
+    this.actionStatus.set('pending');
+    this.postApi.repostPost(postId, { actorId, caption: null }).subscribe({
+      next: (response) => {
+        this.posts.update((posts) => posts.map((post) => post.id === postId ? { ...post, repostCount: response.repostCount } : post));
+        this.showActionSuccess('Post reposted.');
+      },
+      error: () => this.showActionError('Repost failed. Retry when Post.Api is available.'),
     });
   }
 

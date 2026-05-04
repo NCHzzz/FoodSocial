@@ -48,6 +48,7 @@ describe('FollowingPage', () => {
         primaryMediaUrl: 'https://example.com/bun-bo-hue.jpg',
         isHidden: false,
         likeCount: 4,
+        repostCount: 0,
         commentCount: 2,
         createdAtUtc: '2026-05-04T00:00:00Z',
       },
