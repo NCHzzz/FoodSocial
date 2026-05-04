@@ -3,6 +3,7 @@
     <Project Path="src/FoodSocial.AppHost/FoodSocial.AppHost.csproj" />
     <Project Path="src/FoodSocial.Bff/FoodSocial.Bff.csproj" />
     <Project Path="src/FoodSocial.Contracts/FoodSocial.Contracts.csproj" />
+    <Project Path="src/FoodSocial.Messaging/FoodSocial.Messaging.csproj" />
     <Project Path="src/FoodSocial.ServiceDefaults/FoodSocial.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/Dish/" />
@@ -31,7 +32,24 @@
   <Folder Name="/src/Identity/Infrastructure/">
     <Project Path="src/Identity/Infrastructure/FoodSocial.Identity.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Place/" />
+  <Folder Name="/src/Place/Api/">
+    <Project Path="src/Place/Api/FoodSocial.Place.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Place/Application/">
+    <Project Path="src/Place/Application/FoodSocial.Place.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Place/Domain/">
+    <Project Path="src/Place/Domain/FoodSocial.Place.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Place/Infrastructure/">
+    <Project Path="src/Place/Infrastructure/FoodSocial.Place.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
+  <Folder Name="/tests/Dish/" />
+  <Folder Name="/tests/Dish/Api.Tests/">
+    <Project Path="tests/Dish/Api.Tests/FoodSocial.Dish.Api.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/FoodSocial.Bff.Tests/">
     <Project Path="tests/FoodSocial.Bff.Tests/FoodSocial.Bff.Tests.csproj" />
   </Folder>
@@ -44,6 +62,14 @@
   </Folder>
   <Folder Name="/tests/Identity/Domain.Tests/">
     <Project Path="tests/Identity/Domain.Tests/FoodSocial.Identity.Domain.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Place/" />
+  <Folder Name="/tests/Place/Api.Tests/">
+    <Project Path="tests/Place/Api.Tests/FoodSocial.Place.Api.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Post/" />
+  <Folder Name="/tests/Post/Api.Tests/">
+    <Project Path="tests/Post/Api.Tests/FoodSocial.Post.Api.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/UserProfile/" />
   <Folder Name="/tests/UserProfile/Api.Tests/">

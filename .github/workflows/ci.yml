@@ -103,6 +103,9 @@ jobs:
           dotnet test Backend/tests/Identity/Application.Tests/FoodSocial.Identity.Application.Tests.csproj --configuration Release --no-restore
           dotnet test Backend/tests/Identity/Api.Tests/FoodSocial.Identity.Api.Tests.csproj --configuration Release --no-restore
           dotnet test Backend/tests/UserProfile/Api.Tests/FoodSocial.UserProfile.Api.Tests.csproj --configuration Release --no-restore
+          dotnet test Backend/tests/Dish/Api.Tests/FoodSocial.Dish.Api.Tests.csproj --configuration Release --no-restore
+          dotnet test Backend/tests/Place/Api.Tests/FoodSocial.Place.Api.Tests.csproj --configuration Release --no-restore
+          dotnet test Backend/tests/Post/Api.Tests/FoodSocial.Post.Api.Tests.csproj --configuration Release --no-restore
 
   frontend:
     name: Frontend install, test, and build
