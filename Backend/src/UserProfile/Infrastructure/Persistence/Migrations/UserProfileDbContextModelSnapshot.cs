@@ -116,6 +116,55 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence.Migrations
                     b.ToTable("user_follows", (string)null);
                 });
 
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.UserNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorIdentityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)");
+
+                    b.Property<DateTimeOffset?>("ReadAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RecipientIdentityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("UserProfileShellId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("RecipientIdentityId");
+
+                    b.HasIndex("UserProfileShellId");
+
+                    b.HasIndex("RecipientIdentityId", "Status");
+
+                    b.ToTable("user_notifications", (string)null);
+                });
+
             modelBuilder.Entity("FoodSocial.UserProfile.Domain.UserProfileDetail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -229,6 +278,15 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence.Migrations
                     b.HasOne("FoodSocial.UserProfile.Domain.UserProfileShell", null)
                         .WithMany()
                         .HasForeignKey("FollowerUserProfileShellId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FoodSocial.UserProfile.Domain.UserNotification", b =>
+                {
+                    b.HasOne("FoodSocial.UserProfile.Domain.UserProfileShell", null)
+                        .WithMany()
+                        .HasForeignKey("UserProfileShellId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

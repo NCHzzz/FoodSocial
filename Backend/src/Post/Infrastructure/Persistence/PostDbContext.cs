@@ -15,14 +15,17 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
     public DbSet<PostMediaRecord> PostMedia => Set<PostMediaRecord>();
     public DbSet<PostLikeRecord> PostLikes => Set<PostLikeRecord>();
     public DbSet<PostCommentRecord> PostComments => Set<PostCommentRecord>();
+    public DbSet<PostRepostRecord> PostReposts => Set<PostRepostRecord>();
     public DbSet<ContentReportRecord> ContentReports => Set<ContentReportRecord>();
+    public DbSet<PostNotificationRecord> PostNotifications => Set<PostNotificationRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<PostRecord>(entity =>
         {
-            entity.ToTable("posts"); entity.HasKey(post => post.Id);
+            entity.ToTable("posts");
+            entity.HasKey(post => post.Id);
             entity.Property(post => post.Caption).HasMaxLength(2000).IsRequired();
             entity.Property(post => post.PriceRange).HasMaxLength(16);
             entity.Property(post => post.Tags).HasConversion(MultiValueListConverter, MultiValueListComparer);
@@ -32,7 +35,12 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
             entity.HasMany(post => post.Media).WithOne().HasForeignKey(media => media.PostId).OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(post => post.Likes).WithOne().HasForeignKey(like => like.PostId).OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(post => post.Comments).WithOne().HasForeignKey(comment => comment.PostId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(post => post.AuthorId); entity.HasIndex(post => post.DishId); entity.HasIndex(post => post.PlaceId); entity.HasIndex(post => post.Status); entity.HasIndex(post => post.CreatedAtUtc);
+            entity.HasMany(post => post.Reposts).WithOne().HasForeignKey(repost => repost.PostId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(post => post.AuthorId);
+            entity.HasIndex(post => post.DishId);
+            entity.HasIndex(post => post.PlaceId);
+            entity.HasIndex(post => post.Status);
+            entity.HasIndex(post => post.CreatedAtUtc);
         });
         modelBuilder.Entity<PostMediaRecord>(entity =>
         {
@@ -48,9 +56,30 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
         {
             entity.ToTable("post_comments"); entity.HasKey(comment => comment.Id); entity.Property(comment => comment.Body).HasMaxLength(2000).IsRequired(); entity.Property(comment => comment.Status).HasConversion<string>().HasMaxLength(32).IsRequired(); entity.HasIndex(comment => comment.PostId); entity.HasIndex(comment => comment.AuthorId); entity.HasIndex(comment => comment.Status);
         });
+        modelBuilder.Entity<PostRepostRecord>(entity =>
+        {
+            entity.ToTable("post_reposts");
+            entity.HasKey(repost => repost.Id);
+            entity.Property(repost => repost.Caption).HasMaxLength(280);
+            entity.HasIndex(repost => new { repost.PostId, repost.ActorId }).IsUnique();
+            entity.HasIndex(repost => repost.ActorId);
+            entity.HasIndex(repost => repost.CreatedAtUtc);
+        });
         modelBuilder.Entity<ContentReportRecord>(entity =>
         {
             entity.ToTable("content_reports"); entity.HasKey(report => report.Id); entity.Property(report => report.TargetType).HasConversion<string>().HasMaxLength(32).IsRequired(); entity.Property(report => report.Reason).HasMaxLength(80).IsRequired(); entity.Property(report => report.Description).HasMaxLength(1000); entity.Property(report => report.Status).HasConversion<string>().HasMaxLength(64).IsRequired(); entity.Property(report => report.ResolutionNote).HasMaxLength(1000); entity.HasIndex(report => new { report.TargetType, report.TargetId }); entity.HasIndex(report => report.Status); entity.HasIndex(report => report.CreatedAtUtc);
+        });
+        modelBuilder.Entity<PostNotificationRecord>(entity =>
+        {
+            entity.ToTable("post_notifications");
+            entity.HasKey(notification => notification.Id);
+            entity.Property(notification => notification.Type).HasMaxLength(64).IsRequired();
+            entity.Property(notification => notification.TargetType).HasMaxLength(64).IsRequired();
+            entity.Property(notification => notification.Message).HasMaxLength(280).IsRequired();
+            entity.Property(notification => notification.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.HasIndex(notification => notification.RecipientId);
+            entity.HasIndex(notification => new { notification.RecipientId, notification.Status });
+            entity.HasIndex(notification => notification.CreatedAtUtc);
         });
     }
 

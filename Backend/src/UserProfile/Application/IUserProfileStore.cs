@@ -45,6 +45,10 @@ public interface IUserProfileStore
     /// </summary>
     Task<UserProfileMutationResult> UnfollowAsync(Guid followerIdentityId, Guid followedIdentityId, CancellationToken cancellationToken);
 
+    Task<UserNotificationListSnapshot?> GetNotificationsAsync(Guid identityId, int limit, CancellationToken cancellationToken);
+
+    Task<UserNotificationSnapshot?> MarkNotificationReadAsync(Guid identityId, Guid notificationId, CancellationToken cancellationToken);
+
     /// <summary>
     /// Gets the owner-scoped saved items for the supplied identity identifier.
     /// </summary>

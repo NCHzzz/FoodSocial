@@ -188,6 +188,7 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
         }
 
         _dbContext.UserFollows.Add(new UserFollow(follower.ShellId, followed.ShellId));
+        _dbContext.UserNotifications.Add(new UserNotification(followed.ShellId, followed.IdentityId, follower.IdentityId, "UserFollowed", "followed you"));
 
         try
         {
@@ -208,6 +209,39 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
         }
 
         return new UserProfileMutationResult(UserProfileOperationStatus.Success, followedIdentityId, true, null);
+    }
+
+    public async Task<UserNotificationListSnapshot?> GetNotificationsAsync(Guid identityId, int limit, CancellationToken cancellationToken)
+    {
+        var ownership = await FindOwnershipByIdentityIdAsync(identityId, cancellationToken);
+        if (ownership is null) return null;
+        var normalizedLimit = NormalizeLimit(limit);
+        var query = _dbContext.UserNotifications.AsNoTracking().Where(notification => notification.UserProfileShellId == ownership.ShellId);
+        var unreadCount = await query.CountAsync(notification => notification.Status == UserNotificationStatus.Unread, cancellationToken);
+        IReadOnlyList<UserNotification> rawItems = IsSqliteProvider()
+            ? (await query.ToListAsync(cancellationToken))
+                .OrderByDescending(notification => notification.CreatedAtUtc)
+                .ThenBy(notification => notification.Id)
+                .Take(normalizedLimit)
+                .ToArray()
+            : await query
+                .OrderByDescending(notification => notification.CreatedAtUtc)
+                .ThenBy(notification => notification.Id)
+                .Take(normalizedLimit)
+                .ToListAsync(cancellationToken);
+        var items = rawItems.Select(MapNotification).ToArray();
+        return new UserNotificationListSnapshot(items, normalizedLimit, unreadCount);
+    }
+
+    public async Task<UserNotificationSnapshot?> MarkNotificationReadAsync(Guid identityId, Guid notificationId, CancellationToken cancellationToken)
+    {
+        var ownership = await FindOwnershipByIdentityIdAsync(identityId, cancellationToken);
+        if (ownership is null) return null;
+        var notification = await _dbContext.UserNotifications.SingleOrDefaultAsync(item => item.UserProfileShellId == ownership.ShellId && item.Id == notificationId, cancellationToken);
+        if (notification is null) return null;
+        notification.MarkRead();
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return MapNotification(notification);
     }
 
     /// <inheritdoc />
@@ -366,6 +400,9 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
         return System.Linq.Expressions.Expression.Lambda<Func<TEntity, bool>>(combinedBody, parameter);
     }
 
+    private static UserNotificationSnapshot MapNotification(UserNotification notification) =>
+        new(notification.Id, notification.RecipientIdentityId, notification.ActorIdentityId, notification.Type, notification.Message, notification.Status == UserNotificationStatus.Read, notification.CreatedAtUtc, notification.ReadAtUtc);
+
     private async Task<UserProfileSnapshot> BuildSnapshotAsync(UserProfileShell shell, CancellationToken cancellationToken)
     {
         var followerCount = await _dbContext.UserFollows
@@ -390,6 +427,9 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
     }
 
     private static int NormalizeLimit(int limit) => limit <= 0 ? 50 : Math.Min(limit, 100);
+
+    private bool IsSqliteProvider() =>
+        string.Equals(_dbContext.Database.ProviderName, "Microsoft.EntityFrameworkCore.Sqlite", StringComparison.Ordinal);
 
     private static bool IsUniqueViolation(DbUpdateException exception)
     {

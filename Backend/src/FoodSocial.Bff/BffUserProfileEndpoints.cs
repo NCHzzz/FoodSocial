@@ -20,6 +20,8 @@ internal static class BffUserProfileEndpoints
         usersGroup.MapPost("/{userId:guid}/follow", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         usersGroup.MapDelete("/{userId:guid}/follow", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         usersGroup.MapGet("/{userId:guid}/saved", ForwardProtectedAsync);
+        usersGroup.MapGet("/{userId:guid}/notifications", ForwardProtectedAsync);
+        usersGroup.MapPatch("/{userId:guid}/notifications/{notificationId:guid}/read", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         usersGroup.MapPut("/{userId:guid}/saved/posts/{postId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         usersGroup.MapDelete("/{userId:guid}/saved/posts/{postId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         usersGroup.MapPut("/{userId:guid}/saved/dishes/{dishId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);

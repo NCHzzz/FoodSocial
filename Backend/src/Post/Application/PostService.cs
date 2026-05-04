@@ -72,6 +72,25 @@ public sealed class PostService(IPostStore postStore, IPostCatalogReferenceValid
         return comment is null ? new CommentMutationResult(PostOperationStatus.NotFound, null, "The requested post was not found.") : new CommentMutationResult(PostOperationStatus.Created, MapComment(comment), null);
     }
 
+    public async Task<RepostMutationResult> AddRepostAsync(Guid postId, CreatePostRepostRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (postId == Guid.Empty || request.ActorId == Guid.Empty)
+        {
+            return new RepostMutationResult(PostOperationStatus.Invalid, null, "Post id and actor id are required.");
+        }
+
+        if (request.Caption?.Trim() is { Length: > 280 })
+        {
+            return new RepostMutationResult(PostOperationStatus.Invalid, null, "Repost caption must be 280 characters or fewer.");
+        }
+
+        var repost = await _postStore.AddRepostAsync(postId, request.ActorId, request.Caption, cancellationToken);
+        return repost is null
+            ? new RepostMutationResult(PostOperationStatus.NotFound, null, "The requested post was not found.")
+            : new RepostMutationResult(PostOperationStatus.Created, await MapRepostAsync(repost, cancellationToken), null);
+    }
+
     public async Task<CommentMutationResult> DeleteCommentAsync(Guid commentId, Guid actorId, CancellationToken cancellationToken)
     {
         if (commentId == Guid.Empty || actorId == Guid.Empty) return new CommentMutationResult(PostOperationStatus.Invalid, null, "Comment id and actor id are required.");
@@ -103,6 +122,32 @@ public sealed class PostService(IPostStore postStore, IPostCatalogReferenceValid
         return report is null ? new ReportMutationResult(PostOperationStatus.NotFound, null, "The requested report was not found.") : new ReportMutationResult(PostOperationStatus.Resolved, MapReport(report), null);
     }
 
+    public async Task<NotificationListResponse> GetNotificationsAsync(Guid recipientId, int? limit, CancellationToken cancellationToken)
+    {
+        if (recipientId == Guid.Empty)
+        {
+            return new NotificationListResponse([], 0, 0);
+        }
+
+        var boundedLimit = Math.Clamp(limit ?? PostSearchCriteria.DefaultLimit, 1, PostSearchCriteria.MaxLimit);
+        var notifications = await _postStore.GetNotificationsAsync(recipientId, boundedLimit, cancellationToken);
+        var unreadCount = await _postStore.CountUnreadNotificationsAsync(recipientId, cancellationToken);
+        return new NotificationListResponse(notifications.Select(MapNotification).ToArray(), boundedLimit, unreadCount);
+    }
+
+    public async Task<NotificationMutationResult> MarkNotificationReadAsync(Guid notificationId, Guid recipientId, CancellationToken cancellationToken)
+    {
+        if (notificationId == Guid.Empty || recipientId == Guid.Empty)
+        {
+            return new NotificationMutationResult(PostOperationStatus.Invalid, null, "Notification id and recipient id are required.");
+        }
+
+        var notification = await _postStore.MarkNotificationReadAsync(notificationId, recipientId, cancellationToken);
+        return notification is null
+            ? new NotificationMutationResult(PostOperationStatus.NotFound, null, "The requested notification was not found.")
+            : new NotificationMutationResult(PostOperationStatus.Updated, MapNotification(notification), null);
+    }
+
     private async Task<ReportMutationResult> CreateReportAsync(ReportTargetType targetType, Guid targetId, CreateContentReportRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -111,9 +156,32 @@ public sealed class PostService(IPostStore postStore, IPostCatalogReferenceValid
         return report is null ? new ReportMutationResult(PostOperationStatus.NotFound, null, "The requested report target was not found.") : new ReportMutationResult(PostOperationStatus.Created, MapReport(report), null);
     }
 
-    private static PostDetailResponse MapDetail(PostRecord post) => new(post.Id, post.AuthorId, post.DishId, post.PlaceId, post.Caption, post.Rating, post.PriceRange, post.Tags, post.LocationText, post.Status.ToString(), post.IsHidden, post.Likes.Count, post.Comments.Count(comment => comment.IsVisible), post.Media.OrderBy(media => media.SortOrder).Select(MapMedia).ToArray(), post.Comments.Where(comment => comment.IsVisible).OrderBy(comment => comment.CreatedAtUtc).Select(MapComment).ToArray(), post.CreatedAtUtc, post.UpdatedAtUtc);
-    private static PostSummaryResponse MapSummary(PostRecord post) => new(post.Id, post.AuthorId, post.DishId, post.PlaceId, post.Caption, post.Rating, post.PriceRange, post.Tags, post.Media.OrderBy(media => media.SortOrder).FirstOrDefault(media => media.IsPrimary)?.Url, post.IsHidden, post.Likes.Count, post.Comments.Count(comment => comment.IsVisible), post.CreatedAtUtc);
+    private static PostDetailResponse MapDetail(PostRecord post) => new(post.Id, post.AuthorId, post.DishId, post.PlaceId, post.Caption, post.Rating, post.PriceRange, post.Tags, post.LocationText, post.Status.ToString(), post.IsHidden, post.Likes.Count, post.Reposts.Count, post.Comments.Count(comment => comment.IsVisible), post.Media.OrderBy(media => media.SortOrder).Select(MapMedia).ToArray(), post.Comments.Where(comment => comment.IsVisible).OrderBy(comment => comment.CreatedAtUtc).Select(MapComment).ToArray(), post.CreatedAtUtc, post.UpdatedAtUtc);
+    private static PostSummaryResponse MapSummary(PostRecord post) => new(post.Id, post.AuthorId, post.DishId, post.PlaceId, post.Caption, post.Rating, post.PriceRange, post.Tags, post.Media.OrderBy(media => media.SortOrder).FirstOrDefault(media => media.IsPrimary)?.Url, post.IsHidden, post.Likes.Count, post.Reposts.Count, post.Comments.Count(comment => comment.IsVisible), post.CreatedAtUtc);
     private static PostMediaResponse MapMedia(PostMediaRecord media) => new(media.Id, media.Url, media.Type, media.ThumbnailUrl, media.Caption, media.IsPrimary, media.SortOrder);
     private static PostCommentResponse MapComment(PostCommentRecord comment) => new(comment.Id, comment.PostId, comment.AuthorId, comment.Body, comment.Status.ToString(), comment.CreatedAtUtc, comment.UpdatedAtUtc);
+    private async Task<PostRepostResponse> MapRepostAsync(PostRepostRecord repost, CancellationToken cancellationToken) =>
+        new(
+            repost.Id,
+            repost.PostId,
+            repost.ActorId,
+            repost.Caption,
+            await _postStore.CountRepostsAsync(repost.PostId, cancellationToken),
+            repost.CreatedAtUtc);
+
     private static ContentReportResponse MapReport(ContentReportRecord report) => new(report.Id, report.TargetType.ToString(), report.TargetId, report.ReporterId, report.Reason, report.Description, report.Status.ToString(), report.ModeratorId, report.ResolutionNote, report.CreatedAtUtc, report.ResolvedAtUtc);
+
+    private static NotificationResponse MapNotification(PostNotificationRecord notification) =>
+        new(
+            notification.Id,
+            notification.RecipientId,
+            notification.ActorId,
+            notification.Type,
+            notification.TargetType,
+            notification.TargetId,
+            notification.PostId,
+            notification.Message,
+            notification.Status == NotificationStatus.Read,
+            notification.CreatedAtUtc,
+            notification.ReadAtUtc);
 }

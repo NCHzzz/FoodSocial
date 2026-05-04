@@ -15,6 +15,15 @@ public sealed record PostMediaRequest(string Url, string Type = "image", string?
 
 public sealed record PostMediaResponse(Guid Id, string Url, string Type, string? ThumbnailUrl, string? Caption, bool IsPrimary, int SortOrder);
 
+public sealed record MediaUploadResponse(
+    Guid UploadId,
+    string Url,
+    string ThumbnailUrl,
+    string ContentType,
+    long SizeBytes,
+    DateTimeOffset CleanupDueAtUtc,
+    string Status);
+
 public sealed record PostDetailResponse(
     Guid Id,
     Guid AuthorId,
@@ -28,6 +37,7 @@ public sealed record PostDetailResponse(
     string Status,
     bool IsHidden,
     int LikeCount,
+    int RepostCount,
     int CommentCount,
     IReadOnlyList<PostMediaResponse> Media,
     IReadOnlyList<PostCommentResponse> Comments,
@@ -46,6 +56,7 @@ public sealed record PostSummaryResponse(
     string? PrimaryMediaUrl,
     bool IsHidden,
     int LikeCount,
+    int RepostCount,
     int CommentCount,
     DateTimeOffset CreatedAtUtc);
 
@@ -56,6 +67,10 @@ public sealed record DiscoverFeedResponse(IReadOnlyList<PostSummaryResponse> Ite
 public sealed record ActorRequest(Guid ActorId);
 
 public sealed record PostLikeResponse(Guid PostId, Guid ActorId, bool Liked, int LikeCount);
+
+public sealed record CreatePostRepostRequest(Guid ActorId, string? Caption = null);
+
+public sealed record PostRepostResponse(Guid Id, Guid PostId, Guid ActorId, string? Caption, int RepostCount, DateTimeOffset CreatedAtUtc);
 
 public sealed record CreatePostCommentRequest(Guid AuthorId, string Body);
 
@@ -81,3 +96,18 @@ public sealed record ContentReportResponse(
 public sealed record AdminReportsResponse(IReadOnlyList<ContentReportResponse> Items, int Limit);
 
 public sealed record ResolveContentReportRequest(Guid ModeratorId, string Action, string AuditNote);
+
+public sealed record NotificationResponse(
+    Guid Id,
+    Guid RecipientId,
+    Guid ActorId,
+    string Type,
+    string TargetType,
+    Guid TargetId,
+    Guid? PostId,
+    string Message,
+    bool IsRead,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset? ReadAtUtc);
+
+public sealed record NotificationListResponse(IReadOnlyList<NotificationResponse> Items, int Limit, int UnreadCount);

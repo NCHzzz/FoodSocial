@@ -35,6 +35,7 @@ app.MapBffUserProfileEndpoints();
 app.MapBffDishEndpoints();
 app.MapBffPlaceEndpoints();
 app.MapBffPostEndpoints();
+app.MapBffSearchAssistEndpoints();
 
 app.MapDefaultEndpoints();
 

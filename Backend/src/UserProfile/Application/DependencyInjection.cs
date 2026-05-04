@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<UserProfileService>();
         services.AddScoped<UserFollowService>();
         services.AddScoped<UserSavedItemsService>();
+        services.AddScoped<UserNotificationService>();
         return services;
     }
 }

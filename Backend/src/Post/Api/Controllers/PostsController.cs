@@ -8,6 +8,14 @@ namespace FoodSocial.Post.Api.Controllers;
 [ApiController]
 public sealed class PostsController(PostService postService) : ControllerBase
 {
+    private static readonly IReadOnlyDictionary<string, string> AllowedImageContentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        [".jpg"] = "image/jpeg",
+        [".jpeg"] = "image/jpeg",
+        [".png"] = "image/png",
+        [".webp"] = "image/webp"
+    };
+
     private readonly PostService _postService = postService ?? throw new ArgumentNullException(nameof(postService));
 
     [HttpPost("api/posts")]
@@ -21,6 +29,155 @@ public sealed class PostsController(PostService postService) : ControllerBase
         return result.Status == PostOperationStatus.Created
             ? CreatedAtAction(nameof(GetPost), new { postId = result.Post!.Id }, result.Post)
             : Problem(title: "Invalid post request", detail: result.Error, statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    [HttpPost("api/media/uploads")]
+    [ServiceFilter(typeof(PostInternalAuthorizationFilter))]
+    [RequestSizeLimit(10_000_000)]
+    [ProducesResponseType<MediaUploadResponse>(StatusCodes.Status201Created)]
+    public async Task<ActionResult<MediaUploadResponse>> UploadMedia(IFormFile? file, IConfiguration configuration, IWebHostEnvironment environment, CancellationToken cancellationToken)
+    {
+        if (file is null)
+        {
+            return Problem(title: "Invalid media upload", detail: "A non-empty media file is required.", statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var validation = await ValidateImageUploadAsync(file, cancellationToken);
+        if (validation.Error is not null)
+        {
+            return Problem(title: "Invalid media upload", detail: validation.Error, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var uploadId = Guid.NewGuid();
+        var root = configuration["Post:Media:StoragePath"];
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            root = Path.Combine(environment.ContentRootPath, "App_Data", "media");
+        }
+
+        var originalDirectory = Path.Combine(root, "originals");
+        var thumbnailDirectory = Path.Combine(root, "thumbnails");
+        Directory.CreateDirectory(originalDirectory);
+        Directory.CreateDirectory(thumbnailDirectory);
+
+        var fileName = $"{uploadId:N}{validation.Extension}";
+        var originalPath = Path.Combine(originalDirectory, fileName);
+        var thumbnailPath = Path.Combine(thumbnailDirectory, fileName);
+        await using (var stream = System.IO.File.Create(originalPath))
+        {
+            await file.CopyToAsync(stream, cancellationToken);
+        }
+
+        System.IO.File.Copy(originalPath, thumbnailPath, overwrite: true);
+        var response = new MediaUploadResponse(
+            uploadId,
+            $"/api/media/uploads/{uploadId}/original",
+            $"/api/media/uploads/{uploadId}/thumbnail",
+            validation.ContentType!,
+            file.Length,
+            DateTimeOffset.UtcNow.AddDays(7),
+            "StoredWithDerivativePlaceholder");
+
+        return Created(response.Url, response);
+    }
+
+    [HttpGet("api/media/uploads/{uploadId:guid}/{variant}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult GetUploadedMedia(Guid uploadId, string variant, IConfiguration configuration, IWebHostEnvironment environment)
+    {
+        if (!string.Equals(variant, "original", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(variant, "thumbnail", StringComparison.OrdinalIgnoreCase))
+        {
+            return Problem(title: "Invalid media variant", detail: "Media variant must be original or thumbnail.", statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var root = configuration["Post:Media:StoragePath"];
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            root = Path.Combine(environment.ContentRootPath, "App_Data", "media");
+        }
+
+        var directoryName = string.Equals(variant, "thumbnail", StringComparison.OrdinalIgnoreCase) ? "thumbnails" : "originals";
+        var directory = Path.Combine(root, directoryName);
+        if (!Directory.Exists(directory))
+        {
+            return Problem(title: "Media not found", detail: "The requested media upload was not found.", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        var match = Directory.EnumerateFiles(directory, $"{uploadId:N}.*").FirstOrDefault();
+        if (match is null)
+        {
+            return Problem(title: "Media not found", detail: "The requested media upload was not found.", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        if (!AllowedImageContentTypes.TryGetValue(Path.GetExtension(match), out var contentType))
+        {
+            contentType = "application/octet-stream";
+        }
+
+        return PhysicalFile(match, contentType);
+    }
+
+    private static async Task<ValidatedImageUpload> ValidateImageUploadAsync(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file.Length <= 0 || string.IsNullOrWhiteSpace(file.FileName))
+        {
+            return ValidatedImageUpload.Invalid("A non-empty media file is required.");
+        }
+
+        if (file.Length > 10_000_000)
+        {
+            return ValidatedImageUpload.Invalid("Media uploads must be 10 MB or smaller.");
+        }
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!AllowedImageContentTypes.TryGetValue(extension, out var expectedContentType)
+            || !string.Equals(file.ContentType, expectedContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            return ValidatedImageUpload.Invalid("Only JPEG, PNG, and WebP image uploads are supported in the MVP media pipeline.");
+        }
+
+        var header = new byte[12];
+        await using var stream = file.OpenReadStream();
+        var bytesRead = await stream.ReadAsync(header, cancellationToken);
+        if (!HasExpectedImageSignature(extension, header.AsSpan(0, bytesRead)))
+        {
+            return ValidatedImageUpload.Invalid("Uploaded media bytes do not match the declared image type.");
+        }
+
+        return ValidatedImageUpload.Valid(extension, expectedContentType);
+    }
+
+    private static bool HasExpectedImageSignature(string extension, ReadOnlySpan<byte> header) =>
+        extension switch
+        {
+            ".jpg" or ".jpeg" => header.Length >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,
+            ".png" => header.Length >= 8
+                && header[0] == 0x89
+                && header[1] == (byte)'P'
+                && header[2] == (byte)'N'
+                && header[3] == (byte)'G'
+                && header[4] == 0x0D
+                && header[5] == 0x0A
+                && header[6] == 0x1A
+                && header[7] == 0x0A,
+            ".webp" => header.Length >= 12
+                && header[0] == (byte)'R'
+                && header[1] == (byte)'I'
+                && header[2] == (byte)'F'
+                && header[3] == (byte)'F'
+                && header[8] == (byte)'W'
+                && header[9] == (byte)'E'
+                && header[10] == (byte)'B'
+                && header[11] == (byte)'P',
+            _ => false
+        };
+
+    private sealed record ValidatedImageUpload(string? Extension, string? ContentType, string? Error)
+    {
+        internal static ValidatedImageUpload Valid(string extension, string contentType) => new(extension, contentType, null);
+        internal static ValidatedImageUpload Invalid(string error) => new(null, null, error);
     }
 
     [HttpGet("api/posts/{postId:guid}")]
@@ -82,6 +239,21 @@ public sealed class PostsController(PostService postService) : ControllerBase
         };
     }
 
+    [HttpPost("api/posts/{postId:guid}/repost")]
+    [ServiceFilter(typeof(PostInternalAuthorizationFilter))]
+    [ProducesResponseType<PostRepostResponse>(StatusCodes.Status201Created)]
+    public async Task<ActionResult<PostRepostResponse>> Repost(Guid postId, [FromBody] CreatePostRepostRequest request, CancellationToken cancellationToken)
+    {
+        var securedRequest = request with { ActorId = PostInternalAuthorization.GetIdentityId(HttpContext) };
+        var result = await _postService.AddRepostAsync(postId, securedRequest, cancellationToken);
+        return result.Status switch
+        {
+            PostOperationStatus.Created => Created($"/api/posts/{postId}/reposts/{result.Repost!.Id}", result.Repost),
+            PostOperationStatus.NotFound => Problem(title: "Post not found", detail: result.Error, statusCode: StatusCodes.Status404NotFound),
+            _ => Problem(title: "Invalid repost request", detail: result.Error, statusCode: StatusCodes.Status400BadRequest)
+        };
+    }
+
     [HttpDelete("api/comments/{commentId:guid}")]
     [ServiceFilter(typeof(PostInternalAuthorizationFilter))]
     [ProducesResponseType<PostCommentResponse>(StatusCodes.Status200OK)]
@@ -119,6 +291,26 @@ public sealed class PostsController(PostService postService) : ControllerBase
     [ServiceFilter(typeof(PostModeratorAuthorizationFilter))]
     [ProducesResponseType<AdminReportsResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<AdminReportsResponse>> GetReports([FromQuery] int? limit, CancellationToken cancellationToken) => Ok(await _postService.GetReportsAsync(limit, cancellationToken));
+
+    [HttpGet("api/notifications")]
+    [ServiceFilter(typeof(PostInternalAuthorizationFilter))]
+    [ProducesResponseType<NotificationListResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<NotificationListResponse>> GetNotifications([FromQuery] int? limit, CancellationToken cancellationToken) =>
+        Ok(await _postService.GetNotificationsAsync(PostInternalAuthorization.GetIdentityId(HttpContext), limit, cancellationToken));
+
+    [HttpPatch("api/notifications/{notificationId:guid}/read")]
+    [ServiceFilter(typeof(PostInternalAuthorizationFilter))]
+    [ProducesResponseType<NotificationResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<NotificationResponse>> MarkNotificationRead(Guid notificationId, CancellationToken cancellationToken)
+    {
+        var result = await _postService.MarkNotificationReadAsync(notificationId, PostInternalAuthorization.GetIdentityId(HttpContext), cancellationToken);
+        return result.Status switch
+        {
+            PostOperationStatus.Updated => Ok(result.Notification),
+            PostOperationStatus.NotFound => Problem(title: "Notification not found", detail: result.Error, statusCode: StatusCodes.Status404NotFound),
+            _ => Problem(title: "Invalid notification request", detail: result.Error, statusCode: StatusCodes.Status400BadRequest)
+        };
+    }
 
     [HttpPost("api/admin/reports/{reportId:guid}/resolve")]
     [ServiceFilter(typeof(PostModeratorAuthorizationFilter))]

@@ -118,3 +118,16 @@ public sealed record UserSavedItemsResult(
     UserProfileOperationStatus Status,
     UserSavedItemsSnapshot? SavedItems,
     string? Error);
+
+
+public sealed record UserNotificationSnapshot(
+    Guid Id,
+    Guid RecipientIdentityId,
+    Guid ActorIdentityId,
+    string Type,
+    string Message,
+    bool IsRead,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset? ReadAtUtc);
+
+public sealed record UserNotificationListSnapshot(IReadOnlyList<UserNotificationSnapshot> Items, int Limit, int UnreadCount);

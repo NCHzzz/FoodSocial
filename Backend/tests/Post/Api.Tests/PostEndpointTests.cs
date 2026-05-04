@@ -24,6 +24,66 @@ public sealed class PostEndpointTests
         detail.AuthorId.Should().Be(PostApiFactory.TestCallerIdentityId); detail.DishId.Should().Be(dishId); detail.Media.Should().ContainSingle(m => m.IsPrimary); detail.Caption.Should().Be("Best phở");
     }
 
+    [Fact]
+    public async Task UploadMedia_StoresOriginalAndDerivativeReference()
+    {
+        await using var factory = new PostApiFactory();
+        using var client = factory.CreateTrustedClient();
+        using var form = new MultipartFormDataContent();
+        byte[] jpegBytes = [0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4];
+        using var file = new ByteArrayContent(jpegBytes);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        form.Add(file, "file", "pho.jpg");
+
+        using var upload = await client.PostAsync("/api/media/uploads", form);
+
+        upload.StatusCode.Should().Be(HttpStatusCode.Created);
+        var payload = (await upload.Content.ReadFromJsonAsync<MediaUploadResponse>())!;
+        payload.Url.Should().Contain($"/api/media/uploads/{payload.UploadId}/original");
+        payload.ThumbnailUrl.Should().Contain($"/api/media/uploads/{payload.UploadId}/thumbnail");
+
+        using var read = await client.GetAsync(payload.Url);
+        read.StatusCode.Should().Be(HttpStatusCode.OK);
+        read.Content.Headers.ContentType?.MediaType.Should().Be("image/jpeg");
+        (await read.Content.ReadAsByteArrayAsync()).Should().Equal(jpegBytes);
+    }
+
+    [Fact]
+    public async Task UploadMedia_RejectsUnsafeImageTypesAndMismatchedBytes()
+    {
+        await using var factory = new PostApiFactory();
+        using var client = factory.CreateTrustedClient();
+
+        using var svgForm = new MultipartFormDataContent();
+        using var svgFile = new ByteArrayContent("<svg><script>alert(1)</script></svg>"u8.ToArray());
+        svgFile.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/svg+xml");
+        svgForm.Add(svgFile, "file", "payload.svg");
+
+        using var svgUpload = await client.PostAsync("/api/media/uploads", svgForm);
+        svgUpload.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        using var mismatchedForm = new MultipartFormDataContent();
+        using var mismatchedFile = new ByteArrayContent("not-a-real-jpeg"u8.ToArray());
+        mismatchedFile.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        mismatchedForm.Add(mismatchedFile, "file", "payload.jpg");
+
+        using var mismatchedUpload = await client.PostAsync("/api/media/uploads", mismatchedForm);
+        mismatchedUpload.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task UploadMedia_RejectsMissingFileWithoutServerError()
+    {
+        await using var factory = new PostApiFactory();
+        using var client = factory.CreateTrustedClient();
+        using var form = new MultipartFormDataContent();
+
+        using var upload = await client.PostAsync("/api/media/uploads", form);
+
+        upload.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        upload.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+    }
+
     [Theory]
     [InlineData("dish")]
     [InlineData("caption")]
@@ -105,6 +165,36 @@ public sealed class PostEndpointTests
         create.StatusCode.Should().Be(HttpStatusCode.Created); var comment = (await create.Content.ReadFromJsonAsync<PostCommentResponse>())!;
         using var delete = await client.DeleteAsync($"/api/comments/{comment.Id}?actorId={authorId}");
         (await delete.Content.ReadFromJsonAsync<PostCommentResponse>())!.Status.Should().Be("Deleted");
+    }
+
+    [Fact]
+    public async Task RepostAndNotifications_RecordOwnerVisibleActivity()
+    {
+        await using var factory = new PostApiFactory();
+        var ownerId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var actorId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        using var ownerClient = factory.CreateTrustedClient(ownerId);
+        var postId = await factory.CreatePostAsync(ownerClient);
+        using var actorClient = factory.CreateTrustedClient(actorId);
+
+        using var repostResponse = await actorClient.PostAsJsonAsync($"/api/posts/{postId}/repost", new CreatePostRepostRequest(Guid.NewGuid(), "Try this place too."));
+        repostResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await repostResponse.Content.ReadFromJsonAsync<PostRepostResponse>())!.ActorId.Should().Be(actorId);
+        using var likeResponse = await actorClient.PostAsJsonAsync($"/api/posts/{postId}/likes", new ActorRequest(Guid.NewGuid()));
+        likeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var commentResponse = await actorClient.PostAsJsonAsync($"/api/posts/{postId}/comments", new CreatePostCommentRequest(Guid.NewGuid(), "Looks great."));
+        commentResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        using var notificationsResponse = await ownerClient.GetAsync("/api/notifications?limit=10");
+        notificationsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var notifications = (await notificationsResponse.Content.ReadFromJsonAsync<NotificationListResponse>())!;
+        notifications.UnreadCount.Should().Be(3);
+        notifications.Items.Select(item => item.Type).Should().BeEquivalentTo(["PostReposted", "PostLiked", "PostCommented"]);
+
+        var firstNotification = notifications.Items[0];
+        using var readResponse = await ownerClient.PatchAsJsonAsync($"/api/notifications/{firstNotification.Id}/read", new { });
+        readResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await readResponse.Content.ReadFromJsonAsync<NotificationResponse>())!.IsRead.Should().BeTrue();
     }
 
     [Fact]

@@ -35,10 +35,10 @@ internal sealed class IdentityOrchestrationHttpClient(HttpClient httpClient, ICo
 
         if (string.IsNullOrWhiteSpace(subject) && !string.IsNullOrWhiteSpace(accessToken))
         {
-            var tokenClaims = TryReadAccessTokenClaims(accessToken);
-            subject = tokenClaims?.Subject;
-            preferredUsername ??= tokenClaims?.PreferredUsername;
-            email ??= tokenClaims?.Email;
+            var accessTokenClaims = TryReadAccessTokenPayloadClaims(accessToken);
+            subject = accessTokenClaims?.Subject;
+            preferredUsername ??= accessTokenClaims?.PreferredUsername;
+            email ??= accessTokenClaims?.Email;
         }
 
         if (string.IsNullOrWhiteSpace(subject))
@@ -110,7 +110,7 @@ internal sealed class IdentityOrchestrationHttpClient(HttpClient httpClient, ICo
             $"Identity ensure orchestration failed with {(int)response.StatusCode} {response.ReasonPhrase}.");
     }
 
-    private AuthenticatedTokenClaims? TryReadAccessTokenClaims(string accessToken)
+    private AccessTokenPayloadClaims? TryReadAccessTokenPayloadClaims(string accessToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
 
@@ -131,14 +131,19 @@ internal sealed class IdentityOrchestrationHttpClient(HttpClient httpClient, ICo
             using var document = JsonDocument.Parse(payloadJson);
             var root = document.RootElement;
 
-            return new AuthenticatedTokenClaims(
+            return new AccessTokenPayloadClaims(
                 GetStringProperty(root, IdentityClaims.Subject),
                 GetStringProperty(root, IdentityClaims.PreferredUsername),
                 GetStringProperty(root, IdentityClaims.Email));
         }
-        catch (Exception exception)
+        catch (FormatException exception)
         {
-            _logger.LogWarning(exception, "The BFF could not read fallback claims from the access token payload.");
+            _logger.LogWarning(exception, "The BFF could not read claims from the access token payload.");
+            return null;
+        }
+        catch (JsonException exception)
+        {
+            _logger.LogWarning(exception, "The BFF could not read claims from the access token payload.");
             return null;
         }
     }
@@ -160,5 +165,5 @@ internal sealed class IdentityOrchestrationHttpClient(HttpClient httpClient, ICo
         request.Headers.TryAddWithoutValidation(InternalServiceSecretHeaderName, internalServiceSecret);
     }
 
-    private sealed record AuthenticatedTokenClaims(string? Subject, string? PreferredUsername, string? Email);
+    private sealed record AccessTokenPayloadClaims(string? Subject, string? PreferredUsername, string? Email);
 }

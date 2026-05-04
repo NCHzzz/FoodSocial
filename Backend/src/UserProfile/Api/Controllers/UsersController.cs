@@ -15,12 +15,14 @@ namespace FoodSocial.UserProfile.Api.Controllers;
 public sealed class UsersController(
     UserProfileService userProfileService,
     UserFollowService userFollowService,
-    UserSavedItemsService userSavedItemsService)
+    UserSavedItemsService userSavedItemsService,
+    UserNotificationService userNotificationService)
     : ControllerBase
 {
     private readonly UserProfileService _userProfileService = userProfileService ?? throw new ArgumentNullException(nameof(userProfileService));
     private readonly UserFollowService _userFollowService = userFollowService ?? throw new ArgumentNullException(nameof(userFollowService));
     private readonly UserSavedItemsService _userSavedItemsService = userSavedItemsService ?? throw new ArgumentNullException(nameof(userSavedItemsService));
+    private readonly UserNotificationService _userNotificationService = userNotificationService ?? throw new ArgumentNullException(nameof(userNotificationService));
 
     [HttpGet("{userId:guid}")]
     [ProducesResponseType<UserProfileResponse>(StatusCodes.Status200OK)]
@@ -174,6 +176,38 @@ public sealed class UsersController(
     public Task<ActionResult<SaveUserItemResponse>> UnsavePlace(Guid userId, Guid placeId, CancellationToken cancellationToken) =>
         SaveItemAsync(userId, placeId, (subject, identityId, targetId, token) => _userSavedItemsService.UnsavePlaceAsync(subject, identityId, targetId, token), cancellationToken);
 
+    [HttpGet("{userId:guid}/notifications")]
+    [Authorize]
+    [ProducesResponseType<UserNotificationListResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<UserNotificationListResponse>> GetNotifications(Guid userId, CancellationToken cancellationToken)
+    {
+        if (!TryGetAuthenticatedSubject(User, out var subject, out var missingSubjectResult))
+        {
+            return missingSubjectResult!;
+        }
+
+        var snapshot = await _userNotificationService.GetNotificationsAsync(subject!, userId, cancellationToken);
+        return snapshot is null
+            ? Problem(title: "Notification ownership required", detail: "The authenticated user does not own the requested notification stream.", statusCode: StatusCodes.Status403Forbidden)
+            : Ok(new UserNotificationListResponse(snapshot.Items.Select(MapNotification).ToArray(), snapshot.Limit, snapshot.UnreadCount));
+    }
+
+    [HttpPatch("{userId:guid}/notifications/{notificationId:guid}/read")]
+    [Authorize]
+    [ProducesResponseType<UserNotificationResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<UserNotificationResponse>> MarkNotificationRead(Guid userId, Guid notificationId, CancellationToken cancellationToken)
+    {
+        if (!TryGetAuthenticatedSubject(User, out var subject, out var missingSubjectResult))
+        {
+            return missingSubjectResult!;
+        }
+
+        var snapshot = await _userNotificationService.MarkNotificationReadAsync(subject!, userId, notificationId, cancellationToken);
+        return snapshot is null
+            ? Problem(title: "Notification not found", detail: "The requested notification was not found for the authenticated user.", statusCode: StatusCodes.Status404NotFound)
+            : Ok(MapNotification(snapshot));
+    }
+
     private async Task<ActionResult<SaveUserItemResponse>> SaveItemAsync(
         Guid userId,
         Guid targetId,
@@ -226,6 +260,9 @@ public sealed class UsersController(
             snapshot.Posts.Select(item => new SavedPostReferenceDto(item.PostId, item.SavedAtUtc)).ToArray(),
             snapshot.Dishes.Select(item => new SavedDishReferenceDto(item.DishId, item.SavedAtUtc)).ToArray(),
             snapshot.Places.Select(item => new SavedPlaceReferenceDto(item.PlaceId, item.SavedAtUtc)).ToArray());
+
+    private static UserNotificationResponse MapNotification(UserNotificationSnapshot snapshot) =>
+        new(snapshot.Id, snapshot.RecipientIdentityId, snapshot.ActorIdentityId, snapshot.Type, snapshot.Message, snapshot.IsRead, snapshot.CreatedAtUtc, snapshot.ReadAtUtc);
 
     private static UpdateUserProfileCommand MapCommand(UpdateUserProfileRequest request) =>
         new(

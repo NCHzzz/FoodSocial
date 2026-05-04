@@ -16,13 +16,18 @@ internal static class BffPostEndpoints
         endpoints.MapGet("/api/posts/search", ForwardAsync);
         endpoints.MapGet("/api/posts/{postId:guid}", ForwardAsync);
         endpoints.MapGet("/api/feed/discover", ForwardAsync);
+        endpoints.MapGet("/api/media/uploads/{uploadId:guid}/{variant}", ForwardAsync);
         endpoints.MapPost("/api/posts", ForwardCreatePostAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        endpoints.MapPost("/api/media/uploads", ForwardMediaUploadAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapPost("/api/posts/{postId:guid}/likes", ForwardActorMutationAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapDelete("/api/posts/{postId:guid}/likes", ForwardActorMutationAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapPost("/api/posts/{postId:guid}/comments", ForwardCreateCommentAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapDelete("/api/comments/{commentId:guid}", ForwardDeleteCommentAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        endpoints.MapPost("/api/posts/{postId:guid}/repost", ForwardCreateRepostAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapPost("/api/posts/{postId:guid}/report", ForwardCreateReportAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapPost("/api/comments/{commentId:guid}/report", ForwardCreateReportAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        endpoints.MapGet("/api/me/notifications", ForwardNotificationsReadAsync);
+        endpoints.MapPatch("/api/notifications/{notificationId:guid}/read", ForwardNotificationReadMutationAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapGet("/api/admin/reports", ForwardModeratorReadAsync);
         endpoints.MapPost("/api/admin/reports/{reportId:guid}/resolve", ForwardResolveReportAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         return endpoints;
@@ -37,6 +42,14 @@ internal static class BffPostEndpoints
         if (request.Result is not null) return request.Result;
         var securedRequest = request.Value! with { AuthorId = session.IdentityId };
         return await ForwardJsonAsync(httpContext, postClient, loggerFactory, securedRequest, session.IdentityId, session.Roles, cancellationToken);
+    }
+
+    private static async Task<IResult> ForwardMediaUploadAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
+    {
+        var session = await ResolveAllowedSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
+        if (session.Result is not null) return session.Result;
+
+        return await ForwardAuthenticatedAsync(httpContext, postClient, loggerFactory, session.IdentityId, session.Roles, cancellationToken);
     }
 
     private static async Task<IResult> ForwardActorMutationAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
@@ -66,6 +79,17 @@ internal static class BffPostEndpoints
         return await ForwardJsonAsync(httpContext, postClient, loggerFactory, new DeletePostCommentRequest(session.IdentityId), session.IdentityId, session.Roles, cancellationToken);
     }
 
+    private static async Task<IResult> ForwardCreateRepostAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
+    {
+        var session = await ResolveAllowedSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
+        if (session.Result is not null) return session.Result;
+
+        var request = await DeserializeOrProblemAsync<CreatePostRepostRequest>(httpContext, "Repost request body is required.", cancellationToken);
+        if (request.Result is not null) return request.Result;
+        var securedRequest = request.Value! with { ActorId = session.IdentityId };
+        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, securedRequest, session.IdentityId, session.Roles, cancellationToken);
+    }
+
     private static async Task<IResult> ForwardCreateReportAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
     {
         var session = await ResolveAllowedSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
@@ -83,6 +107,23 @@ internal static class BffPostEndpoints
         if (session.Result is not null) return session.Result;
 
         return await ForwardAuthenticatedAsync(httpContext, postClient, loggerFactory, session.IdentityId, session.Roles, cancellationToken);
+    }
+
+    private static async Task<IResult> ForwardNotificationsReadAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
+    {
+        var session = await ResolveAllowedSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
+        if (session.Result is not null) return session.Result;
+
+        var targetPathAndQuery = $"/api/notifications{httpContext.Request.QueryString}";
+        return await ForwardAuthenticatedAsync(httpContext, postClient, loggerFactory, session.IdentityId, session.Roles, cancellationToken, targetPathAndQuery);
+    }
+
+    private static async Task<IResult> ForwardNotificationReadMutationAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
+    {
+        var session = await ResolveAllowedSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
+        if (session.Result is not null) return session.Result;
+
+        return await ForwardJsonAsync(httpContext, postClient, loggerFactory, new ActorRequest(session.IdentityId), session.IdentityId, session.Roles, cancellationToken);
     }
 
     private static async Task<IResult> ForwardResolveReportAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
@@ -107,9 +148,9 @@ internal static class BffPostEndpoints
         return new BffUpstreamHttpResult((int)upstreamResponse.StatusCode, contentType, responseBytes);
     }
 
-    private static async Task<IResult> ForwardAuthenticatedAsync(HttpContext httpContext, PostHttpClient postClient, ILoggerFactory loggerFactory, Guid identityId, IReadOnlyList<string> roles, CancellationToken cancellationToken)
+    private static async Task<IResult> ForwardAuthenticatedAsync(HttpContext httpContext, PostHttpClient postClient, ILoggerFactory loggerFactory, Guid identityId, IReadOnlyList<string> roles, CancellationToken cancellationToken, string? targetPathAndQueryOverride = null)
     {
-        var targetPathAndQuery = $"{httpContext.Request.Path}{httpContext.Request.QueryString}";
+        var targetPathAndQuery = targetPathAndQueryOverride ?? $"{httpContext.Request.Path}{httpContext.Request.QueryString}";
         using var upstreamResponse = await ForwardToPostApiAsync(httpContext, postClient, loggerFactory, targetPathAndQuery, identityId, roles, cancellationToken);
         if (upstreamResponse is null) return CreateUnavailableProblem(httpContext);
         var contentType = upstreamResponse.Content.Headers.ContentType?.ToString();

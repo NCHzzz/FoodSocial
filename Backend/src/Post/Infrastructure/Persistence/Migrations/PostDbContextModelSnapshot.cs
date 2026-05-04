@@ -174,6 +174,61 @@ namespace FoodSocial.Post.Infrastructure.Persistence.Migrations
                     b.ToTable("post_media", (string)null);
                 });
 
+            modelBuilder.Entity("FoodSocial.Post.Domain.PostNotificationRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)");
+
+                    b.Property<Guid?>("PostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ReadAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RecipientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("RecipientId");
+
+                    b.HasIndex("RecipientId", "Status");
+
+                    b.ToTable("post_notifications", (string)null);
+                });
+
             modelBuilder.Entity("FoodSocial.Post.Domain.PostRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -241,6 +296,37 @@ namespace FoodSocial.Post.Infrastructure.Persistence.Migrations
                     b.ToTable("posts", (string)null);
                 });
 
+            modelBuilder.Entity("FoodSocial.Post.Domain.PostRepostRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Caption")
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("PostId", "ActorId")
+                        .IsUnique();
+
+                    b.ToTable("post_reposts", (string)null);
+                });
+
             modelBuilder.Entity("FoodSocial.Post.Domain.PostCommentRecord", b =>
                 {
                     b.HasOne("FoodSocial.Post.Domain.PostRecord", null)
@@ -268,6 +354,15 @@ namespace FoodSocial.Post.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("FoodSocial.Post.Domain.PostRepostRecord", b =>
+                {
+                    b.HasOne("FoodSocial.Post.Domain.PostRecord", null)
+                        .WithMany("Reposts")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("FoodSocial.Post.Domain.PostRecord", b =>
                 {
                     b.Navigation("Comments");
@@ -275,6 +370,8 @@ namespace FoodSocial.Post.Infrastructure.Persistence.Migrations
                     b.Navigation("Likes");
 
                     b.Navigation("Media");
+
+                    b.Navigation("Reposts");
                 });
 #pragma warning restore 612, 618
         }

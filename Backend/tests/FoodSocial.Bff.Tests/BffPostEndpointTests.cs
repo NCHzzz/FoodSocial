@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Text.Json;
 using FoodSocial.Contracts.Identity;
 using FoodSocial.Contracts.Posts;
 using FluentAssertions;
@@ -18,6 +19,22 @@ namespace FoodSocial.Bff.Tests;
 
 public sealed class BffPostEndpointTests
 {
+    [Fact]
+    public async Task SearchAssist_WithQuery_ReturnsDeterministicFallbackSuggestions()
+    {
+        await using var factory = new BffPostTestApplicationFactory(_ => JsonResponse(HttpStatusCode.OK, new { }));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var response = await client.PostAsJsonAsync("/api/search/assist", new { query = "spicy Vietnamese noodles", location = "District 1" });
+        var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        payload.GetProperty("assistStatus").GetString().Should().Be("ai-disabled-fallback");
+        payload.GetProperty("fallbackUsed").GetBoolean().Should().BeTrue();
+        payload.GetProperty("filters").GetProperty("location").GetString().Should().Be("District 1");
+        payload.GetProperty("suggestions").GetArrayLength().Should().BeGreaterThan(0);
+    }
+
     [Fact]
     public async Task CreatePost_WithoutAuthenticatedSession_ReturnsUnauthorizedWithoutForwarding()
     {
@@ -61,6 +78,7 @@ public sealed class BffPostEndpointTests
             "Published",
             IsHidden: false,
             LikeCount: 0,
+            RepostCount: 0,
             CommentCount: 0,
             [],
             [],
@@ -87,6 +105,29 @@ public sealed class BffPostEndpointTests
         forwardedBody.AuthorId.Should().NotBe(spoofedAuthorId);
         forwardedRequest.Headers.GetValues("X-FoodSocial-Internal-Secret").Should().ContainSingle().Which.Should().Be("test-post-shared-secret");
         forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be(expectedSessionIdentityId.ToString());
+    }
+
+    [Fact]
+    public async Task UploadMedia_WithAuthenticatedCookie_ForwardsMultipartWithTrustedIdentity()
+    {
+        await using var factory = new BffPostTestApplicationFactory(_ => JsonResponse(HttpStatusCode.Created, new MediaUploadResponse(Guid.NewGuid(), "/api/media/uploads/id/original", "/api/media/uploads/id/thumbnail", "image/jpeg", 4, DateTimeOffset.UtcNow.AddDays(7), "Stored")));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("post-access-token"));
+        await factory.AddCsrfHeaderAsync(client);
+        using var form = new MultipartFormDataContent();
+        using var file = new ByteArrayContent([1, 2, 3, 4]);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        form.Add(file, "file", "pho.jpg");
+
+        using var response = await client.PostAsync("/api/media/uploads", form);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
+        forwardedRequest.Method.Should().Be(HttpMethod.Post);
+        forwardedRequest.RequestUri!.PathAndQuery.Should().Be("/api/media/uploads");
+        forwardedRequest.Headers.GetValues("X-FoodSocial-Internal-Secret").Should().ContainSingle().Which.Should().Be("test-post-shared-secret");
+        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be("11111111-1111-1111-1111-111111111111");
+        forwardedRequest.Content!.Headers.ContentType!.MediaType.Should().Be("multipart/form-data");
     }
 
     [Fact]
@@ -149,6 +190,52 @@ public sealed class BffPostEndpointTests
         forwardedBody.Should().NotBeNull();
         forwardedBody!.ReporterId.Should().Be(expectedSessionIdentityId);
         forwardedBody.ReporterId.Should().NotBe(spoofedReporterId);
+    }
+
+    [Fact]
+    public async Task Repost_WithAuthenticatedCookie_ReplacesCallerActorIdWithSessionIdentity()
+    {
+        var spoofedActorId = Guid.Parse("88888888-8888-8888-8888-888888888888");
+        var expectedSessionIdentityId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var postId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var upstreamResponse = new PostRepostResponse(
+            Guid.Parse("44444444-4444-4444-4444-444444444444"),
+            postId,
+            expectedSessionIdentityId,
+            "Worth trying.",
+            1,
+            DateTimeOffset.UtcNow);
+
+        await using var factory = new BffPostTestApplicationFactory(_ => JsonResponse(HttpStatusCode.Created, upstreamResponse));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("post-access-token"));
+        await factory.AddCsrfHeaderAsync(client);
+
+        using var response = await client.PostAsJsonAsync($"/api/posts/{postId}/repost", new CreatePostRepostRequest(spoofedActorId, "Worth trying."));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
+        var forwardedBody = await forwardedRequest.Content!.ReadFromJsonAsync<CreatePostRepostRequest>();
+        forwardedBody.Should().NotBeNull();
+        forwardedBody!.ActorId.Should().Be(expectedSessionIdentityId);
+        forwardedBody.ActorId.Should().NotBe(spoofedActorId);
+    }
+
+    [Fact]
+    public async Task GetNotifications_WithAuthenticatedCookie_ForwardsToPostNotificationsForSessionIdentity()
+    {
+        await using var factory = new BffPostTestApplicationFactory(_ => JsonResponse(HttpStatusCode.OK, new NotificationListResponse([], 10, 0)));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("post-access-token"));
+
+        using var response = await client.GetAsync("/api/me/notifications?limit=10");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
+        forwardedRequest.Method.Should().Be(HttpMethod.Get);
+        forwardedRequest.RequestUri!.PathAndQuery.Should().Be("/api/notifications?limit=10");
+        forwardedRequest.Headers.GetValues("X-FoodSocial-Internal-Secret").Should().ContainSingle().Which.Should().Be("test-post-shared-secret");
+        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be("11111111-1111-1111-1111-111111111111");
     }
 
     [Fact]

@@ -4,6 +4,7 @@ public enum PostStatus { Published, Hidden, Deleted }
 public enum CommentStatus { Visible, Hidden, Deleted }
 public enum ReportStatus { Submitted, ResolvedNoAction, ResolvedContentAction }
 public enum ReportTargetType { Post, Comment }
+public enum NotificationStatus { Unread, Read }
 
 public sealed class PostRecord
 {
@@ -24,6 +25,7 @@ public sealed class PostRecord
     public List<PostMediaRecord> Media { get; private set; } = [];
     public List<PostLikeRecord> Likes { get; private set; } = [];
     public List<PostCommentRecord> Comments { get; private set; } = [];
+    public List<PostRepostRecord> Reposts { get; private set; } = [];
 
     public static PostRecord Create(Guid authorId, Guid dishId, string caption, IEnumerable<PostMediaRecord> media, Guid? placeId, int? rating, string? priceRange, IEnumerable<string>? tags, string? locationText)
     {
@@ -37,10 +39,19 @@ public sealed class PostRecord
         var normalizedTags = (tags ?? []).Select(NormalizeTag).Where(tag => tag.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToList();
         return new PostRecord
         {
-            Id = Guid.NewGuid(), AuthorId = authorId, DishId = dishId, PlaceId = placeId == Guid.Empty ? null : placeId,
-            Caption = caption.Trim(), Rating = rating, PriceRange = string.IsNullOrWhiteSpace(priceRange) ? null : priceRange.Trim(),
-            Tags = normalizedTags, TagsSearchText = string.Join(' ', normalizedTags), LocationText = string.IsNullOrWhiteSpace(locationText) ? null : locationText.Trim(),
-            CreatedAtUtc = now, UpdatedAtUtc = now, Media = mediaList
+            Id = Guid.NewGuid(),
+            AuthorId = authorId,
+            DishId = dishId,
+            PlaceId = placeId == Guid.Empty ? null : placeId,
+            Caption = caption.Trim(),
+            Rating = rating,
+            PriceRange = string.IsNullOrWhiteSpace(priceRange) ? null : priceRange.Trim(),
+            Tags = normalizedTags,
+            TagsSearchText = string.Join(' ', normalizedTags),
+            LocationText = string.IsNullOrWhiteSpace(locationText) ? null : locationText.Trim(),
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now,
+            Media = mediaList
         };
     }
 
@@ -67,15 +78,68 @@ public sealed class PostMediaRecord
     }
 }
 
-public sealed class PostLikeRecord { public Guid PostId { get; set; } public Guid ActorId { get; set; } public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow; }
+public sealed class PostLikeRecord
+{
+    public Guid PostId { get; set; }
+    public Guid ActorId { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+}
+
+public sealed class PostRepostRecord
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid PostId { get; set; }
+    public Guid ActorId { get; set; }
+    public string? Caption { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+}
 
 public sealed class PostCommentRecord
 {
-    public Guid Id { get; set; } = Guid.NewGuid(); public Guid PostId { get; set; } public Guid AuthorId { get; set; } public string Body { get; set; } = string.Empty; public CommentStatus Status { get; set; } = CommentStatus.Visible; public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow; public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid PostId { get; set; }
+    public Guid AuthorId { get; set; }
+    public string Body { get; set; } = string.Empty;
+    public CommentStatus Status { get; set; } = CommentStatus.Visible;
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+
     public bool IsVisible => Status == CommentStatus.Visible;
 }
 
 public sealed class ContentReportRecord
 {
-    public Guid Id { get; set; } = Guid.NewGuid(); public ReportTargetType TargetType { get; set; } public Guid TargetId { get; set; } public Guid ReporterId { get; set; } public string Reason { get; set; } = string.Empty; public string? Description { get; set; } public ReportStatus Status { get; set; } = ReportStatus.Submitted; public Guid? ModeratorId { get; set; } public string? ResolutionNote { get; set; } public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow; public DateTimeOffset? ResolvedAtUtc { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public ReportTargetType TargetType { get; set; }
+    public Guid TargetId { get; set; }
+    public Guid ReporterId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public ReportStatus Status { get; set; } = ReportStatus.Submitted;
+    public Guid? ModeratorId { get; set; }
+    public string? ResolutionNote { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? ResolvedAtUtc { get; set; }
+}
+
+public sealed class PostNotificationRecord
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid RecipientId { get; set; }
+    public Guid ActorId { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public string TargetType { get; set; } = string.Empty;
+    public Guid TargetId { get; set; }
+    public Guid? PostId { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public NotificationStatus Status { get; set; } = NotificationStatus.Unread;
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? ReadAtUtc { get; set; }
+
+    public void MarkRead()
+    {
+        if (Status == NotificationStatus.Read) return;
+        Status = NotificationStatus.Read;
+        ReadAtUtc = DateTimeOffset.UtcNow;
+    }
 }

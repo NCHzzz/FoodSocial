@@ -20,6 +20,7 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
     internal static readonly Guid TestCallerIdentityId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
     private readonly TestCatalogReferenceValidator _catalogReferenceValidator = new();
+    private readonly string _mediaStoragePath = Path.Combine(Path.GetTempPath(), "foodsocial-post-api-tests", Guid.NewGuid().ToString("N"));
     private bool _databaseInitialized;
 
     public PostApiFactory() => _connection.Open();
@@ -30,6 +31,7 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("ConnectionStrings:postdb", "Host=localhost;Database=post_api_tests;Username=test;Password=test");
         builder.UseSetting("Post:ApplyMigrationsOnStartup", bool.FalseString);
         builder.UseSetting("Post:InternalTrust:SharedSecret", TestInternalSecret);
+        builder.UseSetting("Post:Media:StoragePath", _mediaStoragePath);
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<IDbContextOptionsConfiguration<PostDbContext>>();
@@ -41,7 +43,16 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
         });
     }
 
-    public override async ValueTask DisposeAsync() { await _connection.DisposeAsync(); await base.DisposeAsync(); }
+    public override async ValueTask DisposeAsync()
+    {
+        await _connection.DisposeAsync();
+        if (Directory.Exists(_mediaStoragePath))
+        {
+            Directory.Delete(_mediaStoragePath, recursive: true);
+        }
+
+        await base.DisposeAsync();
+    }
 
     internal HttpClient CreateTrustedClient(Guid? identityId = null, bool moderator = false)
     {

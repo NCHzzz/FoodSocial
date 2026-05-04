@@ -34,6 +34,7 @@ Desktop.ini
 *.pid
 **/__pycache__/
 *.py[cod]
+**/App_Data/
 
 # .NET build outputs
 **/bin/

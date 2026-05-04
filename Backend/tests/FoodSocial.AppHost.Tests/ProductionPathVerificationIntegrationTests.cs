@@ -223,7 +223,7 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
 
         try
         {
-        using var bffClient = await fixture.Auth.CreateAuthenticatedBffBearerClientAsync(cts.Token);
+            using var bffClient = await fixture.Auth.CreateAuthenticatedBffBearerClientAsync(cts.Token);
             var sessionPayload = await GetSessionAsync(bffClient, cts.Token);
 
             sessionPayload.Identity.State.Should().Be("PendingBootstrap");

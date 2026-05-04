@@ -50,6 +50,8 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
     /// </summary>
     public DbSet<SavedPlace> SavedPlaces => Set<SavedPlace>();
 
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -219,6 +221,23 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
                 .WithMany()
                 .HasForeignKey(savedPlace => savedPlace.UserProfileShellId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserNotification>(entity =>
+        {
+            entity.ToTable("user_notifications");
+            entity.HasKey(notification => notification.Id);
+            entity.Property(notification => notification.UserProfileShellId).IsRequired();
+            entity.Property(notification => notification.RecipientIdentityId).IsRequired();
+            entity.Property(notification => notification.ActorIdentityId).IsRequired();
+            entity.Property(notification => notification.Type).HasMaxLength(64).IsRequired();
+            entity.Property(notification => notification.Message).HasMaxLength(280).IsRequired();
+            entity.Property(notification => notification.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(notification => notification.CreatedAtUtc).IsRequired();
+            entity.HasIndex(notification => notification.RecipientIdentityId);
+            entity.HasIndex(notification => new { notification.RecipientIdentityId, notification.Status });
+            entity.HasIndex(notification => notification.CreatedAtUtc);
+            entity.HasOne<UserProfileShell>().WithMany().HasForeignKey(notification => notification.UserProfileShellId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 

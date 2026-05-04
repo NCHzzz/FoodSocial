@@ -127,6 +127,44 @@ public sealed class UserProfileEndpointTests
     }
 
     [Fact]
+    public async Task NotificationsEndpoints_ReturnFollowActivityForOwnerOnly()
+    {
+        await using var factory = new UserProfileApiFactory();
+        var followerIdentityId = Guid.Parse("18181818-1818-1818-1818-181818181818");
+        var targetIdentityId = Guid.Parse("19191919-1919-1919-1919-191919191919");
+        _ = await factory.SeedProfileAsync(followerIdentityId, "follower-subject", displayName: "Follower User");
+        _ = await factory.SeedProfileAsync(targetIdentityId, "target-subject", displayName: "Target User");
+
+        using var followerClient = factory.CreateClient();
+        followerClient.DefaultRequestHeaders.Add("X-Test-Sub", "follower-subject");
+        using var followResponse = await followerClient.PostAsync($"/api/users/{targetIdentityId}/follow", content: null);
+        followResponse.StatusCode.Should().Be(HttpStatusCode.OK, await followResponse.Content.ReadAsStringAsync());
+
+        using var targetClient = factory.CreateClient();
+        targetClient.DefaultRequestHeaders.Add("X-Test-Sub", "target-subject");
+        using var notificationsResponse = await targetClient.GetAsync($"/api/users/{targetIdentityId}/notifications");
+        var notificationsBody = await notificationsResponse.Content.ReadAsStringAsync();
+        notificationsResponse.StatusCode.Should().Be(HttpStatusCode.OK, notificationsBody);
+
+        var payload = JsonNode.Parse(notificationsBody) as JsonObject;
+        payload.Should().NotBeNull();
+        payload!["unreadCount"]!.GetValue<int>().Should().Be(1);
+        var notification = payload["items"]!.AsArray().Should().ContainSingle().Subject!;
+        notification["type"]!.GetValue<string>().Should().Be("UserFollowed");
+        notification["actorIdentityId"]!.GetValue<string>().Should().Be(followerIdentityId.ToString());
+        notification["isRead"]!.GetValue<bool>().Should().BeFalse();
+
+        var notificationId = notification["id"]!.GetValue<string>();
+        using var readResponse = await targetClient.PatchAsync($"/api/users/{targetIdentityId}/notifications/{notificationId}/read", content: null);
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        readResponse.StatusCode.Should().Be(HttpStatusCode.OK, readBody);
+        (JsonNode.Parse(readBody) as JsonObject)!["isRead"]!.GetValue<bool>().Should().BeTrue();
+
+        using var forbiddenResponse = await followerClient.GetAsync($"/api/users/{targetIdentityId}/notifications");
+        forbiddenResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
     public async Task SavedItemsEndpoints_AreOwnerScoped()
     {
         await using var factory = new UserProfileApiFactory();

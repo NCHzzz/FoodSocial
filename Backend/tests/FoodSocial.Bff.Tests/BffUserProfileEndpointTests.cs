@@ -148,6 +148,70 @@ public sealed class BffUserProfileEndpointTests
     }
 
     [Fact]
+    public async Task Notifications_WithAuthenticatedCookie_ForwardsOwnerNotificationReadRoutes()
+    {
+        var userId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+        var notificationId = Guid.Parse("66666666-6666-6666-6666-666666666666");
+        var upstreamList = new UserNotificationListResponse(
+            [
+                new UserNotificationResponse(
+                    notificationId,
+                    userId,
+                    Guid.Parse("77777777-7777-7777-7777-777777777777"),
+                    "UserFollowed",
+                    "followed you",
+                    IsRead: false,
+                    DateTimeOffset.Parse("2026-05-05T00:00:00Z"),
+                    ReadAtUtc: null)
+            ],
+            Limit: 50,
+            UnreadCount: 1);
+
+        await using var factory = new BffUserProfileTestApplicationFactory(request =>
+            request.Method == HttpMethod.Get
+                ? JsonResponse(HttpStatusCode.OK, upstreamList)
+                : JsonResponse(HttpStatusCode.OK, upstreamList.Items[0] with { IsRead = true, ReadAtUtc = DateTimeOffset.Parse("2026-05-05T00:01:00Z") }));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("notification-access-token"));
+
+        using var listResponse = await client.GetAsync($"/api/users/{userId}/notifications");
+        listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        await factory.AddCsrfHeaderAsync(client);
+        using var readResponse = await client.PatchAsync($"/api/users/{userId}/notifications/{notificationId}/read", content: null);
+        readResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        factory.UserProfileHandler.Requests.Should().HaveCount(2);
+        factory.UserProfileHandler.Requests[0].Method.Should().Be(HttpMethod.Get);
+        factory.UserProfileHandler.Requests[0].RequestUri!.PathAndQuery.Should().Be($"/api/users/{userId}/notifications");
+        factory.UserProfileHandler.Requests[0].Headers.Authorization.Should().Be(new AuthenticationHeaderValue("Bearer", "notification-access-token"));
+        factory.UserProfileHandler.Requests[1].Method.Should().Be(HttpMethod.Patch);
+        factory.UserProfileHandler.Requests[1].RequestUri!.PathAndQuery.Should().Be($"/api/users/{userId}/notifications/{notificationId}/read");
+        factory.UserProfileHandler.Requests[1].Headers.Authorization.Should().Be(new AuthenticationHeaderValue("Bearer", "notification-access-token"));
+    }
+
+    [Fact]
+    public async Task NotificationRead_WithAuthenticatedCookieButMissingCsrfHeader_ReturnsBadRequestWithoutForwarding()
+    {
+        var userId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+        var notificationId = Guid.Parse("66666666-6666-6666-6666-666666666666");
+
+        await using var factory = new BffUserProfileTestApplicationFactory(_ => JsonResponse(HttpStatusCode.OK, new { }));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("cookie-access-token"));
+
+        using var response = await client.PatchAsync($"/api/users/{userId}/notifications/{notificationId}/read", content: null);
+        var body = await response.Content.ReadAsStringAsync();
+        var payload = JsonNode.Parse(body) as JsonObject;
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, body);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        payload.Should().NotBeNull();
+        payload!["title"]!.GetValue<string>().Should().Be("CSRF token validation failed");
+        factory.UserProfileHandler.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task UpdateProfile_WhenUserProfileApiReturnsProblemDetails_PreservesStatusAndProblemBody()
     {
         var userId = Guid.Parse("44444444-4444-4444-4444-444444444444");

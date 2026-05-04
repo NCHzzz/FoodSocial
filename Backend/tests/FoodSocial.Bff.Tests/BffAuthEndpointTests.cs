@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Json.Nodes;
 using FoodSocial.Contracts.Identity;
 using FluentAssertions;
@@ -117,13 +118,110 @@ public sealed class BffAuthEndpointTests
         options.SlidingExpiration.Should().BeTrue();
     }
 
-    private sealed class BffTestApplicationFactory(string identityState) : WebApplicationFactory<Program>
+    [Fact]
+    public async Task Session_WithCookiePrincipalMissingSubjectButAccessTokenPayloadHasSubject_CompletesIdentityOrchestration()
+    {
+        var sessionClaims = new[]
+        {
+            new Claim(IdentityClaims.PreferredUsername, "token-backed-user"),
+            new Claim(IdentityClaims.Email, "token-backed@example.test")
+        };
+
+        await using var factory = new BffTestApplicationFactory(
+            "Active",
+            sessionClaims,
+            CreateUnsignedAccessToken(
+                subject: "token-backed-subject",
+                preferredUsername: "token-backed-user",
+                email: "token-backed@example.test"));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie());
+
+        using var response = await client.GetAsync("/api/auth/session");
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, body);
+        factory.IdentityEnsureRequestCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Session_WithMissingSubjectAndUnreadableAccessToken_ReturnsProblemDetailsWithoutCallingIdentity()
+    {
+        var sessionClaims = new[]
+        {
+            new Claim(IdentityClaims.PreferredUsername, "missing-subject-user"),
+            new Claim(IdentityClaims.Email, "missing-subject@example.test")
+        };
+
+        await using var factory = new BffTestApplicationFactory(
+            "Active",
+            sessionClaims,
+            accessToken: "header.not-base64.signature");
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie());
+
+        using var response = await client.GetAsync("/api/auth/session");
+        var body = await response.Content.ReadAsStringAsync();
+        var payload = JsonNode.Parse(body) as JsonObject;
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError, body);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        payload.Should().NotBeNull();
+        payload!["title"]!.GetValue<string>().Should().Be("Identity orchestration failed");
+        factory.IdentityEnsureRequestCount.Should().Be(0);
+    }
+
+    private static string CreateUnsignedAccessToken(string subject, string preferredUsername, string email)
+    {
+        var header = Base64UrlEncode("""{"alg":"none","typ":"JWT"}"""u8.ToArray());
+        var payload = Base64UrlEncode(Encoding.UTF8.GetBytes($$"""
+            {
+                "{{IdentityClaims.Subject}}": "{{subject}}",
+                "{{IdentityClaims.PreferredUsername}}": "{{preferredUsername}}",
+                "{{IdentityClaims.Email}}": "{{email}}"
+            }
+            """));
+
+        return $"{header}.{payload}.";
+    }
+
+    private static string Base64UrlEncode(byte[] bytes) =>
+        Convert.ToBase64String(bytes)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+
+    private sealed class BffTestApplicationFactory : WebApplicationFactory<Program>
     {
         private static readonly string FullTypedIdentityClientName = typeof(Program).Assembly
             .GetType("FoodSocial.Bff.IdentityOrchestrationHttpClient", throwOnError: true)!
             .FullName!;
         private const string ShortTypedIdentityClientName = "IdentityOrchestrationHttpClient";
-        private readonly IdentityStateHttpMessageHandler _identityHandler = new(identityState);
+        private readonly IdentityStateHttpMessageHandler _identityHandler;
+        private readonly Claim[] _sessionClaims;
+        private readonly string _accessToken;
+
+        internal BffTestApplicationFactory(string identityState, Claim[]? sessionClaims = null, string? accessToken = null)
+        {
+            _identityHandler = new IdentityStateHttpMessageHandler(identityState);
+            _sessionClaims = sessionClaims ??
+            [
+                new Claim(IdentityClaims.Subject, "blocked-subject"),
+                new Claim(IdentityClaims.PreferredUsername, "blocked-user"),
+                new Claim(IdentityClaims.Email, "blocked@example.test")
+            ];
+            _accessToken = accessToken ?? "test-access-token";
+        }
+
+        internal int IdentityEnsureRequestCount => _identityHandler.RequestCount;
 
         protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
         {
@@ -157,19 +255,13 @@ public sealed class BffAuthEndpointTests
                 .GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
                 .Get(CookieAuthenticationDefaults.AuthenticationScheme);
 
-            var claims = new[]
-            {
-                new Claim(IdentityClaims.Subject, "blocked-subject"),
-                new Claim(IdentityClaims.PreferredUsername, "blocked-user"),
-                new Claim(IdentityClaims.Email, "blocked@example.test")
-            };
-            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(_sessionClaims, CookieAuthenticationDefaults.AuthenticationScheme));
             var properties = new AuthenticationProperties();
             properties.StoreTokens([
                 new AuthenticationToken
                 {
                     Name = "access_token",
-                    Value = "test-access-token"
+                    Value = _accessToken
                 }
             ]);
 
@@ -193,8 +285,12 @@ public sealed class BffAuthEndpointTests
 
     private sealed class IdentityStateHttpMessageHandler(string identityState) : HttpMessageHandler
     {
+        public int RequestCount { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            RequestCount++;
+
             var response = new EnsureIdentityResponse(
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 "blocked-subject",

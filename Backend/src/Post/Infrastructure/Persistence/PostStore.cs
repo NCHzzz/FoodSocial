@@ -10,7 +10,9 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
     public async Task<PostRecord> CreatePostAsync(PostRecord post, CancellationToken cancellationToken)
     {
-        _dbContext.Posts.Add(post); await _dbContext.SaveChangesAsync(cancellationToken); return post;
+        _dbContext.Posts.Add(post);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return post;
     }
 
     public async Task<PostRecord?> GetPostAsync(Guid postId, CancellationToken cancellationToken) => await IncludePostGraph(_dbContext.Posts).AsSplitQuery().FirstOrDefaultAsync(post => post.Id == postId, cancellationToken);
@@ -72,63 +74,224 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
     public async Task<int?> AddLikeAsync(Guid postId, Guid actorId, CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.Posts.AnyAsync(post => post.Id == postId, cancellationToken); if (!exists) return null;
+        var post = await _dbContext.Posts.FirstOrDefaultAsync(candidate => candidate.Id == postId, cancellationToken);
+        if (post is null)
+        {
+            return null;
+        }
+
         var alreadyLiked = await _dbContext.PostLikes.AnyAsync(like => like.PostId == postId && like.ActorId == actorId, cancellationToken);
-        if (!alreadyLiked) { _dbContext.PostLikes.Add(new PostLikeRecord { PostId = postId, ActorId = actorId }); await _dbContext.SaveChangesAsync(cancellationToken); }
+        if (!alreadyLiked)
+        {
+            _dbContext.PostLikes.Add(new PostLikeRecord { PostId = postId, ActorId = actorId });
+            AddNotification(post.AuthorId, actorId, "PostLiked", "Post", postId, postId, "liked your food post");
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
         return await _dbContext.PostLikes.CountAsync(like => like.PostId == postId, cancellationToken);
     }
 
     public async Task<int?> RemoveLikeAsync(Guid postId, Guid actorId, CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.Posts.AnyAsync(post => post.Id == postId, cancellationToken); if (!exists) return null;
-        var like = await _dbContext.PostLikes.FindAsync([postId, actorId], cancellationToken); if (like is not null) { _dbContext.PostLikes.Remove(like); await _dbContext.SaveChangesAsync(cancellationToken); }
+        var exists = await _dbContext.Posts.AnyAsync(post => post.Id == postId, cancellationToken);
+        if (!exists)
+        {
+            return null;
+        }
+
+        var like = await _dbContext.PostLikes.FindAsync([postId, actorId], cancellationToken);
+        if (like is not null)
+        {
+            _dbContext.PostLikes.Remove(like);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         return await _dbContext.PostLikes.CountAsync(item => item.PostId == postId, cancellationToken);
     }
 
     public async Task<PostCommentRecord?> AddCommentAsync(Guid postId, Guid authorId, string body, CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.Posts.AnyAsync(post => post.Id == postId, cancellationToken); if (!exists) return null;
-        var comment = new PostCommentRecord { Id = Guid.NewGuid(), PostId = postId, AuthorId = authorId, Body = body.Trim(), CreatedAtUtc = DateTimeOffset.UtcNow, UpdatedAtUtc = DateTimeOffset.UtcNow };
-        _dbContext.PostComments.Add(comment); await _dbContext.SaveChangesAsync(cancellationToken); return comment;
+        var post = await _dbContext.Posts.FirstOrDefaultAsync(candidate => candidate.Id == postId, cancellationToken);
+        if (post is null)
+        {
+            return null;
+        }
+
+        var comment = new PostCommentRecord
+        {
+            Id = Guid.NewGuid(),
+            PostId = postId,
+            AuthorId = authorId,
+            Body = body.Trim(),
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow
+        };
+        _dbContext.PostComments.Add(comment);
+        AddNotification(post.AuthorId, authorId, "PostCommented", "Comment", comment.Id, postId, "commented on your food post");
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return comment;
     }
 
     public async Task<PostCommentRecord?> GetCommentAsync(Guid commentId, CancellationToken cancellationToken) => await _dbContext.PostComments.FirstOrDefaultAsync(comment => comment.Id == commentId, cancellationToken);
 
     public async Task<PostCommentRecord?> SoftDeleteCommentAsync(Guid commentId, Guid actorId, CancellationToken cancellationToken)
     {
-        var comment = await GetCommentAsync(commentId, cancellationToken); if (comment is null || comment.AuthorId != actorId) return null;
-        comment.Status = CommentStatus.Deleted; comment.UpdatedAtUtc = DateTimeOffset.UtcNow; await _dbContext.SaveChangesAsync(cancellationToken); return comment;
+        var comment = await GetCommentAsync(commentId, cancellationToken);
+        if (comment is null || comment.AuthorId != actorId)
+        {
+            return null;
+        }
+
+        comment.Status = CommentStatus.Deleted;
+        comment.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return comment;
     }
+
+    public async Task<PostRepostRecord?> AddRepostAsync(Guid postId, Guid actorId, string? caption, CancellationToken cancellationToken)
+    {
+        var post = await _dbContext.Posts.FirstOrDefaultAsync(candidate => candidate.Id == postId && candidate.Status == PostStatus.Published, cancellationToken);
+        if (post is null) return null;
+
+        var normalizedCaption = string.IsNullOrWhiteSpace(caption) ? null : caption.Trim();
+        var existing = await _dbContext.PostReposts.FirstOrDefaultAsync(repost => repost.PostId == postId && repost.ActorId == actorId, cancellationToken);
+        if (existing is not null)
+        {
+            existing.Caption = normalizedCaption;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return existing;
+        }
+
+        var repost = new PostRepostRecord
+        {
+            Id = Guid.NewGuid(),
+            PostId = postId,
+            ActorId = actorId,
+            Caption = normalizedCaption,
+            CreatedAtUtc = DateTimeOffset.UtcNow
+        };
+        _dbContext.PostReposts.Add(repost);
+        AddNotification(post.AuthorId, actorId, "PostReposted", "Repost", repost.Id, postId, "reposted your food post");
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return repost;
+    }
+
+    public Task<int> CountRepostsAsync(Guid postId, CancellationToken cancellationToken) =>
+        _dbContext.PostReposts.CountAsync(repost => repost.PostId == postId, cancellationToken);
 
     public async Task<ContentReportRecord?> CreateReportAsync(ReportTargetType targetType, Guid targetId, Guid reporterId, string reason, string? description, CancellationToken cancellationToken)
     {
         var targetExists = targetType == ReportTargetType.Post ? await _dbContext.Posts.AnyAsync(post => post.Id == targetId, cancellationToken) : await _dbContext.PostComments.AnyAsync(comment => comment.Id == targetId, cancellationToken);
-        if (!targetExists) return null;
-        var report = new ContentReportRecord { Id = Guid.NewGuid(), TargetType = targetType, TargetId = targetId, ReporterId = reporterId, Reason = reason.Trim(), Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(), CreatedAtUtc = DateTimeOffset.UtcNow };
-        _dbContext.ContentReports.Add(report); await _dbContext.SaveChangesAsync(cancellationToken); return report;
+        if (!targetExists)
+        {
+            return null;
+        }
+
+        var report = new ContentReportRecord
+        {
+            Id = Guid.NewGuid(),
+            TargetType = targetType,
+            TargetId = targetId,
+            ReporterId = reporterId,
+            Reason = reason.Trim(),
+            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+            CreatedAtUtc = DateTimeOffset.UtcNow
+        };
+        _dbContext.ContentReports.Add(report);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return report;
     }
 
     public async Task<IReadOnlyList<ContentReportRecord>> GetReportsAsync(int limit, CancellationToken cancellationToken) => await _dbContext.ContentReports.AsNoTracking().OrderBy(report => report.Status == ReportStatus.Submitted ? 0 : 1).ThenByDescending(report => report.CreatedAtUtc).Take(limit).ToListAsync(cancellationToken);
 
     public async Task<ContentReportRecord?> ResolveReportAsync(Guid reportId, Guid moderatorId, string action, string auditNote, CancellationToken cancellationToken)
     {
-        var report = await _dbContext.ContentReports.FirstOrDefaultAsync(item => item.Id == reportId, cancellationToken); if (report is null) return null;
+        var report = await _dbContext.ContentReports.FirstOrDefaultAsync(item => item.Id == reportId, cancellationToken);
+        if (report is null)
+        {
+            return null;
+        }
+
         var normalizedAction = action.Trim().ToLowerInvariant();
-        report.ModeratorId = moderatorId; report.ResolutionNote = auditNote.Trim(); report.ResolvedAtUtc = DateTimeOffset.UtcNow;
-        if (normalizedAction is "hide" or "hide_content" or "hide_comment") { report.Status = ReportStatus.ResolvedContentAction; await HideTargetAsync(report, cancellationToken); } else { report.Status = ReportStatus.ResolvedNoAction; }
-        await _dbContext.SaveChangesAsync(cancellationToken); return report;
+        report.ModeratorId = moderatorId;
+        report.ResolutionNote = auditNote.Trim();
+        report.ResolvedAtUtc = DateTimeOffset.UtcNow;
+
+        if (normalizedAction is "hide" or "hide_content" or "hide_comment")
+        {
+            report.Status = ReportStatus.ResolvedContentAction;
+            await HideTargetAsync(report, cancellationToken);
+        }
+        else
+        {
+            report.Status = ReportStatus.ResolvedNoAction;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return report;
+    }
+
+    public async Task<IReadOnlyList<PostNotificationRecord>> GetNotificationsAsync(Guid recipientId, int limit, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.PostNotifications.AsNoTracking().Where(notification => notification.RecipientId == recipientId);
+        return IsSqliteProvider()
+            ? (await query.ToListAsync(cancellationToken)).OrderByDescending(notification => notification.CreatedAtUtc).ThenBy(notification => notification.Id).Take(limit).ToArray()
+            : await query.OrderByDescending(notification => notification.CreatedAtUtc).ThenBy(notification => notification.Id).Take(limit).ToListAsync(cancellationToken);
+    }
+
+    public Task<int> CountUnreadNotificationsAsync(Guid recipientId, CancellationToken cancellationToken) =>
+        _dbContext.PostNotifications.CountAsync(notification => notification.RecipientId == recipientId && notification.Status == NotificationStatus.Unread, cancellationToken);
+
+    public async Task<PostNotificationRecord?> MarkNotificationReadAsync(Guid notificationId, Guid recipientId, CancellationToken cancellationToken)
+    {
+        var notification = await _dbContext.PostNotifications.FirstOrDefaultAsync(item => item.Id == notificationId && item.RecipientId == recipientId, cancellationToken);
+        if (notification is null) return null;
+        notification.MarkRead();
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return notification;
     }
 
     private async Task HideTargetAsync(ContentReportRecord report, CancellationToken cancellationToken)
     {
-        if (report.TargetType == ReportTargetType.Post) { var post = await _dbContext.Posts.FirstOrDefaultAsync(item => item.Id == report.TargetId, cancellationToken); post?.Hide(); return; }
-        var comment = await _dbContext.PostComments.FirstOrDefaultAsync(item => item.Id == report.TargetId, cancellationToken); if (comment is not null) { comment.Status = CommentStatus.Hidden; comment.UpdatedAtUtc = DateTimeOffset.UtcNow; }
+        if (report.TargetType == ReportTargetType.Post)
+        {
+            var post = await _dbContext.Posts.FirstOrDefaultAsync(item => item.Id == report.TargetId, cancellationToken);
+            post?.Hide();
+            return;
+        }
+
+        var comment = await _dbContext.PostComments.FirstOrDefaultAsync(item => item.Id == report.TargetId, cancellationToken);
+        if (comment is not null)
+        {
+            comment.Status = CommentStatus.Hidden;
+            comment.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        }
     }
 
     private bool IsSqliteProvider() =>
         string.Equals(_dbContext.Database.ProviderName, "Microsoft.EntityFrameworkCore.Sqlite", StringComparison.Ordinal);
 
-    private static IQueryable<PostRecord> IncludePostGraph(IQueryable<PostRecord> posts) => posts.Include(post => post.Media).Include(post => post.Likes).Include(post => post.Comments);
+    private void AddNotification(Guid recipientId, Guid actorId, string type, string targetType, Guid targetId, Guid? postId, string message)
+    {
+        if (recipientId == Guid.Empty || actorId == Guid.Empty || recipientId == actorId)
+        {
+            return;
+        }
+
+        _dbContext.PostNotifications.Add(new PostNotificationRecord
+        {
+            Id = Guid.NewGuid(),
+            RecipientId = recipientId,
+            ActorId = actorId,
+            Type = type,
+            TargetType = targetType,
+            TargetId = targetId,
+            PostId = postId,
+            Message = message,
+            CreatedAtUtc = DateTimeOffset.UtcNow
+        });
+    }
+
+    private static IQueryable<PostRecord> IncludePostGraph(IQueryable<PostRecord> posts) => posts.Include(post => post.Media).Include(post => post.Likes).Include(post => post.Comments).Include(post => post.Reposts);
 
     private async Task<IReadOnlyList<PostRecord>> LoadPostsByIdsAsync(IReadOnlyList<Guid> postIds, CancellationToken cancellationToken)
     {
