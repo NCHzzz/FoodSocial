@@ -227,6 +227,25 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
         return new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
+    internal static async Task AddCsrfHeaderAsync(HttpClient client, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+
+        using var response = await client.GetAsync("/api/auth/csrf", cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var payload = await response.Content.ReadFromJsonAsync<CsrfTokenResponse>(cancellationToken);
+        if (payload is null || string.IsNullOrWhiteSpace(payload.RequestToken))
+        {
+            throw new InvalidOperationException("The BFF CSRF endpoint did not return a request token.");
+        }
+
+        client.DefaultRequestHeaders.Remove(payload.HeaderName);
+        client.DefaultRequestHeaders.Add(payload.HeaderName, payload.RequestToken);
+    }
+
+    private sealed record CsrfTokenResponse(string RequestToken, string HeaderName);
+
     private async Task WaitForIdentityApiAuthenticationAsync(string accessToken, CancellationToken cancellationToken)
     {
         const int maxAttempts = 15;

@@ -60,7 +60,6 @@ var applyMigrationsOnStartup = builder.Configuration.GetValue("UserProfile:Apply
 
 if (applyMigrationsOnStartup)
 {
-    await EnsureDatabaseExistsAsync(app.Services, "userprofiledb");
     await ApplyUserProfileDatabaseMigrationsAsync(app.Services);
 }
 
@@ -123,45 +122,6 @@ static async Task ApplyUserProfileDatabaseMigrationsAsync(IServiceProvider servi
     logger.LogInformation(
         "Finished applying UserProfile EF migrations against database {DatabaseName}.",
         connectionBuilder.Database);
-}
-
-static async Task EnsureDatabaseExistsAsync(IServiceProvider services, string databaseName)
-{
-    using var scope = services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<UserProfileDbContext>();
-    var logger = scope.ServiceProvider
-        .GetRequiredService<ILoggerFactory>()
-        .CreateLogger("FoodSocial.UserProfile.Api.DatabaseInitialization");
-    var connectionString = dbContext.Database.GetConnectionString()
-        ?? throw new InvalidOperationException("UserProfile database connection string is not configured.");
-    var scopedConnectionBuilder = new NpgsqlConnectionStringBuilder(connectionString);
-
-    logger.LogInformation(
-        "Ensuring PostgreSQL database {DatabaseName} exists for UserProfile.Api startup using host {Host}:{Port}.",
-        databaseName,
-        scopedConnectionBuilder.Host,
-        scopedConnectionBuilder.Port);
-
-    var adminConnectionString = new NpgsqlConnectionStringBuilder(connectionString)
-    {
-        Database = "postgres"
-    }.ConnectionString;
-
-    await using var connection = new NpgsqlConnection(adminConnectionString);
-    await connection.OpenAsync();
-
-    await using var command = connection.CreateCommand();
-    command.CommandText = $"CREATE DATABASE \"{databaseName.Replace("\"", "\"\"", StringComparison.Ordinal)}\";";
-
-    try
-    {
-        await command.ExecuteNonQueryAsync();
-        logger.LogInformation("Created PostgreSQL database {DatabaseName} for UserProfile.Api startup.", databaseName);
-    }
-    catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.DuplicateDatabase)
-    {
-        logger.LogInformation("PostgreSQL database {DatabaseName} already exists for UserProfile.Api startup.", databaseName);
-    }
 }
 
 static string ResolveKeycloakAuthority(IConfiguration configuration, string realm)

@@ -1,5 +1,7 @@
 using FoodSocial.UserProfile.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FoodSocial.UserProfile.Infrastructure.Persistence;
 
@@ -9,6 +11,15 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence;
 public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> options) : DbContext(options)
 {
     private const char MultiValueSeparator = '|';
+    private static readonly ValueConverter<IReadOnlyList<string>, string> MultiValueListConverter = new(
+        values => SerializeMultiValueList(values),
+        value => DeserializeMultiValueList(value));
+
+    private static readonly ValueComparer<IReadOnlyList<string>> MultiValueListComparer = new(
+        (left, right) => ListsAreEqual(left, right),
+        values => GetListHashCode(values),
+        values => values.ToList());
+
     /// <summary>
     /// Gets the persisted profile shells.
     /// </summary>
@@ -97,19 +108,13 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
                 .IsRequired();
 
             entity.Property(detail => detail.PreferredCuisines)
-                .HasConversion(
-                    values => SerializeMultiValueList(values),
-                    value => DeserializeMultiValueList(value));
+                .HasConversion(MultiValueListConverter, MultiValueListComparer);
 
             entity.Property(detail => detail.DislikedIngredients)
-                .HasConversion(
-                    values => SerializeMultiValueList(values),
-                    value => DeserializeMultiValueList(value));
+                .HasConversion(MultiValueListConverter, MultiValueListComparer);
 
             entity.Property(detail => detail.DietaryRestrictions)
-                .HasConversion(
-                    values => SerializeMultiValueList(values),
-                    value => DeserializeMultiValueList(value));
+                .HasConversion(MultiValueListConverter, MultiValueListComparer);
 
             entity.HasIndex(detail => detail.UserProfileShellId)
                 .IsUnique();
@@ -226,4 +231,26 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
         string.IsNullOrWhiteSpace(value)
             ? []
             : value.Split(MultiValueSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+    private static bool ListsAreEqual(IReadOnlyList<string>? left, IReadOnlyList<string>? right) =>
+        ReferenceEquals(left, right)
+        || (left is not null
+            && right is not null
+            && left.SequenceEqual(right, StringComparer.Ordinal));
+
+    private static int GetListHashCode(IReadOnlyList<string>? values)
+    {
+        if (values is null)
+        {
+            return 0;
+        }
+
+        var hash = new HashCode();
+        foreach (var value in values)
+        {
+            hash.Add(value, StringComparer.Ordinal);
+        }
+
+        return hash.ToHashCode();
+    }
 }

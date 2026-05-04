@@ -3,6 +3,7 @@ using FoodSocial.Contracts.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,9 +18,10 @@ internal static class BffAuthEndpoints
         var authGroup = endpoints.MapGroup("/api/auth");
 
         authGroup.MapGet("/login", Login);
+        authGroup.MapGet("/csrf", CreateCsrfToken);
         authGroup.MapGet("/session", GetSessionAsync);
-        authGroup.MapPost("/refresh", (Delegate)RefreshAsync);
-        authGroup.MapPost("/logout", Logout);
+        authGroup.MapPost("/refresh", (Delegate)RefreshAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        authGroup.MapPost("/logout", Logout).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
 
         return endpoints;
     }
@@ -39,6 +41,15 @@ internal static class BffAuthEndpoints
         }
 
         return Results.Challenge(redirectProperties, [OpenIdConnectDefaults.AuthenticationScheme]);
+    }
+
+    private static IResult CreateCsrfToken(HttpContext httpContext, IAntiforgery antiforgery)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(antiforgery);
+
+        var tokens = antiforgery.GetAndStoreTokens(httpContext);
+        return Results.Ok(new CsrfTokenResponse(tokens.RequestToken ?? string.Empty, "X-XSRF-TOKEN"));
     }
 
     private static async Task<IResult> GetSessionAsync(
@@ -309,4 +320,6 @@ internal static class BffAuthEndpoints
             },
         };
     }
+
+    private sealed record CsrfTokenResponse(string RequestToken, string HeaderName);
 }

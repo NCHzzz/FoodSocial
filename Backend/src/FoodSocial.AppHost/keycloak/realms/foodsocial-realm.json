@@ -99,9 +99,6 @@
     }
   ],
   "defaultDefaultClientScopes": [
-    "profile",
-    "email",
-    "roles",
     "foodsocial-api"
   ],
   "users": [

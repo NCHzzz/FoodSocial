@@ -20,6 +20,7 @@
     <ProjectReference Include="..\Identity\Api\FoodSocial.Identity.Api.csproj" />
     <ProjectReference Include="..\UserProfile\Api\FoodSocial.UserProfile.Api.csproj" />
     <ProjectReference Include="..\Dish\Api\FoodSocial.Dish.Api.csproj" />
+    <ProjectReference Include="..\Place\Api\FoodSocial.Place.Api.csproj" />
     <ProjectReference Include="..\Post\Api\FoodSocial.Post.Api.csproj" />
   </ItemGroup>
 

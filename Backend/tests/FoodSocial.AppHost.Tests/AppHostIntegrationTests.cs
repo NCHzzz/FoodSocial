@@ -230,6 +230,7 @@ public sealed class AppHostIntegrationTests(AppHostFixture fixture)
         logoutGetResponse.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
 
         using var browserClient = await fixture.Auth.CreateAuthenticatedBffBrowserClientAsync(cts.Token);
+        await AppHostAuthenticationHelper.AddCsrfHeaderAsync(browserClient, cts.Token);
         using var logoutPostResponse = await browserClient.PostAsync(
             "/api/auth/logout",
             new FormUrlEncodedContent([]),

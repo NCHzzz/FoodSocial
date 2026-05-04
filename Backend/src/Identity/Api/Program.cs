@@ -9,8 +9,6 @@ using FoodSocial.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Npgsql;
 using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -93,7 +91,6 @@ var app = builder.Build();
 
 if (builder.Configuration.GetValue("Identity:ApplyMigrationsOnStartup", true))
 {
-    await EnsureDatabaseExistsAsync(app.Services, "identitydb");
     await ApplyIdentityDatabaseMigrationsAsync(app.Services);
 }
 
@@ -169,38 +166,6 @@ static async Task ApplyIdentityDatabaseMigrationsAsync(IServiceProvider services
     using var scope = services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await dbContext.Database.MigrateAsync();
-}
-
-static async Task EnsureDatabaseExistsAsync(IServiceProvider services, string databaseName)
-{
-    using var scope = services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-    var logger = scope.ServiceProvider
-        .GetRequiredService<ILoggerFactory>()
-        .CreateLogger("FoodSocial.Identity.Api.DatabaseInitialization");
-    var connectionString = dbContext.Database.GetConnectionString()
-        ?? throw new InvalidOperationException("Identity database connection string is not configured.");
-
-    var adminConnectionString = new NpgsqlConnectionStringBuilder(connectionString)
-    {
-        Database = "postgres"
-    }.ConnectionString;
-
-    await using var connection = new NpgsqlConnection(adminConnectionString);
-    await connection.OpenAsync();
-
-    await using var command = connection.CreateCommand();
-    command.CommandText = $"CREATE DATABASE \"{databaseName.Replace("\"", "\"\"", StringComparison.Ordinal)}\";";
-
-    try
-    {
-        await command.ExecuteNonQueryAsync();
-        logger.LogInformation("Created PostgreSQL database {DatabaseName} for Identity.Api startup.", databaseName);
-    }
-    catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.DuplicateDatabase)
-    {
-        logger.LogInformation("PostgreSQL database {DatabaseName} already exists for Identity.Api startup.", databaseName);
-    }
 }
 
 public partial class Program;

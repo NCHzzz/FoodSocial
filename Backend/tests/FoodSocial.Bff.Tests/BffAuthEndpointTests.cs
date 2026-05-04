@@ -63,6 +63,7 @@ public sealed class BffAuthEndpointTests
         });
 
         client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie());
+        await factory.AddCsrfHeaderAsync(client);
 
         using var response = await client.PostAsJsonAsync("/api/auth/refresh", new { });
         var body = await response.Content.ReadAsStringAsync();
@@ -79,6 +80,24 @@ public sealed class BffAuthEndpointTests
         body.Should().NotContain("\"sessionValid\":true");
         body.Should().NotContain("blocked-subject");
         body.Should().NotContain(blockedState);
+    }
+
+    [Fact]
+    public async Task Refresh_WithAuthenticatedCookieButMissingCsrfHeader_ReturnsBadRequestProblemDetails()
+    {
+        await using var factory = new BffTestApplicationFactory("Active");
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie());
+
+        using var response = await client.PostAsJsonAsync("/api/auth/refresh", new { });
+        var body = await response.Content.ReadAsStringAsync();
+        var payload = JsonNode.Parse(body) as JsonObject;
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, body);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        payload.Should().NotBeNull();
+        payload!["title"]!.GetValue<string>().Should().Be("CSRF token validation failed");
+        payload["status"]!.GetValue<int>().Should().Be(StatusCodes.Status400BadRequest);
     }
 
     [Fact]
@@ -159,7 +178,18 @@ public sealed class BffAuthEndpointTests
 
             return $"{options.Cookie.Name}={cookieValue}";
         }
+
+        internal async Task AddCsrfHeaderAsync(HttpClient client)
+        {
+            using var response = await client.GetAsync("/api/auth/csrf");
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<CsrfTokenResponse>();
+            payload.Should().NotBeNull();
+            client.DefaultRequestHeaders.Add("X-XSRF-TOKEN", payload!.RequestToken);
+        }
     }
+
+    private sealed record CsrfTokenResponse(string RequestToken, string HeaderName);
 
     private sealed class IdentityStateHttpMessageHandler(string identityState) : HttpMessageHandler
     {

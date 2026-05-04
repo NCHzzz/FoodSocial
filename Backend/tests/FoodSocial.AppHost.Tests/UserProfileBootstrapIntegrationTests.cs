@@ -263,6 +263,11 @@ public sealed class UserProfileBootstrapIntegrationTests(AppHostFixture fixture)
         if (await fixture.Databases.UserProfile.TableExistsAsync("user_profile_shells", cancellationToken: cancellationToken))
         {
             _ = await fixture.Databases.UserProfile.ExecuteNonQueryAsync(
+                "ALTER TABLE \"user_profile_shells\" DROP CONSTRAINT IF EXISTS \"ck_user_profile_shells_outage_block\";",
+                parameters: null,
+                cancellationToken);
+
+            _ = await fixture.Databases.UserProfile.ExecuteNonQueryAsync(
                 "DELETE FROM \"user_profile_shells\";",
                 parameters: null,
                 cancellationToken);

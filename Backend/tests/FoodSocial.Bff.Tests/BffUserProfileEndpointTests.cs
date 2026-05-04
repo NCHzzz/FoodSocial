@@ -81,6 +81,7 @@ public sealed class BffUserProfileEndpointTests
             identityState: blockedState);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("blocked-access-token"));
+        await factory.AddCsrfHeaderAsync(client);
 
         using var response = await client.PatchAsJsonAsync($"/api/users/{userId}", request);
         var body = await response.Content.ReadAsStringAsync();
@@ -110,6 +111,7 @@ public sealed class BffUserProfileEndpointTests
             identityState: blockedState);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("blocked-access-token"));
+        await factory.AddCsrfHeaderAsync(client);
 
         using var response = await client.PostAsync($"/api/users/{userId}/follow", content: null);
         var body = await response.Content.ReadAsStringAsync();
@@ -131,6 +133,7 @@ public sealed class BffUserProfileEndpointTests
         await using var factory = new BffUserProfileTestApplicationFactory(_ => JsonResponse(HttpStatusCode.OK, upstreamResponse));
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("cookie-access-token"));
+        await factory.AddCsrfHeaderAsync(client);
 
         using var response = await client.PostAsync($"/api/users/{userId}/follow", content: null);
         var payload = await response.Content.ReadFromJsonAsync<FollowUserResponse>();
@@ -160,6 +163,7 @@ public sealed class BffUserProfileEndpointTests
         await using var factory = new BffUserProfileTestApplicationFactory(_ => ProblemJsonResponse(HttpStatusCode.Forbidden, problem));
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("patch-access-token"));
+        await factory.AddCsrfHeaderAsync(client);
 
         using var response = await client.PatchAsJsonAsync($"/api/users/{userId}", request);
         var body = await response.Content.ReadAsStringAsync();
@@ -176,6 +180,27 @@ public sealed class BffUserProfileEndpointTests
         var forwardedRequest = factory.UserProfileHandler.Requests.Should().ContainSingle().Subject;
         forwardedRequest.Method.Should().Be(HttpMethod.Patch);
         forwardedRequest.Headers.Authorization.Should().Be(new AuthenticationHeaderValue("Bearer", "patch-access-token"));
+    }
+
+    [Fact]
+    public async Task Follow_WithAuthenticatedCookieButMissingCsrfHeader_ReturnsBadRequestWithoutForwarding()
+    {
+        var userId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+
+        await using var factory = new BffUserProfileTestApplicationFactory(_ => JsonResponse(HttpStatusCode.OK, new { }));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("cookie-access-token"));
+
+        using var response = await client.PostAsync($"/api/users/{userId}/follow", content: null);
+        var body = await response.Content.ReadAsStringAsync();
+        var payload = JsonNode.Parse(body) as JsonObject;
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, body);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        payload.Should().NotBeNull();
+        payload!["title"]!.GetValue<string>().Should().Be("CSRF token validation failed");
+        payload["status"]!.GetValue<int>().Should().Be(StatusCodes.Status400BadRequest);
+        factory.UserProfileHandler.Requests.Should().BeEmpty();
     }
 
     private static HttpResponseMessage JsonResponse<TValue>(HttpStatusCode statusCode, TValue value) =>
@@ -253,6 +278,15 @@ public sealed class BffUserProfileEndpointTests
             return $"{options.Cookie.Name}={cookieValue}";
         }
 
+        internal async Task AddCsrfHeaderAsync(HttpClient client)
+        {
+            using var response = await client.GetAsync("/api/auth/csrf");
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<CsrfTokenResponse>();
+            payload.Should().NotBeNull();
+            client.DefaultRequestHeaders.Add("X-XSRF-TOKEN", payload!.RequestToken);
+        }
+
         private void ConfigureUserProfileClient(HttpClientFactoryOptions options)
         {
             options.HttpMessageHandlerBuilderActions.Add(builder =>
@@ -269,6 +303,8 @@ public sealed class BffUserProfileEndpointTests
             });
         }
     }
+
+    private sealed record CsrfTokenResponse(string RequestToken, string HeaderName);
 
     private sealed class IdentityStateHttpMessageHandler(string identityState) : HttpMessageHandler
     {

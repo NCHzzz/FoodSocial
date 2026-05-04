@@ -62,7 +62,7 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
         lastSession.Should().NotBeNull();
 
         await WaitForAsync(
-            async () => await GetUserProfileShellCountAsync(lastSession!.Identity.IdentityId, cts.Token),
+            async () => await GetUserProfileShellCountBySubjectAsync(lastSession!.User.Subject, cts.Token),
             count => count == 1,
             cts.Token);
 
@@ -93,7 +93,7 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
         await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
 
         var identityRowCount = await CountIdentityUsersBySubjectAsync(lastSession.User.Subject, cts.Token);
-        var shellCount = await GetUserProfileShellCountAsync(lastSession.Identity.IdentityId, cts.Token);
+        var shellCount = await GetUserProfileShellCountBySubjectAsync(lastSession.User.Subject, cts.Token);
 
         identityRowCount.Should().Be(1);
         shellCount.Should().Be(1);
@@ -262,6 +262,8 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
     {
         if (await fixture.Databases.UserProfile.TableExistsAsync("user_profile_shells", cancellationToken: cancellationToken))
         {
+            await DropUserProfileShellInsertOutageConstraintAsync(cancellationToken);
+
             _ = await fixture.Databases.UserProfile.ExecuteNonQueryAsync(
                 "DELETE FROM \"user_profile_shells\";",
                 parameters: null,
@@ -310,6 +312,13 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
     private async Task<long> CountIdentityUsersBySubjectAsync(string subject, CancellationToken cancellationToken) =>
         await fixture.Databases.Identity.CountRowsByColumnValueAsync(
             "identity_users",
+            "Subject",
+            subject,
+            cancellationToken: cancellationToken);
+
+    private async Task<long> GetUserProfileShellCountBySubjectAsync(string subject, CancellationToken cancellationToken) =>
+        await fixture.Databases.UserProfile.CountRowsByColumnValueAsync(
+            "user_profile_shells",
             "Subject",
             subject,
             cancellationToken: cancellationToken);
@@ -393,6 +402,9 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
     }
 
     private async Task DisableUserProfileShellInsertOutageAsync(CancellationToken cancellationToken)
+        => await DropUserProfileShellInsertOutageConstraintAsync(cancellationToken);
+
+    private async Task DropUserProfileShellInsertOutageConstraintAsync(CancellationToken cancellationToken)
     {
         _ = await fixture.Databases.UserProfile.ExecuteNonQueryAsync(
             "ALTER TABLE \"user_profile_shells\" DROP CONSTRAINT IF EXISTS \"ck_user_profile_shells_outage_block\";",

@@ -16,16 +16,16 @@ internal static class BffUserProfileEndpoints
         usersGroup.MapGet("/{userId:guid}/followers", ForwardPublicAsync);
         usersGroup.MapGet("/{userId:guid}/following", ForwardPublicAsync);
 
-        usersGroup.MapPatch("/{userId:guid}", ForwardProtectedAsync);
-        usersGroup.MapPost("/{userId:guid}/follow", ForwardProtectedAsync);
-        usersGroup.MapDelete("/{userId:guid}/follow", ForwardProtectedAsync);
+        usersGroup.MapPatch("/{userId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        usersGroup.MapPost("/{userId:guid}/follow", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        usersGroup.MapDelete("/{userId:guid}/follow", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         usersGroup.MapGet("/{userId:guid}/saved", ForwardProtectedAsync);
-        usersGroup.MapPut("/{userId:guid}/saved/posts/{postId:guid}", ForwardProtectedAsync);
-        usersGroup.MapDelete("/{userId:guid}/saved/posts/{postId:guid}", ForwardProtectedAsync);
-        usersGroup.MapPut("/{userId:guid}/saved/dishes/{dishId:guid}", ForwardProtectedAsync);
-        usersGroup.MapDelete("/{userId:guid}/saved/dishes/{dishId:guid}", ForwardProtectedAsync);
-        usersGroup.MapPut("/{userId:guid}/saved/places/{placeId:guid}", ForwardProtectedAsync);
-        usersGroup.MapDelete("/{userId:guid}/saved/places/{placeId:guid}", ForwardProtectedAsync);
+        usersGroup.MapPut("/{userId:guid}/saved/posts/{postId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        usersGroup.MapDelete("/{userId:guid}/saved/posts/{postId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        usersGroup.MapPut("/{userId:guid}/saved/dishes/{dishId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        usersGroup.MapDelete("/{userId:guid}/saved/dishes/{dishId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        usersGroup.MapPut("/{userId:guid}/saved/places/{placeId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        usersGroup.MapDelete("/{userId:guid}/saved/places/{placeId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
 
         return endpoints;
     }

@@ -9,6 +9,7 @@ namespace FoodSocial.AppHost.Tests;
 
 public sealed class AppHostFixture : IAsyncLifetime
 {
+    private const string UseStableDockerResourceNamesEnvironmentVariable = "FoodSocial__AppHost__UseStableDockerResourceNames";
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
     internal const string TestKeycloakBffClientSecret = "foodsocial-bff-test-secret";
     internal const string TestKeycloakDemoUserPassword = "Pass@word1";
@@ -29,7 +30,19 @@ public sealed class AppHostFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.FoodSocial_AppHost>();
+        var previousUseStableDockerResourceNames = Environment.GetEnvironmentVariable(UseStableDockerResourceNamesEnvironmentVariable);
+        IDistributedApplicationTestingBuilder appHost;
+
+        try
+        {
+            Environment.SetEnvironmentVariable(UseStableDockerResourceNamesEnvironmentVariable, bool.FalseString);
+            appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.FoodSocial_AppHost>();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(UseStableDockerResourceNamesEnvironmentVariable, previousUseStableDockerResourceNames);
+        }
+
         appHost.Configuration["Aspire:Store:Path"] = _tempAspireStore.FullName;
         appHost.Configuration["DcpPublisher:WaitForResourceCleanup"] = bool.TrueString;
         appHost.Configuration["Parameters:keycloak-bff-client-secret"] = TestKeycloakBffClientSecret;
