@@ -35,8 +35,9 @@ internal static class BffUserProfileEndpoints
     private static Task<IResult> ForwardPublicAsync(
         HttpContext httpContext,
         UserProfileHttpClient userProfileClient,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken) =>
-        ForwardAsync(httpContext, userProfileClient, accessToken: null, cancellationToken);
+        ForwardAsync(httpContext, userProfileClient, loggerFactory, accessToken: null, cancellationToken);
 
     private static async Task<IResult> ForwardProtectedAsync(
         HttpContext httpContext,
@@ -93,7 +94,7 @@ internal static class BffUserProfileEndpoints
             return CreateForbiddenIdentitySessionResult(httpContext);
         }
 
-        return await ForwardAsync(httpContext, userProfileClient, accessToken, cancellationToken);
+        return await ForwardAsync(httpContext, userProfileClient, loggerFactory, accessToken, cancellationToken);
     }
 
     private static bool IsIdentitySessionAllowed(EnsureIdentityResponse ensuredIdentity)
@@ -107,23 +108,53 @@ internal static class BffUserProfileEndpoints
     private static async Task<IResult> ForwardAsync(
         HttpContext httpContext,
         UserProfileHttpClient userProfileClient,
+        ILoggerFactory loggerFactory,
         string? accessToken,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(userProfileClient);
+        ArgumentNullException.ThrowIfNull(loggerFactory);
 
         var targetPathAndQuery = $"{httpContext.Request.Path}{httpContext.Request.QueryString}";
-        using var upstreamResponse = await userProfileClient.ForwardAsync(
-            httpContext.Request,
-            targetPathAndQuery,
-            accessToken,
-            cancellationToken);
+        using var upstreamResponse = await ForwardToUserProfileApiAsync(httpContext, userProfileClient, loggerFactory, targetPathAndQuery, accessToken, cancellationToken);
+        if (upstreamResponse is null)
+        {
+            return CreateUnavailableProblem(httpContext);
+        }
 
         var contentType = upstreamResponse.Content.Headers.ContentType?.ToString();
         var responseBytes = await upstreamResponse.Content.ReadAsByteArrayAsync(cancellationToken);
 
         return new UpstreamHttpResult((int)upstreamResponse.StatusCode, contentType, responseBytes);
+    }
+
+    private static async Task<HttpResponseMessage?> ForwardToUserProfileApiAsync(
+        HttpContext httpContext,
+        UserProfileHttpClient userProfileClient,
+        ILoggerFactory loggerFactory,
+        string targetPathAndQuery,
+        string? accessToken,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await userProfileClient.ForwardAsync(httpContext.Request, targetPathAndQuery, accessToken, cancellationToken);
+        }
+        catch (HttpRequestException exception)
+        {
+            loggerFactory
+                .CreateLogger(typeof(BffUserProfileEndpoints).FullName!)
+                .LogWarning(exception, "UserProfile service request failed for {TargetPathAndQuery}. TraceId: {TraceId}", targetPathAndQuery, httpContext.TraceIdentifier);
+            return null;
+        }
+        catch (InvalidOperationException exception) when (exception.InnerException is OperationCanceledException)
+        {
+            loggerFactory
+                .CreateLogger(typeof(BffUserProfileEndpoints).FullName!)
+                .LogWarning(exception, "UserProfile service request timed out for {TargetPathAndQuery}. TraceId: {TraceId}", targetPathAndQuery, httpContext.TraceIdentifier);
+            return null;
+        }
     }
 
     private static IResult CreateForbiddenIdentitySessionResult(HttpContext httpContext)
@@ -137,6 +168,14 @@ internal static class BffUserProfileEndpoints
             type: "https://foodsocial/errors/bff/identity-session-forbidden",
             traceId: httpContext.TraceIdentifier));
     }
+
+    private static IResult CreateUnavailableProblem(HttpContext httpContext) =>
+        Results.Problem(CreateProblemDetails(
+            title: "UserProfile service unavailable",
+            detail: "The BFF could not reach the UserProfile service. Please retry later.",
+            statusCode: StatusCodes.Status502BadGateway,
+            type: "https://foodsocial/errors/bff/user-profile-service-unavailable",
+            traceId: httpContext.TraceIdentifier));
 
     private static ProblemDetails CreateProblemDetails(
         string title,

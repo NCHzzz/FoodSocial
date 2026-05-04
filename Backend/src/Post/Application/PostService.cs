@@ -21,11 +21,33 @@ public sealed class PostService(IPostStore postStore, IPostCatalogReferenceValid
         {
             var media = request.Media.Select((item, index) => PostMediaRecord.Create(item.Url, item.Type, item.ThumbnailUrl, item.Caption, item.IsPrimary || index == 0, index)).ToArray();
             if (media.Length > 0 && media.All(item => !item.IsPrimary)) media[0] = PostMediaRecord.Create(media[0].Url, media[0].Type, media[0].ThumbnailUrl, media[0].Caption, true, media[0].SortOrder);
+            var localUploadValidationError = ValidateLocalMediaUploadReferences(media, out var localUploadAttachments);
+            if (localUploadValidationError is not null)
+            {
+                return new PostMutationResult(PostOperationStatus.Invalid, null, localUploadValidationError);
+            }
+
+            if (localUploadAttachments.Count > 0)
+            {
+                var attachableUrls = await _postStore.FindAttachableMediaUploadUrlsAsync(request.AuthorId, localUploadAttachments, cancellationToken);
+                var missingUrls = localUploadAttachments.Where(upload => !attachableUrls.Contains(upload.Url)).ToArray();
+                if (missingUrls.Length > 0)
+                {
+                    return new PostMutationResult(PostOperationStatus.Invalid, null, "Uploaded media must exist, belong to the author, and be pending attachment before publish.");
+                }
+            }
+
             var post = PostRecord.Create(request.AuthorId, request.DishId, request.Caption, media, request.PlaceId, request.Rating, request.PriceRange, request.Tags, request.LocationText);
-            var created = await _postStore.CreatePostAsync(post, cancellationToken);
+            var created = localUploadAttachments.Count > 0
+                ? await _postStore.CreatePostWithMediaUploadsAsync(post, localUploadAttachments, cancellationToken)
+                : await _postStore.CreatePostAsync(post, cancellationToken);
             return new PostMutationResult(PostOperationStatus.Created, MapDetail(created), null);
         }
         catch (ArgumentException exception)
+        {
+            return new PostMutationResult(PostOperationStatus.Invalid, null, exception.Message);
+        }
+        catch (PostMediaUploadAttachmentException exception)
         {
             return new PostMutationResult(PostOperationStatus.Invalid, null, exception.Message);
         }
@@ -36,6 +58,16 @@ public sealed class PostService(IPostStore postStore, IPostCatalogReferenceValid
         ArgumentOutOfRangeException.ThrowIfEqual(postId, Guid.Empty);
         var post = await _postStore.GetPostAsync(postId, cancellationToken);
         return post is null ? null : MapDetail(post);
+    }
+
+    public async Task<PostMediaUploadRecord?> GetDeliverableMediaUploadAsync(Guid uploadId, Guid? callerIdentityId, CancellationToken cancellationToken)
+    {
+        if (uploadId == Guid.Empty)
+        {
+            return null;
+        }
+
+        return await _postStore.GetDeliverableMediaUploadAsync(uploadId, callerIdentityId, cancellationToken);
     }
 
     public async Task<PostSearchResponse> SearchPostsAsync(PostSearchCriteria criteria, CancellationToken cancellationToken)
@@ -148,6 +180,17 @@ public sealed class PostService(IPostStore postStore, IPostCatalogReferenceValid
             : new NotificationMutationResult(PostOperationStatus.Updated, MapNotification(notification), null);
     }
 
+    public async Task RecordMediaUploadAsync(RegisterMediaUploadCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.UploadId == Guid.Empty || command.OwnerId == Guid.Empty)
+        {
+            throw new ArgumentException("Upload id and owner id are required.", nameof(command));
+        }
+
+        await _postStore.RegisterMediaUploadAsync(command, cancellationToken);
+    }
+
     private async Task<ReportMutationResult> CreateReportAsync(ReportTargetType targetType, Guid targetId, CreateContentReportRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -184,4 +227,48 @@ public sealed class PostService(IPostStore postStore, IPostCatalogReferenceValid
             notification.Status == NotificationStatus.Read,
             notification.CreatedAtUtc,
             notification.ReadAtUtc);
+
+    private static bool IsPostMediaUploadUrl(string url) =>
+        url.StartsWith("/api/media/uploads/", StringComparison.Ordinal);
+
+    private static string? ValidateLocalMediaUploadReferences(
+        IReadOnlyList<PostMediaRecord> media,
+        out IReadOnlyList<PostMediaUploadAttachmentRequest> localUploadAttachments)
+    {
+        var attachments = new Dictionary<string, PostMediaUploadAttachmentRequest>(StringComparer.Ordinal);
+        foreach (var item in media)
+        {
+            var urlIsLocalUpload = IsPostMediaUploadUrl(item.Url);
+            var thumbnailIsLocalUpload = item.ThumbnailUrl is not null && IsPostMediaUploadUrl(item.ThumbnailUrl);
+            if (thumbnailIsLocalUpload && !urlIsLocalUpload)
+            {
+                localUploadAttachments = [];
+                return "Local uploaded thumbnails must be paired with their original uploaded media URL.";
+            }
+
+            if (!urlIsLocalUpload)
+            {
+                continue;
+            }
+
+            if (!thumbnailIsLocalUpload)
+            {
+                localUploadAttachments = [];
+                return "Local uploaded media must include its paired local thumbnail URL.";
+            }
+
+            var localThumbnailUrl = item.ThumbnailUrl!;
+            if (attachments.TryGetValue(item.Url, out var existing)
+                && !string.Equals(existing.ThumbnailUrl, localThumbnailUrl, StringComparison.Ordinal))
+            {
+                localUploadAttachments = [];
+                return "Local uploaded media cannot be published with conflicting thumbnail references.";
+            }
+
+            attachments[item.Url] = new PostMediaUploadAttachmentRequest(item.Url, localThumbnailUrl);
+        }
+
+        localUploadAttachments = attachments.Values.ToArray();
+        return null;
+    }
 }

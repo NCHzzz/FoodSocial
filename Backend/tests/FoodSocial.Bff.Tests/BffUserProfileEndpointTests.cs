@@ -53,6 +53,26 @@ public sealed class BffUserProfileEndpointTests
     }
 
     [Fact]
+    public async Task GetProfile_WhenUserProfileApiIsUnavailable_ReturnsSafeProblemDetails()
+    {
+        var userId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+        await using var factory = new BffUserProfileTestApplicationFactory(_ => throw new HttpRequestException("network failure"));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var response = await client.GetAsync($"/api/users/{userId}");
+        var body = await response.Content.ReadAsStringAsync();
+        var payload = JsonNode.Parse(body) as JsonObject;
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway, body);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        payload.Should().NotBeNull();
+        payload!["title"]!.GetValue<string>().Should().Be("UserProfile service unavailable");
+        payload["type"]!.GetValue<string>().Should().Be("https://foodsocial/errors/bff/user-profile-service-unavailable");
+        body.Should().NotContain("network failure");
+    }
+
+    [Fact]
     public async Task UpdateProfile_WithoutAuthenticatedSessionOrBearer_ReturnsUnauthorizedWithoutRedirect()
     {
         var userId = Guid.Parse("22222222-2222-2222-2222-222222222222");

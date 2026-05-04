@@ -24,6 +24,7 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
     private bool _databaseInitialized;
 
     public PostApiFactory() => _connection.Open();
+    internal string MediaStoragePath => _mediaStoragePath;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -83,6 +84,8 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
         await scope.ServiceProvider.GetRequiredService<PostDbContext>().Database.EnsureCreatedAsync();
         _databaseInitialized = true;
     }
+
+    internal Task CloseDatabaseConnectionAsync() => _connection.CloseAsync();
 
     internal async Task<Guid> CreatePostAsync(HttpClient client, Guid? authorId = null, Guid? dishId = null, string caption = "Great bowl", string tag = "pho")
     {

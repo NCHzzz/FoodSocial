@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 
 import { AuthSessionService } from '../../core/auth/auth-session.service';
 import { isAuthenticatedSession } from '../../core/auth/auth-session.presentation';
@@ -67,6 +67,10 @@ type SearchActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
                 </p>
               }
             </div>
+          } @else if (assistDegraded()) {
+            <p class="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+              AI assist is unavailable. Core Dish, Place, and Post results are still shown.
+            </p>
           } @else {
             <p class="mt-3 text-sm leading-6 text-slate-600">
               Search once to get AI-assist fallback hints. Core retrieval remains deterministic when AI providers are disabled or degraded.
@@ -197,6 +201,7 @@ export class SearchPage {
   protected readonly places = signal<PlaceSummaryResponse[]>([]);
   protected readonly posts = signal<PostSummaryResponse[]>([]);
   protected readonly assist = signal<SearchAssistResponse | null>(null);
+  protected readonly assistDegraded = signal(false);
   protected readonly authState = this.authSessionService.authState;
   protected readonly isAuthenticated = computed(() => isAuthenticatedSession(this.authState()));
   protected readonly signedInIdentityId = computed(() => this.authState().session?.identity.identityId ?? null);
@@ -213,17 +218,19 @@ export class SearchPage {
 
     const query = this.queryControl.value.trim();
     this.status.set('loading');
+    this.assistDegraded.set(false);
     forkJoin({
       dishes: this.dishApi.searchDishes({ query, limit: 8 }),
       places: this.placeApi.searchPlaces({ query, limit: 8 }),
       posts: this.postApi.searchPosts({ query, limit: 12 }),
-      assist: this.searchAssistApi.assist({ query, location: null }),
+      assist: this.searchAssistApi.assist({ query, location: null }).pipe(catchError(() => of(null))),
     }).subscribe({
       next: (results) => {
         this.dishes.set(results.dishes.items);
         this.places.set(results.places.items);
         this.posts.set(results.posts.items);
         this.assist.set(results.assist);
+        this.assistDegraded.set(results.assist === null);
         this.status.set(this.hasResults() ? 'loaded' : 'empty');
       },
       error: () => {

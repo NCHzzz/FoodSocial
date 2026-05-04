@@ -67,6 +67,13 @@ interface NotificationItem {
       @if (actionStatus() === 'error') {
         <p class="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" [textContent]="actionMessage()"></p>
       }
+      @if (sourceFailureMessages().length > 0) {
+        <div class="mt-5 grid gap-2">
+          @for (message of sourceFailureMessages(); track message) {
+            <p class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900" [textContent]="message"></p>
+          }
+        </div>
+      }
 
       <section class="mt-8">
         @if (status() === 'loading') {
@@ -131,6 +138,7 @@ export class NotificationsPage {
   protected readonly actionMessage = signal('');
   protected readonly notifications = signal<NotificationItem[]>([]);
   protected readonly unreadCount = signal(0);
+  protected readonly sourceFailureMessages = signal<string[]>([]);
   private readonly currentIdentityId = signal<string | null>(null);
 
   constructor() {
@@ -140,6 +148,7 @@ export class NotificationsPage {
   protected loadNotifications(): void {
     this.status.set('loading');
     this.actionStatus.set('idle');
+    this.sourceFailureMessages.set([]);
     from(this.authSession.ensureSession()).pipe(
       switchMap((sessionState) => {
         const identityId = sessionState.session?.identity.identityId ?? null;
@@ -164,19 +173,26 @@ export class NotificationsPage {
         if (postItems === null && userItems === null) {
           this.notifications.set([]);
           this.unreadCount.set(0);
+          this.sourceFailureMessages.set([]);
           this.status.set('error');
           return;
         }
 
+        const sourceFailures = [
+          postItems === null ? 'Post notifications unavailable. Showing any follow activity that is still reachable.' : null,
+          userItems === null ? 'Follow notifications unavailable. Showing any post activity that is still reachable.' : null,
+        ].filter((message): message is string => message !== null);
         const items = [...(postItems ?? []), ...(userItems ?? [])]
           .sort((left, right) => Date.parse(right.createdAtUtc) - Date.parse(left.createdAtUtc));
         this.notifications.set(items);
+        this.sourceFailureMessages.set(sourceFailures);
         this.updateUnreadCount(items);
         this.status.set(items.length > 0 ? 'loaded' : 'empty');
       },
       error: () => {
         this.notifications.set([]);
         this.unreadCount.set(0);
+        this.sourceFailureMessages.set([]);
         this.status.set('error');
       },
     });

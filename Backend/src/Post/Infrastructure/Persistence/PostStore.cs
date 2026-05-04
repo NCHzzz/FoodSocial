@@ -15,7 +15,76 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         return post;
     }
 
-    public async Task<PostRecord?> GetPostAsync(Guid postId, CancellationToken cancellationToken) => await IncludePostGraph(_dbContext.Posts).AsSplitQuery().FirstOrDefaultAsync(post => post.Id == postId, cancellationToken);
+    public async Task<PostRecord> CreatePostWithMediaUploadsAsync(PostRecord post, IReadOnlyList<PostMediaUploadAttachmentRequest> mediaUploadsToAttach, CancellationToken cancellationToken)
+    {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var mediaUrlsToAttach = mediaUploadsToAttach.Select(upload => upload.Url).Distinct(StringComparer.Ordinal).ToArray();
+        var uploads = await _dbContext.PostMediaUploads
+            .AsNoTracking()
+            .Where(upload => upload.OwnerId == post.AuthorId
+                && upload.Status == PostMediaUploadStatus.StoredPendingAttachment
+                && mediaUrlsToAttach.Contains(upload.Url))
+            .ToListAsync(cancellationToken);
+
+        var attachableUrls = BuildAttachableUploadUrlSet(mediaUploadsToAttach, uploads);
+        if (mediaUrlsToAttach.Any(url => !attachableUrls.Contains(url)))
+        {
+            throw new PostMediaUploadAttachmentException("One or more media uploads are not attachable.");
+        }
+
+        _dbContext.Posts.Add(post);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        var attachedAtUtc = DateTimeOffset.UtcNow;
+        var attachedCount = await _dbContext.PostMediaUploads
+            .Where(upload => upload.OwnerId == post.AuthorId
+                && upload.Status == PostMediaUploadStatus.StoredPendingAttachment
+                && mediaUrlsToAttach.Contains(upload.Url))
+            .ExecuteUpdateAsync(
+                updates => updates
+                    .SetProperty(upload => upload.AttachedPostId, post.Id)
+                    .SetProperty(upload => upload.Status, PostMediaUploadStatus.Attached)
+                    .SetProperty(upload => upload.AttachedAtUtc, attachedAtUtc),
+                cancellationToken);
+
+        if (attachedCount != mediaUrlsToAttach.Length)
+        {
+            throw new PostMediaUploadAttachmentException("One or more media uploads could not be atomically attached.");
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return post;
+    }
+
+    public async Task<PostRecord?> GetPostAsync(Guid postId, CancellationToken cancellationToken) =>
+        await IncludePostGraph(_dbContext.Posts)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(post => post.Id == postId && post.Status == PostStatus.Published, cancellationToken);
+
+    public async Task<PostMediaUploadRecord?> GetDeliverableMediaUploadAsync(Guid uploadId, Guid? callerIdentityId, CancellationToken cancellationToken)
+    {
+        var upload = await _dbContext.PostMediaUploads
+            .AsNoTracking()
+            .FirstOrDefaultAsync(candidate => candidate.Id == uploadId && !candidate.ModerationHold, cancellationToken);
+        if (upload is null)
+        {
+            return null;
+        }
+
+        if (upload.Status == PostMediaUploadStatus.StoredPendingAttachment)
+        {
+            return callerIdentityId == upload.OwnerId ? upload : null;
+        }
+
+        if (upload.Status != PostMediaUploadStatus.Attached || upload.AttachedPostId is null)
+        {
+            return null;
+        }
+
+        var attachedPostIsPublished = await _dbContext.Posts
+            .AsNoTracking()
+            .AnyAsync(post => post.Id == upload.AttachedPostId && post.Status == PostStatus.Published, cancellationToken);
+        return attachedPostIsPublished ? upload : null;
+    }
 
     public async Task<IReadOnlyList<PostRecord>> SearchPostsAsync(PostSearchCriteria criteria, CancellationToken cancellationToken)
     {
@@ -74,7 +143,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
     public async Task<int?> AddLikeAsync(Guid postId, Guid actorId, CancellationToken cancellationToken)
     {
-        var post = await _dbContext.Posts.FirstOrDefaultAsync(candidate => candidate.Id == postId, cancellationToken);
+        var post = await _dbContext.Posts.FirstOrDefaultAsync(candidate => candidate.Id == postId && candidate.Status == PostStatus.Published, cancellationToken);
         if (post is null)
         {
             return null;
@@ -92,7 +161,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
     public async Task<int?> RemoveLikeAsync(Guid postId, Guid actorId, CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.Posts.AnyAsync(post => post.Id == postId, cancellationToken);
+        var exists = await _dbContext.Posts.AnyAsync(post => post.Id == postId && post.Status == PostStatus.Published, cancellationToken);
         if (!exists)
         {
             return null;
@@ -110,7 +179,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
     public async Task<PostCommentRecord?> AddCommentAsync(Guid postId, Guid authorId, string body, CancellationToken cancellationToken)
     {
-        var post = await _dbContext.Posts.FirstOrDefaultAsync(candidate => candidate.Id == postId, cancellationToken);
+        var post = await _dbContext.Posts.FirstOrDefaultAsync(candidate => candidate.Id == postId && candidate.Status == PostStatus.Published, cancellationToken);
         if (post is null)
         {
             return null;
@@ -211,6 +280,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
             return null;
         }
 
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
         var normalizedAction = action.Trim().ToLowerInvariant();
         report.ModeratorId = moderatorId;
         report.ResolutionNote = auditNote.Trim();
@@ -227,6 +297,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return report;
     }
 
@@ -250,12 +321,64 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         return notification;
     }
 
+    public async Task RegisterMediaUploadAsync(RegisterMediaUploadCommand command, CancellationToken cancellationToken)
+    {
+        _dbContext.PostMediaUploads.Add(new PostMediaUploadRecord
+        {
+            Id = command.UploadId,
+            OwnerId = command.OwnerId,
+            Url = command.Url,
+            ThumbnailUrl = command.ThumbnailUrl,
+            ContentType = command.ContentType,
+            SizeBytes = command.SizeBytes,
+            CleanupDueAtUtc = command.CleanupDueAtUtc
+        });
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlySet<string>> FindAttachableMediaUploadUrlsAsync(Guid ownerId, IReadOnlyList<PostMediaUploadAttachmentRequest> mediaUploads, CancellationToken cancellationToken)
+    {
+        if (mediaUploads.Count == 0)
+        {
+            return new HashSet<string>(StringComparer.Ordinal);
+        }
+
+        var mediaUrls = mediaUploads.Select(upload => upload.Url).Distinct(StringComparer.Ordinal).ToArray();
+        var uploads = await _dbContext.PostMediaUploads
+            .AsNoTracking()
+            .Where(upload => upload.OwnerId == ownerId
+                && upload.Status == PostMediaUploadStatus.StoredPendingAttachment
+                && mediaUrls.Contains(upload.Url))
+            .ToListAsync(cancellationToken);
+
+        return BuildAttachableUploadUrlSet(mediaUploads, uploads);
+    }
+
+    private static IReadOnlySet<string> BuildAttachableUploadUrlSet(
+        IReadOnlyList<PostMediaUploadAttachmentRequest> mediaUploads,
+        IReadOnlyList<PostMediaUploadRecord> uploads)
+    {
+        var uploadByUrl = uploads.ToDictionary(upload => upload.Url, StringComparer.Ordinal);
+        return mediaUploads
+            .Where(request => uploadByUrl.TryGetValue(request.Url, out var upload)
+                && string.Equals(request.ThumbnailUrl, upload.ThumbnailUrl, StringComparison.Ordinal))
+            .Select(request => request.Url)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
     private async Task HideTargetAsync(ContentReportRecord report, CancellationToken cancellationToken)
     {
         if (report.TargetType == ReportTargetType.Post)
         {
             var post = await _dbContext.Posts.FirstOrDefaultAsync(item => item.Id == report.TargetId, cancellationToken);
-            post?.Hide();
+            if (post is not null)
+            {
+                post.Hide();
+                await _dbContext.PostMediaUploads
+                    .Where(upload => upload.AttachedPostId == post.Id)
+                    .ExecuteUpdateAsync(updates => updates.SetProperty(upload => upload.ModerationHold, true), cancellationToken);
+            }
+
             return;
         }
 

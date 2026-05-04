@@ -131,6 +131,47 @@ public sealed class BffPostEndpointTests
     }
 
     [Fact]
+    public async Task ReadMedia_WithAuthenticatedCookie_ForwardsTrustedIdentityForPendingUploadAccess()
+    {
+        var uploadId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+        await using var factory = new BffPostTestApplicationFactory(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent([1, 2, 3, 4])
+        });
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("post-access-token"));
+
+        using var response = await client.GetAsync($"/api/media/uploads/{uploadId}/original");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
+        forwardedRequest.Method.Should().Be(HttpMethod.Get);
+        forwardedRequest.RequestUri!.PathAndQuery.Should().Be($"/api/media/uploads/{uploadId}/original");
+        forwardedRequest.Headers.GetValues("X-FoodSocial-Internal-Secret").Should().ContainSingle().Which.Should().Be("test-post-shared-secret");
+        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be("11111111-1111-1111-1111-111111111111");
+    }
+
+    [Fact]
+    public async Task ReadMedia_WithoutAuthenticatedCookie_ForwardsAsPublicRead()
+    {
+        var uploadId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+        await using var factory = new BffPostTestApplicationFactory(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent([1, 2, 3, 4])
+        });
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var response = await client.GetAsync($"/api/media/uploads/{uploadId}/original");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
+        forwardedRequest.Method.Should().Be(HttpMethod.Get);
+        forwardedRequest.RequestUri!.PathAndQuery.Should().Be($"/api/media/uploads/{uploadId}/original");
+        forwardedRequest.Headers.Contains("X-FoodSocial-Internal-Secret").Should().BeFalse();
+        forwardedRequest.Headers.Contains("X-FoodSocial-Identity-Id").Should().BeFalse();
+    }
+
+    [Fact]
     public async Task SearchPosts_StripsIncludeHiddenBeforeForwardingPublicRequest()
     {
         await using var factory = new BffPostTestApplicationFactory(_ => JsonResponse(HttpStatusCode.OK, new PostSearchResponse([], 20)));

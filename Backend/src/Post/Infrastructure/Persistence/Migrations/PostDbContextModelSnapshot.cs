@@ -174,6 +174,69 @@ namespace FoodSocial.Post.Infrastructure.Persistence.Migrations
                     b.ToTable("post_media", (string)null);
                 });
 
+            modelBuilder.Entity("FoodSocial.Post.Domain.PostMediaUploadRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AttachedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AttachedPostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CleanupDueAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("ModerationHold")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttachedPostId");
+
+                    b.HasIndex("CleanupDueAtUtc");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("Url")
+                        .IsUnique();
+
+                    b.ToTable("post_media_uploads", (string)null);
+                });
+
             modelBuilder.Entity("FoodSocial.Post.Domain.PostNotificationRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -352,6 +415,14 @@ namespace FoodSocial.Post.Infrastructure.Persistence.Migrations
                         .HasForeignKey("PostId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("FoodSocial.Post.Domain.PostMediaUploadRecord", b =>
+                {
+                    b.HasOne("FoodSocial.Post.Domain.PostRecord", null)
+                        .WithMany()
+                        .HasForeignKey("AttachedPostId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("FoodSocial.Post.Domain.PostRepostRecord", b =>

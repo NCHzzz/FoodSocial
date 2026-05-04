@@ -63,33 +63,62 @@ public sealed class PostsController(PostService postService) : ControllerBase
         var fileName = $"{uploadId:N}{validation.Extension}";
         var originalPath = Path.Combine(originalDirectory, fileName);
         var thumbnailPath = Path.Combine(thumbnailDirectory, fileName);
-        await using (var stream = System.IO.File.Create(originalPath))
+        try
         {
-            await file.CopyToAsync(stream, cancellationToken);
+            await using (var stream = System.IO.File.Create(originalPath))
+            {
+                await file.CopyToAsync(stream, cancellationToken);
+            }
+
+            System.IO.File.Copy(originalPath, thumbnailPath, overwrite: true);
+            var cleanupDueAtUtc = DateTimeOffset.UtcNow.AddDays(7);
+            var response = new MediaUploadResponse(
+                uploadId,
+                $"/api/media/uploads/{uploadId}/original",
+                $"/api/media/uploads/{uploadId}/thumbnail",
+                validation.ContentType!,
+                file.Length,
+                cleanupDueAtUtc,
+                "StoredPendingAttachmentWithDerivativePlaceholder");
+            await _postService.RecordMediaUploadAsync(
+                new RegisterMediaUploadCommand(
+                    uploadId,
+                    PostInternalAuthorization.GetIdentityId(HttpContext),
+                    response.Url,
+                    response.ThumbnailUrl,
+                    response.ContentType,
+                    response.SizeBytes,
+                    response.CleanupDueAtUtc),
+                cancellationToken);
+
+            return Created(response.Url, response);
         }
-
-        System.IO.File.Copy(originalPath, thumbnailPath, overwrite: true);
-        var response = new MediaUploadResponse(
-            uploadId,
-            $"/api/media/uploads/{uploadId}/original",
-            $"/api/media/uploads/{uploadId}/thumbnail",
-            validation.ContentType!,
-            file.Length,
-            DateTimeOffset.UtcNow.AddDays(7),
-            "StoredWithDerivativePlaceholder");
-
-        return Created(response.Url, response);
+        catch
+        {
+            DeleteIfExists(originalPath);
+            DeleteIfExists(thumbnailPath);
+            throw;
+        }
     }
 
     [HttpGet("api/media/uploads/{uploadId:guid}/{variant}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult GetUploadedMedia(Guid uploadId, string variant, IConfiguration configuration, IWebHostEnvironment environment)
+    public async Task<ActionResult> GetUploadedMedia(Guid uploadId, string variant, IConfiguration configuration, IWebHostEnvironment environment, CancellationToken cancellationToken)
     {
         if (!string.Equals(variant, "original", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(variant, "thumbnail", StringComparison.OrdinalIgnoreCase))
         {
             return Problem(title: "Invalid media variant", detail: "Media variant must be original or thumbnail.", statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var callerIdentityId = TryResolveTrustedCallerIdentity(HttpContext, configuration, out var identityId)
+            ? identityId
+            : (Guid?)null;
+        var upload = await _postService.GetDeliverableMediaUploadAsync(uploadId, callerIdentityId, cancellationToken);
+        if (upload is null)
+        {
+            return Problem(title: "Media not found", detail: "The requested media upload was not found.", statusCode: StatusCodes.Status404NotFound);
         }
 
         var root = configuration["Post:Media:StoragePath"];
@@ -118,6 +147,17 @@ public sealed class PostsController(PostService postService) : ControllerBase
 
         return PhysicalFile(match, contentType);
     }
+
+    private static void DeleteIfExists(string path)
+    {
+        if (System.IO.File.Exists(path))
+        {
+            System.IO.File.Delete(path);
+        }
+    }
+
+    private static bool TryResolveTrustedCallerIdentity(HttpContext httpContext, IConfiguration configuration, out Guid identityId) =>
+        PostInternalAuthorization.TryAuthorize(httpContext, configuration, requireModerator: false, out identityId, out _);
 
     private static async Task<ValidatedImageUpload> ValidateImageUploadAsync(IFormFile file, CancellationToken cancellationToken)
     {

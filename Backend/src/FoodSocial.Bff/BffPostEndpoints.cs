@@ -16,7 +16,7 @@ internal static class BffPostEndpoints
         endpoints.MapGet("/api/posts/search", ForwardAsync);
         endpoints.MapGet("/api/posts/{postId:guid}", ForwardAsync);
         endpoints.MapGet("/api/feed/discover", ForwardAsync);
-        endpoints.MapGet("/api/media/uploads/{uploadId:guid}/{variant}", ForwardAsync);
+        endpoints.MapGet("/api/media/uploads/{uploadId:guid}/{variant}", ForwardMediaReadAsync);
         endpoints.MapPost("/api/posts", ForwardCreatePostAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapPost("/api/media/uploads", ForwardMediaUploadAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapPost("/api/posts/{postId:guid}/likes", ForwardActorMutationAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
@@ -50,6 +50,20 @@ internal static class BffPostEndpoints
         if (session.Result is not null) return session.Result;
 
         return await ForwardAuthenticatedAsync(httpContext, postClient, loggerFactory, session.IdentityId, session.Roles, cancellationToken);
+    }
+
+    private static async Task<IResult> ForwardMediaReadAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(BffAuthenticationDefaults.Scheme);
+        if (authenticateResult.Succeeded && authenticateResult.Principal?.Identity?.IsAuthenticated == true)
+        {
+            var session = await ResolveAllowedSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
+            if (session.Result is not null) return session.Result;
+
+            return await ForwardAuthenticatedAsync(httpContext, postClient, loggerFactory, session.IdentityId, session.Roles, cancellationToken);
+        }
+
+        return await ForwardAsync(httpContext, postClient, loggerFactory, cancellationToken);
     }
 
     private static async Task<IResult> ForwardActorMutationAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)

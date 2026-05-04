@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { AuthSessionState } from '../../core/auth/auth-session.models';
@@ -177,5 +177,29 @@ describe('SearchPage', () => {
     expect(element.textContent).toContain('Quán Ăn Ngon');
     expect(element.textContent).toContain('Search found rich phở broth.');
     expect(element.textContent).toContain('ai-disabled-fallback');
+  });
+
+  it('keeps core search results visible when AI assist is unavailable', async () => {
+    searchAssistApiMock.assist.mockReturnValue(throwError(() => new Error('assist unavailable')));
+    const fixture = TestBed.createComponent(SearchPage);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      queryControl: { setValue(value: string): void };
+      runSearch(): void;
+    };
+
+    component.queryControl.setValue('phở');
+    component.runSearch();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(element.textContent).toContain('Phở bò');
+    expect(element.textContent).toContain('Quán Ăn Ngon');
+    expect(element.textContent).toContain('Search found rich phở broth.');
+    expect(element.textContent).toContain('AI assist is unavailable');
+    expect(element.textContent).not.toContain('Search could not complete');
   });
 });

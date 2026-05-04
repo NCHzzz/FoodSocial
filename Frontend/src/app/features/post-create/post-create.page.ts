@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { DishSummaryResponse } from '../../core/dishes/dish.models';
 import { PlaceSummaryResponse } from '../../core/places/place.models';
 import { PostApi } from '../../core/posts/infrastructure/post.api';
-import { CreatePostRequest, PostDetailResponse } from '../../core/posts/post.models';
+import { CreatePostRequest, MediaUploadResponse, PostDetailResponse } from '../../core/posts/post.models';
 import { DishSearchSelectComponent } from '../dishes/dish-search-select.component';
 import { PlaceSearchSelectComponent } from '../places/place-search-select.component';
 import { UiButtonDirective } from '../../shared/ui/button/ui-button.directive';
@@ -197,6 +197,7 @@ export class PostCreatePage {
   protected readonly publishStatus = signal<PublishStatus>('idle');
   protected readonly mediaUploadStatus = signal<MediaUploadStatus>('idle');
   protected readonly createdPost = signal<PostDetailResponse | null>(null);
+  protected readonly uploadedMedia = signal<MediaUploadResponse | null>(null);
 
   protected readonly postForm = new FormGroup({
     primaryMediaUrl: new FormControl('', {
@@ -231,6 +232,7 @@ export class PostCreatePage {
     this.mediaUploadStatus.set('pending');
     this.postApi.uploadMedia(file).subscribe({
       next: (upload) => {
+        this.uploadedMedia.set(upload);
         this.postForm.controls.primaryMediaUrl.setValue(upload.url);
         this.mediaUploadStatus.set('success');
       },
@@ -278,7 +280,7 @@ export class PostCreatePage {
         {
           url: this.postForm.controls.primaryMediaUrl.value.trim(),
           type: 'image',
-          thumbnailUrl: null,
+          thumbnailUrl: this.resolvePrimaryThumbnailUrl(),
           caption: null,
           isPrimary: true,
         },
@@ -296,5 +298,11 @@ export class PostCreatePage {
   private trimToNull(value: string): string | null {
     const trimmedValue = value.trim();
     return trimmedValue.length > 0 ? trimmedValue : null;
+  }
+
+  private resolvePrimaryThumbnailUrl(): string | null {
+    const uploadedMedia = this.uploadedMedia();
+    const primaryUrl = this.postForm.controls.primaryMediaUrl.value.trim();
+    return uploadedMedia !== null && uploadedMedia.url === primaryUrl ? uploadedMedia.thumbnailUrl : null;
   }
 }

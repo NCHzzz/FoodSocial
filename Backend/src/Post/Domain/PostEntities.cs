@@ -5,6 +5,7 @@ public enum CommentStatus { Visible, Hidden, Deleted }
 public enum ReportStatus { Submitted, ResolvedNoAction, ResolvedContentAction }
 public enum ReportTargetType { Post, Comment }
 public enum NotificationStatus { Unread, Read }
+public enum PostMediaUploadStatus { StoredPendingAttachment, Attached, CleanupDue, Deleted }
 
 public sealed class PostRecord
 {
@@ -75,6 +76,30 @@ public sealed class PostMediaRecord
     {
         if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("Media URL is required.", nameof(url));
         return new PostMediaRecord { Id = Guid.NewGuid(), Url = url.Trim(), Type = string.IsNullOrWhiteSpace(type) ? "image" : type.Trim().ToLowerInvariant(), ThumbnailUrl = string.IsNullOrWhiteSpace(thumbnailUrl) ? null : thumbnailUrl.Trim(), Caption = string.IsNullOrWhiteSpace(caption) ? null : caption.Trim(), IsPrimary = isPrimary, SortOrder = sortOrder };
+    }
+}
+
+public sealed class PostMediaUploadRecord
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid OwnerId { get; set; }
+    public Guid? AttachedPostId { get; set; }
+    public string Url { get; set; } = string.Empty;
+    public string ThumbnailUrl { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long SizeBytes { get; set; }
+    public PostMediaUploadStatus Status { get; set; } = PostMediaUploadStatus.StoredPendingAttachment;
+    public bool ModerationHold { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CleanupDueAtUtc { get; set; }
+    public DateTimeOffset? AttachedAtUtc { get; set; }
+
+    public void MarkAttached(Guid postId)
+    {
+        if (postId == Guid.Empty) throw new ArgumentException("Post id is required.", nameof(postId));
+        AttachedPostId = postId;
+        Status = PostMediaUploadStatus.Attached;
+        AttachedAtUtc = DateTimeOffset.UtcNow;
     }
 }
 

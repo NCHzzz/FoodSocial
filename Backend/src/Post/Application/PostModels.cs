@@ -9,6 +9,16 @@ public sealed record CommentMutationResult(PostOperationStatus Status, PostComme
 public sealed record ReportMutationResult(PostOperationStatus Status, ContentReportResponse? Report, string? Error);
 public sealed record RepostMutationResult(PostOperationStatus Status, PostRepostResponse? Repost, string? Error);
 public sealed record NotificationMutationResult(PostOperationStatus Status, NotificationResponse? Notification, string? Error);
+public sealed class PostMediaUploadAttachmentException(string message) : Exception(message);
+public sealed record RegisterMediaUploadCommand(
+    Guid UploadId,
+    Guid OwnerId,
+    string Url,
+    string ThumbnailUrl,
+    string ContentType,
+    long SizeBytes,
+    DateTimeOffset CleanupDueAtUtc);
+public sealed record PostMediaUploadAttachmentRequest(string Url, string ThumbnailUrl);
 
 public sealed record PostSearchCriteria(Guid? AuthorId, Guid? DishId, Guid? PlaceId, string? Tag, string? Query, bool IncludeHidden, int Limit)
 {
@@ -29,7 +39,9 @@ public sealed record DiscoverFeedCriteria(int Limit)
 public interface IPostStore
 {
     Task<PostRecord> CreatePostAsync(PostRecord post, CancellationToken cancellationToken);
+    Task<PostRecord> CreatePostWithMediaUploadsAsync(PostRecord post, IReadOnlyList<PostMediaUploadAttachmentRequest> mediaUploadsToAttach, CancellationToken cancellationToken);
     Task<PostRecord?> GetPostAsync(Guid postId, CancellationToken cancellationToken);
+    Task<PostMediaUploadRecord?> GetDeliverableMediaUploadAsync(Guid uploadId, Guid? callerIdentityId, CancellationToken cancellationToken);
     Task<IReadOnlyList<PostRecord>> SearchPostsAsync(PostSearchCriteria criteria, CancellationToken cancellationToken);
     Task<IReadOnlyList<PostRecord>> GetDiscoverFeedAsync(DiscoverFeedCriteria criteria, CancellationToken cancellationToken);
     Task<int?> AddLikeAsync(Guid postId, Guid actorId, CancellationToken cancellationToken);
@@ -45,4 +57,6 @@ public interface IPostStore
     Task<IReadOnlyList<PostNotificationRecord>> GetNotificationsAsync(Guid recipientId, int limit, CancellationToken cancellationToken);
     Task<int> CountUnreadNotificationsAsync(Guid recipientId, CancellationToken cancellationToken);
     Task<PostNotificationRecord?> MarkNotificationReadAsync(Guid notificationId, Guid recipientId, CancellationToken cancellationToken);
+    Task RegisterMediaUploadAsync(RegisterMediaUploadCommand command, CancellationToken cancellationToken);
+    Task<IReadOnlySet<string>> FindAttachableMediaUploadUrlsAsync(Guid ownerId, IReadOnlyList<PostMediaUploadAttachmentRequest> mediaUploads, CancellationToken cancellationToken);
 }

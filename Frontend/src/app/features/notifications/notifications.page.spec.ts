@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { AuthSessionService } from '../../core/auth/auth-session.service';
@@ -156,5 +156,18 @@ describe('NotificationsPage', () => {
     await fixture.whenStable();
 
     expect(userProfileApiMock.markNotificationRead).toHaveBeenCalledWith(identityId, userNotification.id);
+  });
+
+  it('shows degraded state when one notification source fails', async () => {
+    postApiMock.getNotifications.mockReturnValue(throwError(() => new Error('post notifications unavailable')));
+    const fixture = TestBed.createComponent(NotificationsPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.textContent).toContain('followed you');
+    expect(element.textContent).toContain('Post notifications unavailable');
+    expect(element.textContent).not.toContain('Notifications unavailable');
   });
 });

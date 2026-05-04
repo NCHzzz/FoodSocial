@@ -18,6 +18,7 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
     public DbSet<PostRepostRecord> PostReposts => Set<PostRepostRecord>();
     public DbSet<ContentReportRecord> ContentReports => Set<ContentReportRecord>();
     public DbSet<PostNotificationRecord> PostNotifications => Set<PostNotificationRecord>();
+    public DbSet<PostMediaUploadRecord> PostMediaUploads => Set<PostMediaUploadRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -80,6 +81,20 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
             entity.HasIndex(notification => notification.RecipientId);
             entity.HasIndex(notification => new { notification.RecipientId, notification.Status });
             entity.HasIndex(notification => notification.CreatedAtUtc);
+        });
+        modelBuilder.Entity<PostMediaUploadRecord>(entity =>
+        {
+            entity.ToTable("post_media_uploads");
+            entity.HasKey(upload => upload.Id);
+            entity.Property(upload => upload.Url).HasMaxLength(2048).IsRequired();
+            entity.Property(upload => upload.ThumbnailUrl).HasMaxLength(2048).IsRequired();
+            entity.Property(upload => upload.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(upload => upload.Status).HasConversion<string>().HasMaxLength(64).IsRequired();
+            entity.HasIndex(upload => upload.OwnerId);
+            entity.HasIndex(upload => upload.Url).IsUnique();
+            entity.HasIndex(upload => upload.Status);
+            entity.HasIndex(upload => upload.CleanupDueAtUtc);
+            entity.HasOne<PostRecord>().WithMany().HasForeignKey(upload => upload.AttachedPostId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 
