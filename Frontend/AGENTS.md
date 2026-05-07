@@ -14,7 +14,7 @@ For canonical loading order, use:
 If the task changes visual styling, layout, components, page patterns, shell/navigation presentation, or any other user-visible UI behavior, also load:
 
 - `docs/ai/engineering-rules.md`
-- `docs/ai/stack-rules/frontend-ui-unification.md`
+- root `DESIGN.md`
 
 ## Rule
 
@@ -29,7 +29,7 @@ Visual/UI work must follow both:
 
 - `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/angular-tailwind.md`
-- `docs/ai/stack-rules/frontend-ui-unification.md`
+- root `DESIGN.md`
 
 Typical frontend truth set:
 

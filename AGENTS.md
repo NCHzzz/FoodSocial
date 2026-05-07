@@ -53,7 +53,7 @@ Read in this order:
 
 - backend code -> `docs/ai/stack-rules/dotnet.md`
 - frontend code -> `docs/ai/stack-rules/angular-tailwind.md`
-- UI / visual work -> `docs/ai/stack-rules/angular-tailwind.md` + `docs/ai/stack-rules/frontend-ui-unification.md`
+- UI / visual work -> `docs/ai/stack-rules/angular-tailwind.md` + root `DESIGN.md`
 
 ## Repo Layer Model
 

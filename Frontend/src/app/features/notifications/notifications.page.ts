@@ -39,20 +39,20 @@ interface NotificationItem {
     >
       <div class="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section appUiSurface="soft" appUiSurfacePadding="comfortable">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Activity stream</p>
-          <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Food and profile activity are live</h2>
-          <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Activity stream</p>
+          <h2 class="mt-2 text-xl font-semibold tracking-tight text-[#141413]">Food and profile activity are live</h2>
+          <p class="mt-3 max-w-2xl text-sm leading-6 text-[#5e5d59]">
             This MVP stream combines Post.Api interactions and UserProfile follow notices through the BFF. It stays bounded until a dedicated Notification service is extracted.
           </p>
           <div class="mt-5 flex flex-wrap items-center gap-3">
             <button type="button" appUiButton="secondary" (click)="loadNotifications()" [disabled]="status() === 'loading'">Refresh</button>
-            <span class="rounded-full bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700">{{ unreadCount() }} unread</span>
+            <span class="rounded-full bg-[#f0eee6] px-3 py-2 text-sm font-semibold text-[#c96442]">{{ unreadCount() }} unread</span>
           </div>
         </section>
 
         <aside appUiSurface="default" appUiSurfacePadding="comfortable">
-          <p class="text-sm font-semibold text-slate-950">Current scope</p>
-          <ul class="mt-3 space-y-3 text-sm leading-6 text-slate-600">
+          <p class="text-sm font-semibold text-[#141413]">Current scope</p>
+          <ul class="mt-3 space-y-3 text-sm leading-6 text-[#5e5d59]">
             <li>Likes on your food posts.</li>
             <li>Comments on your food posts.</li>
             <li>Reposts of your food posts.</li>
@@ -78,22 +78,22 @@ interface NotificationItem {
       <section class="mt-8">
         @if (status() === 'loading') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Loading notifications</p>
-            <p class="mt-2 text-sm text-slate-600">Reading your latest food and profile activity.</p>
+            <p class="text-sm font-semibold text-[#141413]">Loading notifications</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Reading your latest food and profile activity.</p>
           </div>
         }
 
         @if (status() === 'error') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Notifications unavailable</p>
-            <p class="mt-2 text-sm text-slate-600">Retry when the BFF notification facade is reachable.</p>
+            <p class="text-sm font-semibold text-[#141413]">Notifications unavailable</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Retry when the BFF notification facade is reachable.</p>
           </div>
         }
 
         @if (status() === 'empty') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">No activity yet</p>
-            <p class="mt-2 text-sm text-slate-600">Likes, comments, reposts, and new followers will appear here.</p>
+            <p class="text-sm font-semibold text-[#141413]">No activity yet</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Likes, comments, reposts, and new followers will appear here.</p>
             <a class="mt-4" appUiButton="accent" routerLink="/posts">Browse posts</a>
           </div>
         }
@@ -104,13 +104,13 @@ interface NotificationItem {
               <article appUiSurface="default" appUiSurfacePadding="comfortable">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">{{ notification.sourceLabel }} · {{ notification.type }}</p>
-                    <h3 class="mt-2 text-base font-semibold text-slate-950" [textContent]="notification.message"></h3>
-                    <p class="mt-2 break-all text-sm leading-6 text-slate-600">
+                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">{{ notification.sourceLabel }} · {{ notification.type }}</p>
+                    <h3 class="mt-2 text-base font-semibold text-[#141413]" [textContent]="notification.message"></h3>
+                    <p class="mt-2 break-all text-sm leading-6 text-[#5e5d59]">
                       Actor {{ notification.actorId }} · {{ formatDate(notification.createdAtUtc) }}
                     </p>
                     @if (notification.postId) {
-                      <a class="mt-3 inline-flex text-sm font-semibold text-orange-700 hover:text-orange-900" [routerLink]="['/posts', notification.postId]">Open post</a>
+                      <a class="mt-3 inline-flex text-sm font-semibold text-[#c96442] hover:text-[#4d4c48]" [routerLink]="['/posts', notification.postId]">Open post</a>
                     }
                   </div>
                   @if (!notification.isRead) {

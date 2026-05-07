@@ -4,12 +4,12 @@ type UiSurfaceTone = 'default' | 'subtle' | 'soft';
 type UiSurfacePadding = 'compact' | 'comfortable' | 'spacious';
 type UiSurfaceRadius = 'default' | 'feature';
 
-const UI_SURFACE_BASE_CLASSES = 'block border shadow-sm';
+const UI_SURFACE_BASE_CLASSES = 'block border shadow-[0_0_0_1px_#f0eee6]';
 
 const UI_SURFACE_TONE_CLASSES: Record<UiSurfaceTone, string> = {
-  default: 'border-slate-200 bg-white',
-  subtle: 'border-slate-200 bg-slate-50',
-  soft: 'border-slate-200 bg-slate-50/80',
+  default: 'border-[#e8e6dc] bg-[#faf9f5]',
+  subtle: 'border-[#e8e6dc] bg-[#faf9f5]',
+  soft: 'border-[#e8e6dc] bg-[#faf9f5]/80',
 };
 
 const UI_SURFACE_PADDING_CLASSES: Record<UiSurfacePadding, string> = {

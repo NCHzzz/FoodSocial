@@ -52,7 +52,7 @@ Always load:
 
 - `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/angular-tailwind.md`
-- `docs/ai/stack-rules/frontend-ui-unification.md`
+- root `DESIGN.md`
 
 These files must be explicitly read before UI implementation starts. Reading `AGENTS.md` or `repo-map.md` alone is not sufficient.
 

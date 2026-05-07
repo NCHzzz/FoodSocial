@@ -13,9 +13,9 @@ type DishSearchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
   template: `
     <section appUiSurface="default" appUiSurfacePadding="spacious" class="space-y-5">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Canonical dish</p>
-        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Choose the dish identity first</h2>
-        <p class="mt-2 text-sm leading-6 text-slate-600">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Canonical dish</p>
+        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-[#141413]">Choose the dish identity first</h2>
+        <p class="mt-2 text-sm leading-6 text-[#5e5d59]">
           Food posts need a stable dish identity so search, saves, and recommendations can grow without guessing from captions.
         </p>
       </div>
@@ -24,7 +24,7 @@ type DishSearchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
         <label class="min-w-0 flex-1">
           <span class="sr-only">Search dishes</span>
           <input
-            class="min-h-12 w-full rounded-full border border-slate-200 bg-white px-5 text-base text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-100"
+            class="min-h-12 w-full rounded-full border border-[#e8e6dc] bg-[#faf9f5] px-5 text-base text-[#141413] shadow-[0_0_0_1px_#f0eee6] outline-none transition placeholder:text-[#87867f] focus:border-[#3898ec] focus:ring-4 focus:ring-[#3898ec]/20"
             type="search"
             name="dishQuery"
             [value]="query()"
@@ -38,8 +38,8 @@ type DishSearchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
 
       @if (state() === 'loading') {
         <section appUiSurface="subtle">
-          <p class="text-sm font-semibold text-slate-950">Searching canonical dishes...</p>
-          <p class="mt-1 text-sm text-slate-600">Checking the Dish catalog through the BFF.</p>
+          <p class="text-sm font-semibold text-[#141413]">Searching canonical dishes...</p>
+          <p class="mt-1 text-sm text-[#5e5d59]">Checking the Dish catalog through the BFF.</p>
         </section>
       }
 
@@ -52,15 +52,15 @@ type DishSearchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
 
       @if (state() === 'empty') {
         <section appUiSurface="soft">
-          <p class="text-sm font-semibold text-slate-950">No dishes found</p>
-          <p class="mt-1 text-sm text-slate-600">Try a broader dish name or Vietnamese spelling variant.</p>
+          <p class="text-sm font-semibold text-[#141413]">No dishes found</p>
+          <p class="mt-1 text-sm text-[#5e5d59]">Try a broader dish name or Vietnamese spelling variant.</p>
         </section>
       }
 
       @if (selectedDish()) {
-        <section class="rounded-2xl border border-orange-200 bg-orange-50 p-4">
-          <p class="text-sm font-semibold text-orange-950">Selected dish</p>
-          <p class="mt-1 text-sm text-orange-800" [textContent]="selectedDish()?.name"></p>
+        <section class="rounded-2xl border border-[#e8e6dc] bg-[#f0eee6] p-4">
+          <p class="text-sm font-semibold text-[#141413]">Selected dish</p>
+          <p class="mt-1 text-sm text-[#4d4c48]" [textContent]="selectedDish()?.name"></p>
         </section>
       }
 
@@ -69,14 +69,14 @@ type DishSearchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
           @for (dish of results(); track dish.id) {
             <article appUiSurface="subtle" class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div class="min-w-0">
-                <h3 class="text-lg font-semibold tracking-tight text-slate-950" [textContent]="dish.name"></h3>
-                <p class="mt-1 text-sm text-slate-600">
+                <h3 class="text-lg font-semibold tracking-tight text-[#141413]" [textContent]="dish.name"></h3>
+                <p class="mt-1 text-sm text-[#5e5d59]">
                   <span [textContent]="dish.category ?? 'Uncategorized'"></span>
                   <span aria-hidden="true"> · </span>
                   <span [textContent]="dish.cuisineType ?? 'Cuisine pending'"></span>
                 </p>
                 @if (dish.aliases.length > 0) {
-                  <p class="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-500" [textContent]="dish.aliases.join(' / ')"></p>
+                  <p class="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-[#87867f]" [textContent]="dish.aliases.join(' / ')"></p>
                 }
               </div>
               <button appUiButton="secondary" type="button" (click)="selectDish(dish)">Select dish</button>

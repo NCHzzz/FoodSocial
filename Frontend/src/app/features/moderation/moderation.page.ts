@@ -23,17 +23,17 @@ type ModerationActionStatus = 'idle' | 'pending' | 'success' | 'error';
     >
       <section class="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Review policy</p>
-          <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Manual queue for reported content</h2>
-          <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Review policy</p>
+          <h2 class="mt-2 text-xl font-semibold tracking-tight text-[#141413]">Manual queue for reported content</h2>
+          <p class="mt-3 max-w-2xl text-sm leading-6 text-[#5e5d59]">
             MVP moderation stays human-reviewed. Reports can be dismissed or resolved with a content action through the BFF-backed Post moderation facade.
           </p>
           <button class="mt-5" type="button" appUiButton="secondary" (click)="loadReports()" [disabled]="status() === 'loading'">Refresh queue</button>
         </div>
 
         <aside appUiSurface="default" appUiSurfacePadding="comfortable">
-          <p class="text-sm font-semibold text-slate-950">Access</p>
-          <p class="mt-3 text-sm leading-6 text-slate-600">
+          <p class="text-sm font-semibold text-[#141413]">Access</p>
+          <p class="mt-3 text-sm leading-6 text-[#5e5d59]">
             Moderator or admin role required. Non-moderator sessions stay blocked client-side and again by the BFF/Post.Api trust boundary.
           </p>
           <a class="mt-5" appUiButton="secondary" routerLink="/discover">Back to Discover</a>
@@ -50,29 +50,29 @@ type ModerationActionStatus = 'idle' | 'pending' | 'success' | 'error';
       <section class="mt-8">
         @if (status() === 'forbidden') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Moderator access required</p>
-            <p class="mt-2 text-sm text-slate-600">Sign in with a moderator or admin role to review submitted reports.</p>
+            <p class="text-sm font-semibold text-[#141413]">Moderator access required</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Sign in with a moderator or admin role to review submitted reports.</p>
           </div>
         }
 
         @if (status() === 'loading') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Loading reports</p>
-            <p class="mt-2 text-sm text-slate-600">Reading the latest manual-review queue from the BFF.</p>
+            <p class="text-sm font-semibold text-[#141413]">Loading reports</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Reading the latest manual-review queue from the BFF.</p>
           </div>
         }
 
         @if (status() === 'error') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Moderation queue unavailable</p>
-            <p class="mt-2 text-sm text-slate-600">Retry when the Post moderation facade is reachable.</p>
+            <p class="text-sm font-semibold text-[#141413]">Moderation queue unavailable</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Retry when the Post moderation facade is reachable.</p>
           </div>
         }
 
         @if (status() === 'empty') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">No reports waiting</p>
-            <p class="mt-2 text-sm text-slate-600">The manual review queue is empty.</p>
+            <p class="text-sm font-semibold text-[#141413]">No reports waiting</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">The manual review queue is empty.</p>
           </div>
         }
 
@@ -82,24 +82,24 @@ type ModerationActionStatus = 'idle' | 'pending' | 'success' | 'error';
               <article appUiSurface="default" appUiSurfacePadding="comfortable">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">{{ report.targetType }} report</p>
-                    <h3 class="mt-2 text-lg font-semibold tracking-tight text-slate-950" [textContent]="report.reason"></h3>
-                    <p class="mt-2 text-sm leading-6 text-slate-600" [textContent]="report.description || 'No reporter description.'"></p>
-                    <dl class="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">{{ report.targetType }} report</p>
+                    <h3 class="mt-2 text-lg font-semibold tracking-tight text-[#141413]" [textContent]="report.reason"></h3>
+                    <p class="mt-2 text-sm leading-6 text-[#5e5d59]" [textContent]="report.description || 'No reporter description.'"></p>
+                    <dl class="mt-4 grid gap-2 text-sm text-[#5e5d59] sm:grid-cols-2">
                       <div>
-                        <dt class="font-semibold text-slate-950">Target</dt>
+                        <dt class="font-semibold text-[#141413]">Target</dt>
                         <dd [textContent]="report.targetId"></dd>
                       </div>
                       <div>
-                        <dt class="font-semibold text-slate-950">Reporter</dt>
+                        <dt class="font-semibold text-[#141413]">Reporter</dt>
                         <dd [textContent]="report.reporterId"></dd>
                       </div>
                       <div>
-                        <dt class="font-semibold text-slate-950">Status</dt>
+                        <dt class="font-semibold text-[#141413]">Status</dt>
                         <dd [textContent]="report.status"></dd>
                       </div>
                       <div>
-                        <dt class="font-semibold text-slate-950">Submitted</dt>
+                        <dt class="font-semibold text-[#141413]">Submitted</dt>
                         <dd [textContent]="formatDate(report.createdAtUtc)"></dd>
                       </div>
                     </dl>

@@ -27,7 +27,7 @@ For canonical loading order and task-type loading rules, use:
 - `docs/ai/engineering-rules.md` — repo-wide engineering rules
 - `docs/ai/stack-rules/dotnet.md` — backend rules
 - `docs/ai/stack-rules/angular-tailwind.md` — frontend engineering rules
-- `docs/ai/stack-rules/frontend-ui-unification.md` — frontend UI rules
+- root `DESIGN.md` — frontend UI rules
 
 ## Task-Type Detail
 

@@ -11,12 +11,12 @@ import { UiSurfaceDirective } from '../../shared/ui/surface/ui-surface.directive
   template: `
     <article appUiSurface="default" appUiSurfacePadding="comfortable" class="grid gap-4 overflow-hidden">
       @if (primaryMediaUrl(); as mediaUrl) {
-        <a class="block overflow-hidden rounded-[1.5rem] bg-slate-100" [routerLink]="['/posts', post().id]">
+        <a class="block overflow-hidden rounded-[1.5rem] bg-[#e8e6dc]" [routerLink]="['/posts', post().id]">
           <img class="aspect-[4/3] w-full object-cover" [src]="mediaUrl" [alt]="mediaAlt()" />
         </a>
       } @else {
         <a
-          class="flex aspect-[4/3] items-center justify-center rounded-[1.5rem] border border-dashed border-orange-200 bg-orange-50 text-sm font-semibold text-orange-800"
+          class="flex aspect-[4/3] items-center justify-center rounded-[1.5rem] border border-dashed border-[#e8e6dc] bg-[#f0eee6] text-sm font-semibold text-[#4d4c48]"
           [routerLink]="['/posts', post().id]"
         >
           Media pending
@@ -25,26 +25,26 @@ import { UiSurfaceDirective } from '../../shared/ui/surface/ui-surface.directive
 
       <div class="grid gap-3">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Dish-first post</p>
-          <a class="mt-1 block text-lg font-semibold tracking-tight text-slate-950 hover:text-orange-700" [routerLink]="['/posts', post().id]">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Dish-first post</p>
+          <a class="mt-1 block font-serif text-xl font-semibold leading-tight text-[#141413] hover:text-[#c96442]" [routerLink]="['/posts', post().id]">
             {{ dishLabel() }}
           </a>
-          <p class="mt-2 line-clamp-3 text-sm leading-6 text-slate-600" [textContent]="post().caption"></p>
+          <p class="mt-2 line-clamp-3 text-sm leading-6 text-[#5e5d59]" [textContent]="post().caption"></p>
         </div>
 
         <div class="flex flex-wrap gap-2">
           @for (tag of visibleTags(); track tag) {
-            <span class="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">#{{ tag }}</span>
+            <span class="rounded-full bg-[#f0eee6] px-3 py-1 text-xs font-semibold text-[#c96442]">#{{ tag }}</span>
           }
           @if (post().priceRange) {
-            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700" [textContent]="post().priceRange"></span>
+            <span class="rounded-full bg-[#e8e6dc] px-3 py-1 text-xs font-semibold text-[#4d4c48]" [textContent]="post().priceRange"></span>
           }
           @if (post().rating) {
             <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{{ post().rating }}/5</span>
           }
         </div>
 
-        <div class="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
+        <div class="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#87867f]">
           <span>{{ post().likeCount }} likes</span>
           <span aria-hidden="true">·</span>
           <span>{{ post().commentCount }} comments</span>

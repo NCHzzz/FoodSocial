@@ -93,3 +93,10 @@ Do not append minor churn, repetitive edits, or every small refactor.
 - Added a browser-facing UserProfile facade in the BFF and a typed Angular UserProfile client with a minimal public profile route foundation.
 - Hardened BFF session handling for blocked Identity lifecycle states and explicit browser cookie settings, then fixed hosted UserProfile startup by passing its Keycloak realm/audience configuration through AppHost and made RabbitMQ bounded-retry poison messages land deterministically in their DLQs.
 - This unblocks the next frontend profile-edit flow and the next MVP product vertical slice on top of a verified Identity/UserProfile/BFF foundation.
+
+## 2026-05-07
+
+- Promoted root `DESIGN.md` as the canonical FoodSocial UI/UX design source and left `docs/ai/stack-rules/frontend-ui-unification.md` as a compatibility shim.
+- Reworked the Angular UI surface toward the warm editorial design system: parchment canvas, ivory cards, terracotta CTAs, warm-neutral Tailwind classes, serif-led headings, quieter shell, and ring-based shared primitives.
+- Rule-compliance review then removed dynamic Tailwind class binding in the Discover session badge and the remaining cool `rose` badge class.
+- Verified the frontend with `npm test -- --watch=false` and `npm run build`.

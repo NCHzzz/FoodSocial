@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@a
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthSessionService } from '../core/auth/auth-session.service';
-import { getAuthSessionBadgeClasses, getAuthSessionSummary, isAuthenticatedSession } from '../core/auth/auth-session.presentation';
+import { getAuthSessionSummary, isAuthenticatedSession } from '../core/auth/auth-session.presentation';
 import { UiButtonDirective } from '../shared/ui/button/ui-button.directive';
 import { ShellNavLinkDirective } from '../shared/ui/shell/shell-nav-link.directive';
 import { UiSurfaceDirective } from '../shared/ui/surface/ui-surface.directive';
@@ -21,7 +21,6 @@ export class AppShellComponent implements OnInit {
   protected readonly isAuthenticated = computed(() => isAuthenticatedSession(this.authState()));
   protected readonly session = computed(() => this.authState().session);
   protected readonly sessionLoadFailed = computed(() => this.authState().loadStatus === 'unavailable');
-  protected readonly sessionStatusClasses = computed(() => getAuthSessionBadgeClasses(this.authState()));
   protected readonly sessionSummary = computed(() => getAuthSessionSummary(this.authState()));
   protected readonly navigationItems = computed(() => {
     if (!this.isAuthenticated()) {

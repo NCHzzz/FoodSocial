@@ -13,9 +13,9 @@ type PlaceSearchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
   template: `
     <section appUiSurface="default" appUiSurfacePadding="spacious" class="space-y-5">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Optional place context</p>
-        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Attach a restaurant or area when it helps</h2>
-        <p class="mt-2 text-sm leading-6 text-slate-600">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Optional place context</p>
+        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-[#141413]">Attach a restaurant or area when it helps</h2>
+        <p class="mt-2 text-sm leading-6 text-[#5e5d59]">
           Places enrich food posts with restaurant and location context, while keeping dish identity as the primary decision layer.
         </p>
       </div>
@@ -24,7 +24,7 @@ type PlaceSearchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
         <label class="min-w-0 flex-1">
           <span class="sr-only">Search places</span>
           <input
-            class="min-h-12 w-full rounded-full border border-slate-200 bg-white px-5 text-base text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-100"
+            class="min-h-12 w-full rounded-full border border-[#e8e6dc] bg-[#faf9f5] px-5 text-base text-[#141413] shadow-[0_0_0_1px_#f0eee6] outline-none transition placeholder:text-[#87867f] focus:border-[#3898ec] focus:ring-4 focus:ring-[#3898ec]/20"
             type="search"
             name="placeQuery"
             [value]="query()"
@@ -38,8 +38,8 @@ type PlaceSearchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
 
       @if (state() === 'loading') {
         <section appUiSurface="subtle">
-          <p class="text-sm font-semibold text-slate-950">Searching canonical places...</p>
-          <p class="mt-1 text-sm text-slate-600">Checking the Place catalog through the BFF.</p>
+          <p class="text-sm font-semibold text-[#141413]">Searching canonical places...</p>
+          <p class="mt-1 text-sm text-[#5e5d59]">Checking the Place catalog through the BFF.</p>
         </section>
       }
 
@@ -52,15 +52,15 @@ type PlaceSearchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
 
       @if (state() === 'empty') {
         <section appUiSurface="soft">
-          <p class="text-sm font-semibold text-slate-950">No places found</p>
-          <p class="mt-1 text-sm text-slate-600">Try a broader restaurant name, city, or district.</p>
+          <p class="text-sm font-semibold text-[#141413]">No places found</p>
+          <p class="mt-1 text-sm text-[#5e5d59]">Try a broader restaurant name, city, or district.</p>
         </section>
       }
 
       @if (selectedPlace()) {
-        <section class="rounded-2xl border border-orange-200 bg-orange-50 p-4">
-          <p class="text-sm font-semibold text-orange-950">Selected place</p>
-          <p class="mt-1 text-sm text-orange-800" [textContent]="selectedPlace()?.name"></p>
+        <section class="rounded-2xl border border-[#e8e6dc] bg-[#f0eee6] p-4">
+          <p class="text-sm font-semibold text-[#141413]">Selected place</p>
+          <p class="mt-1 text-sm text-[#4d4c48]" [textContent]="selectedPlace()?.name"></p>
         </section>
       }
 
@@ -69,15 +69,15 @@ type PlaceSearchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
           @for (place of results(); track place.id) {
             <article appUiSurface="subtle" class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div class="min-w-0">
-                <h3 class="text-lg font-semibold tracking-tight text-slate-950" [textContent]="place.name"></h3>
-                <p class="mt-1 text-sm text-slate-600">
+                <h3 class="text-lg font-semibold tracking-tight text-[#141413]" [textContent]="place.name"></h3>
+                <p class="mt-1 text-sm text-[#5e5d59]">
                   <span [textContent]="place.area"></span>
                   <span aria-hidden="true"> · </span>
                   <span [textContent]="place.city"></span>
                 </p>
-                <p class="mt-1 text-sm text-slate-500" [textContent]="place.addressText"></p>
+                <p class="mt-1 text-sm text-[#87867f]" [textContent]="place.addressText"></p>
                 @if (place.cuisineTypes.length > 0 || place.priceRange) {
-                  <p class="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                  <p class="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-[#87867f]">
                     <span [textContent]="place.cuisineTypes.length > 0 ? place.cuisineTypes.join(' / ') : 'Cuisine pending'"></span>
                     @if (place.priceRange) {
                       <span aria-hidden="true"> · </span>

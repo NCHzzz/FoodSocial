@@ -26,9 +26,9 @@ type FollowingActionStatus = 'idle' | 'pending' | 'success' | 'error';
     >
       <section class="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Trusted feed</p>
-          <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Follow graph first, recommendation theater later</h2>
-          <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Trusted feed</p>
+          <h2 class="mt-2 text-xl font-semibold tracking-tight text-[#141413]">Follow graph first, recommendation theater later</h2>
+          <p class="mt-3 max-w-2xl text-sm leading-6 text-[#5e5d59]">
             The current MVP assembles followed-author posts through existing BFF contracts. It keeps follower priority explicit while Feed service extraction remains deferred.
           </p>
           <div class="mt-5 flex flex-wrap gap-3">
@@ -38,8 +38,8 @@ type FollowingActionStatus = 'idle' | 'pending' | 'success' | 'error';
         </div>
 
         <aside appUiSurface="default" appUiSurfacePadding="comfortable">
-          <p class="text-sm font-semibold text-slate-950">Feed source</p>
-          <ul class="mt-3 space-y-3 text-sm leading-6 text-slate-600">
+          <p class="text-sm font-semibold text-[#141413]">Feed source</p>
+          <ul class="mt-3 space-y-3 text-sm leading-6 text-[#5e5d59]">
             <li>Reads your following list from UserProfile.</li>
             <li>Loads bounded public posts for followed authors.</li>
             <li>Sorts client-side by newest post while a dedicated Feed service is deferred.</li>
@@ -57,23 +57,23 @@ type FollowingActionStatus = 'idle' | 'pending' | 'success' | 'error';
       <section class="mt-8">
         @if (status() === 'loading') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Loading Following feed</p>
-            <p class="mt-2 text-sm text-slate-600">Fetching followed profiles and their recent posts through the BFF.</p>
+            <p class="text-sm font-semibold text-[#141413]">Loading Following feed</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Fetching followed profiles and their recent posts through the BFF.</p>
           </div>
         }
 
         @if (status() === 'error') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Following feed could not load</p>
-            <p class="mt-2 text-sm text-slate-600">Your session, follow graph, or Post search path is temporarily unavailable.</p>
+            <p class="text-sm font-semibold text-[#141413]">Following feed could not load</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Your session, follow graph, or Post search path is temporarily unavailable.</p>
             <button class="mt-4" type="button" appUiButton="secondary" (click)="loadFollowingFeed()">Retry</button>
           </div>
         }
 
         @if (status() === 'empty') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">No followed posts yet</p>
-            <p class="mt-2 text-sm text-slate-600">Follow profiles or wait for followed authors to publish food posts.</p>
+            <p class="text-sm font-semibold text-[#141413]">No followed posts yet</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Follow profiles or wait for followed authors to publish food posts.</p>
             <a class="mt-4" appUiButton="accent" routerLink="/profiles">Find profiles to follow</a>
           </div>
         }

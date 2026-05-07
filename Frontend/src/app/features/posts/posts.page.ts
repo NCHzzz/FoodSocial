@@ -27,16 +27,16 @@ type PostListActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
     >
       <section class="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <form appUiSurface="soft" appUiSurfacePadding="comfortable" (ngSubmit)="searchPosts()">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Post search</p>
-          <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Search captions, tags, and location text</h2>
-          <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Post search</p>
+          <h2 class="mt-2 text-xl font-semibold tracking-tight text-[#141413]">Search captions, tags, and location text</h2>
+          <p class="mt-3 max-w-2xl text-sm leading-6 text-[#5e5d59]">
             This is the deterministic post search path. Dish and Place catalog search stay available on Discover while richer AI search is still pending.
           </p>
           <div class="mt-5 flex flex-col gap-3 sm:flex-row">
-            <label class="min-w-0 flex-1 text-sm font-semibold text-slate-950">
+            <label class="min-w-0 flex-1 text-sm font-semibold text-[#141413]">
               Search posts
               <input
-                class="mt-2 min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                class="mt-2 min-h-11 w-full rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 text-sm font-medium text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                 type="search"
                 [formControl]="queryControl"
                 placeholder="Try phở, spicy, District 1"
@@ -47,8 +47,8 @@ type PostListActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
         </form>
 
         <aside appUiSurface="default" appUiSurfacePadding="comfortable">
-          <p class="text-sm font-semibold text-slate-950">MVP honesty</p>
-          <ul class="mt-3 space-y-3 text-sm leading-6 text-slate-600">
+          <p class="text-sm font-semibold text-[#141413]">MVP honesty</p>
+          <ul class="mt-3 space-y-3 text-sm leading-6 text-[#5e5d59]">
             <li>Cards use real Post.Api summaries.</li>
             <li>Save, like, comment, and report stay gated for signed-in users.</li>
             <li>AI search remains degraded; repost is now BFF-backed.</li>
@@ -70,23 +70,23 @@ type PostListActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
       <section class="mt-8">
         @if (status() === 'loading') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Loading posts</p>
-            <p class="mt-2 text-sm text-slate-600">Fetching the current public post list through the BFF.</p>
+            <p class="text-sm font-semibold text-[#141413]">Loading posts</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Fetching the current public post list through the BFF.</p>
           </div>
         }
 
         @if (status() === 'error') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Posts could not load</p>
-            <p class="mt-2 text-sm text-slate-600">Post.Api or the BFF post facade is unavailable. Retry keeps the failure visible.</p>
+            <p class="text-sm font-semibold text-[#141413]">Posts could not load</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Post.Api or the BFF post facade is unavailable. Retry keeps the failure visible.</p>
             <button class="mt-4" type="button" appUiButton="secondary" (click)="loadPosts()">Retry</button>
           </div>
         }
 
         @if (status() === 'empty') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">No posts yet</p>
-            <p class="mt-2 text-sm text-slate-600">Create the first food-first post with a dish, caption, and primary media URL.</p>
+            <p class="text-sm font-semibold text-[#141413]">No posts yet</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Create the first food-first post with a dish, caption, and primary media URL.</p>
             <a class="mt-4" appUiButton="accent" routerLink="/post-create">Create first post</a>
           </div>
         }

@@ -27,9 +27,9 @@ type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
       <div class="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <form appUiSurface="default" appUiSurfacePadding="comfortable" class="grid gap-6" [formGroup]="postForm" (ngSubmit)="publishPost()">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Publish flow</p>
-            <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Canonical dish first, place optional</h2>
-            <p class="mt-2 text-sm leading-6 text-slate-600">
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Publish flow</p>
+            <h2 class="mt-2 text-xl font-semibold tracking-tight text-[#141413]">Canonical dish first, place optional</h2>
+            <p class="mt-2 text-sm leading-6 text-[#5e5d59]">
               This MVP form submits to the real BFF Post facade. Upload an image through the BFF media pipeline or paste a bounded media URL before publishing.
             </p>
           </div>
@@ -40,33 +40,33 @@ type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
           </section>
 
           <div class="grid gap-4 md:grid-cols-2">
-            <article class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p class="text-sm font-semibold text-slate-950">Selected dish</p>
+            <article class="rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3">
+              <p class="text-sm font-semibold text-[#141413]">Selected dish</p>
               @if (selectedDish(); as dish) {
-                <p class="mt-1 text-sm text-slate-600" [textContent]="dish.name"></p>
+                <p class="mt-1 text-sm text-[#5e5d59]" [textContent]="dish.name"></p>
               } @else {
                 <p class="mt-1 text-sm text-red-600">Required before publish.</p>
               }
             </article>
-            <article class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p class="text-sm font-semibold text-slate-950">Selected place</p>
+            <article class="rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3">
+              <p class="text-sm font-semibold text-[#141413]">Selected place</p>
               @if (selectedPlace(); as place) {
-                <p class="mt-1 text-sm text-slate-600">
+                <p class="mt-1 text-sm text-[#5e5d59]">
                   <span [textContent]="place.name"></span>
                   <span aria-hidden="true"> · </span>
                   <span [textContent]="place.area"></span>
                 </p>
               } @else {
-                <p class="mt-1 text-sm text-slate-500">Optional for home-cooked or unknown-place posts.</p>
+                <p class="mt-1 text-sm text-[#87867f]">Optional for home-cooked or unknown-place posts.</p>
               }
             </article>
           </div>
 
-          <section class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <label class="grid gap-2 text-sm font-semibold text-slate-950">
+          <section class="grid gap-3 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3">
+            <label class="grid gap-2 text-sm font-semibold text-[#141413]">
               Upload primary image
               <input
-                class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-950 outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-orange-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-orange-700 focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                class="min-h-11 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-2 text-sm font-medium text-[#141413] outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-[#f0eee6] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#c96442] focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                 type="file"
                 accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                 (change)="uploadMedia($event)"
@@ -83,10 +83,10 @@ type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
             }
           </section>
 
-          <label class="grid gap-2 text-sm font-semibold text-slate-950">
+          <label class="grid gap-2 text-sm font-semibold text-[#141413]">
             Primary media URL
             <input
-              class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+              class="min-h-11 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 text-sm font-medium text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
               type="text"
               formControlName="primaryMediaUrl"
               placeholder="/api/media/uploads/.../original or https://example.com/pho.jpg"
@@ -96,10 +96,10 @@ type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
             }
           </label>
 
-          <label class="grid gap-2 text-sm font-semibold text-slate-950">
+          <label class="grid gap-2 text-sm font-semibold text-[#141413]">
             Caption or quick review
             <textarea
-              class="min-h-32 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium leading-6 text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+              class="min-h-32 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
               formControlName="caption"
               rows="5"
               placeholder="What should someone know before trying this?"
@@ -110,10 +110,10 @@ type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
           </label>
 
           <div class="grid gap-4 md:grid-cols-3">
-            <label class="grid gap-2 text-sm font-semibold text-slate-950">
+            <label class="grid gap-2 text-sm font-semibold text-[#141413]">
               Rating
               <input
-                class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                class="min-h-11 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 text-sm font-medium text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                 type="number"
                 min="1"
                 max="5"
@@ -121,19 +121,19 @@ type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
                 placeholder="1-5"
               />
             </label>
-            <label class="grid gap-2 text-sm font-semibold text-slate-950">
+            <label class="grid gap-2 text-sm font-semibold text-[#141413]">
               Price range
               <input
-                class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                class="min-h-11 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 text-sm font-medium text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                 type="text"
                 formControlName="priceRange"
                 placeholder="$, $$, $$$"
               />
             </label>
-            <label class="grid gap-2 text-sm font-semibold text-slate-950">
+            <label class="grid gap-2 text-sm font-semibold text-[#141413]">
               Location text
               <input
-                class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                class="min-h-11 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 text-sm font-medium text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                 type="text"
                 formControlName="locationText"
                 placeholder="District 1, HCMC"
@@ -141,15 +141,15 @@ type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
             </label>
           </div>
 
-          <label class="grid gap-2 text-sm font-semibold text-slate-950">
+          <label class="grid gap-2 text-sm font-semibold text-[#141413]">
             Tags
             <input
-              class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+              class="min-h-11 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 text-sm font-medium text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
               type="text"
               formControlName="tags"
               placeholder="pho, street-food, spicy"
             />
-            <span class="text-xs font-medium text-slate-500">Comma-separated tags.</span>
+            <span class="text-xs font-medium text-[#87867f]">Comma-separated tags.</span>
           </label>
 
           @if (publishStatus() === 'success' && createdPost(); as post) {
@@ -177,8 +177,8 @@ type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
         </form>
 
         <aside appUiSurface="soft" appUiSurfacePadding="comfortable" class="h-fit">
-          <p class="text-sm font-semibold text-slate-950">Still not full media lifecycle</p>
-          <ul class="mt-3 space-y-3 text-sm leading-6 text-slate-600">
+          <p class="text-sm font-semibold text-[#141413]">Still not full media lifecycle</p>
+          <ul class="mt-3 space-y-3 text-sm leading-6 text-[#5e5d59]">
             <li>Uploads now store original and thumbnail references through the BFF/Post.Api media path.</li>
             <li>Cleanup expectations are recorded on upload responses; deeper async cleanup jobs remain future hardening.</li>
             <li>Post moderation remains manual-review-first after reports.</li>

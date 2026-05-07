@@ -18,9 +18,9 @@ It does **not** define the shared FoodSocial UI/UX design system.
 
 For the active FoodSocial visual system standard, also read:
 
-- `docs/ai/stack-rules/frontend-ui-unification.md`
+- root `DESIGN.md`
 
-## Boundary With `frontend-ui-unification.md`
+## Boundary With `DESIGN.md`
 
 Use this file when the question is:
 
@@ -29,7 +29,7 @@ Use this file when the question is:
 - how should Tailwind be written safely and consistently?
 - how should frontend state, templates, routing, diagnostics, and quality be handled?
 
-Use `frontend-ui-unification.md` when the question is:
+Use `DESIGN.md` when the question is:
 
 - what should the UI feel like?
 - what is the canonical page pattern?
@@ -168,7 +168,7 @@ Examples that match this rule:
 - All interactive elements must support keyboard access, visible focus, and clear labels
 - Prefer implementation choices that preserve responsive-first and reduced-motion-friendly behavior
 
-Canonical user-facing accessibility, responsive behavior, shell language, CTA hierarchy, page patterns, guest/auth honesty, and AI fallback UX belong to `docs/ai/stack-rules/frontend-ui-unification.md`.
+Canonical user-facing accessibility, responsive behavior, shell language, CTA hierarchy, page patterns, guest/auth honesty, and AI fallback UX belong to root `DESIGN.md`.
 
 ## Frontend Failure-State Implementation Rules
 
@@ -176,7 +176,7 @@ Canonical user-facing accessibility, responsive behavior, shell language, CTA hi
 - Session-expired or auth-invalid states **SHOULD** be represented explicitly in frontend state handling instead of collapsing into unknown failure buckets
 - Retry behavior **SHOULD** be modeled intentionally rather than hidden in silent loops or ad hoc retry branching
 
-Visible user-facing async-state treatment, state naming, state hierarchy, and degraded AI UX belong to `docs/ai/stack-rules/frontend-ui-unification.md`.
+Visible user-facing async-state treatment, state naming, state hierarchy, and degraded AI UX belong to root `DESIGN.md`.
 
 ## TailwindCSS Rules
 
@@ -188,7 +188,7 @@ Visible user-facing async-state treatment, state naming, state hierarchy, and de
 - Group long utility lists in a stable, readable order
 - SCSS or component CSS should be the exception, not the default
 
-Semantic roles, design-token intent, and primitive growth policy belong to `docs/ai/stack-rules/frontend-ui-unification.md`.
+Semantic roles, design-token intent, and primitive growth policy belong to root `DESIGN.md`.
 
 ## Frontend Maintainability Rules
 
@@ -203,7 +203,7 @@ Semantic roles, design-token intent, and primitive growth policy belong to `docs
 - AI-generated frontend code **SHOULD** prefer small components, explicit state transitions, and direct route-to-page traceability over wrapper-heavy or speculative abstractions
 - AI-generated frontend code **MUST NOT** hide meaningful behavior in template cleverness, silent side effects, or unnecessary reusable layers
 
-Design-system primitive rules, semantic roles, and intentional exception policy belong to `docs/ai/stack-rules/frontend-ui-unification.md`.
+Design-system primitive rules, semantic roles, and intentional exception policy belong to root `DESIGN.md`.
 
 ## Frontend Exception Handling Rule
 

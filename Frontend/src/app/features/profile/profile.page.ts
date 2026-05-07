@@ -35,8 +35,8 @@ interface SavedItemView {
       <div class="mt-8 grid gap-4">
         @if (profileLoadStatus() === 'loading') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Loading your profile</p>
-            <p class="mt-2 text-sm leading-6 text-slate-600">
+            <p class="text-sm font-semibold text-[#141413]">Loading your profile</p>
+            <p class="mt-2 text-sm leading-6 text-[#5e5d59]">
               Fetching your current profile through the authenticated BFF session.
             </p>
           </div>
@@ -44,8 +44,8 @@ interface SavedItemView {
 
         @if (profileLoadStatus() === 'error') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Your profile could not load</p>
-            <p class="mt-2 text-sm leading-6 text-slate-600">
+            <p class="text-sm font-semibold text-[#141413]">Your profile could not load</p>
+            <p class="mt-2 text-sm leading-6 text-[#5e5d59]">
               The edit form stays locked until FoodSocial can confirm your session and profile state.
             </p>
             <button class="mt-4" type="button" appUiButton="secondary" (click)="loadOwnProfile()">
@@ -64,17 +64,17 @@ interface SavedItemView {
               (ngSubmit)="saveProfile()"
             >
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Edit basics</p>
-                <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Public identity</h2>
-                <p class="mt-2 text-sm leading-6 text-slate-600">
+                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Edit basics</p>
+                <h2 class="mt-2 text-xl font-semibold tracking-tight text-[#141413]">Public identity</h2>
+                <p class="mt-2 text-sm leading-6 text-[#5e5d59]">
                   Keep this concise and taste-focused. These fields power the public profile preview.
                 </p>
               </div>
 
-              <label class="grid gap-2 text-sm font-semibold text-slate-950">
+              <label class="grid gap-2 text-sm font-semibold text-[#141413]">
                 Display name
                 <input
-                  class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  class="min-h-11 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 text-sm font-medium text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                   type="text"
                   formControlName="displayName"
                   autocomplete="name"
@@ -84,10 +84,10 @@ interface SavedItemView {
                 }
               </label>
 
-              <label class="grid gap-2 text-sm font-semibold text-slate-950">
+              <label class="grid gap-2 text-sm font-semibold text-[#141413]">
                 Avatar URL
                 <input
-                  class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  class="min-h-11 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 text-sm font-medium text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                   type="url"
                   formControlName="avatarUrl"
                   autocomplete="url"
@@ -97,10 +97,10 @@ interface SavedItemView {
                 }
               </label>
 
-              <label class="grid gap-2 text-sm font-semibold text-slate-950">
+              <label class="grid gap-2 text-sm font-semibold text-[#141413]">
                 Bio
                 <textarea
-                  class="min-h-32 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium leading-6 text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  class="min-h-32 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                   formControlName="bio"
                   rows="5"
                 ></textarea>
@@ -110,34 +110,34 @@ interface SavedItemView {
               </label>
 
               <div class="grid gap-4 md:grid-cols-3">
-                <label class="grid gap-2 text-sm font-semibold text-slate-950">
+                <label class="grid gap-2 text-sm font-semibold text-[#141413]">
                   Preferred cuisines
                   <textarea
-                    class="min-h-28 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium leading-6 text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                    class="min-h-28 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                     formControlName="preferredCuisines"
                     rows="4"
                   ></textarea>
-                  <span class="text-xs font-medium text-slate-500">Comma-separated, for example: Vietnamese, street food.</span>
+                  <span class="text-xs font-medium text-[#87867f]">Comma-separated, for example: Vietnamese, street food.</span>
                 </label>
 
-                <label class="grid gap-2 text-sm font-semibold text-slate-950">
+                <label class="grid gap-2 text-sm font-semibold text-[#141413]">
                   Avoided ingredients
                   <textarea
-                    class="min-h-28 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium leading-6 text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                    class="min-h-28 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                     formControlName="dislikedIngredients"
                     rows="4"
                   ></textarea>
-                  <span class="text-xs font-medium text-slate-500">Ingredients you usually skip.</span>
+                  <span class="text-xs font-medium text-[#87867f]">Ingredients you usually skip.</span>
                 </label>
 
-                <label class="grid gap-2 text-sm font-semibold text-slate-950">
+                <label class="grid gap-2 text-sm font-semibold text-[#141413]">
                   Dietary notes
                   <textarea
-                    class="min-h-28 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium leading-6 text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                    class="min-h-28 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                     formControlName="dietaryRestrictions"
                     rows="4"
                   ></textarea>
-                  <span class="text-xs font-medium text-slate-500">Allergies, vegetarian, halal, or other useful notes.</span>
+                  <span class="text-xs font-medium text-[#87867f]">Allergies, vegetarian, halal, or other useful notes.</span>
                 </label>
               </div>
 
@@ -168,25 +168,25 @@ interface SavedItemView {
             </form>
 
             <aside appUiSurface="soft" appUiSurfacePadding="comfortable" class="h-fit">
-              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Preview</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Preview</p>
               <div class="mt-4 flex items-center gap-3">
-                <div class="flex size-14 shrink-0 items-center justify-center rounded-full bg-orange-100 text-lg font-semibold text-orange-700">
+                <div class="flex size-14 shrink-0 items-center justify-center rounded-full bg-[#e8e6dc] text-lg font-semibold text-[#c96442]">
                   {{ avatarInitials() }}
                 </div>
                 <div class="min-w-0">
-                  <p class="truncate text-base font-semibold text-slate-950" [textContent]="displayNamePreview()"></p>
-                  <p class="text-xs font-medium uppercase tracking-[0.18em] text-slate-500" [textContent]="loadedProfile.identityId"></p>
+                  <p class="truncate text-base font-semibold text-[#141413]" [textContent]="displayNamePreview()"></p>
+                  <p class="text-xs font-medium uppercase tracking-[0.18em] text-[#87867f]" [textContent]="loadedProfile.identityId"></p>
                 </div>
               </div>
-              <p class="mt-4 text-sm leading-6 text-slate-600" [textContent]="bioPreview()"></p>
+              <p class="mt-4 text-sm leading-6 text-[#5e5d59]" [textContent]="bioPreview()"></p>
               <dl class="mt-5 grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <dt class="font-medium text-slate-500">Followers</dt>
-                  <dd class="font-semibold text-slate-950" [textContent]="loadedProfile.followerCount"></dd>
+                  <dt class="font-medium text-[#87867f]">Followers</dt>
+                  <dd class="font-semibold text-[#141413]" [textContent]="loadedProfile.followerCount"></dd>
                 </div>
                 <div>
-                  <dt class="font-medium text-slate-500">Following</dt>
-                  <dd class="font-semibold text-slate-950" [textContent]="loadedProfile.followingCount"></dd>
+                  <dt class="font-medium text-[#87867f]">Following</dt>
+                  <dd class="font-semibold text-[#141413]" [textContent]="loadedProfile.followingCount"></dd>
                 </div>
               </dl>
             </aside>
@@ -196,9 +196,9 @@ interface SavedItemView {
         <section appUiSurface="subtle" appUiSurfacePadding="comfortable">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Saved context</p>
-              <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Saved items</h2>
-              <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Saved context</p>
+              <h2 class="mt-2 text-xl font-semibold tracking-tight text-[#141413]">Saved items</h2>
+              <p class="mt-2 max-w-2xl text-sm leading-6 text-[#5e5d59]">
                 Existing APIs expose saved item identifiers only, so the MVP shows honest saved state without inventing post, dish, or place details.
               </p>
             </div>
@@ -206,7 +206,7 @@ interface SavedItemView {
           </div>
 
           @if (savedItemsStatus() === 'loading') {
-            <p class="mt-5 text-sm font-semibold text-slate-600">Loading saved items...</p>
+            <p class="mt-5 text-sm font-semibold text-[#5e5d59]">Loading saved items...</p>
           }
 
           @if (savedItemsStatus() === 'error') {
@@ -216,7 +216,7 @@ interface SavedItemView {
           }
 
           @if (savedItemsStatus() === 'empty') {
-            <p class="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600">
+            <p class="mt-5 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-semibold text-[#5e5d59]">
               No saved posts, dishes, or places yet. Saved food context will appear here when you start saving items.
             </p>
           }
@@ -224,32 +224,32 @@ interface SavedItemView {
           @if (savedItemsStatus() === 'loaded') {
             <div class="mt-5 grid gap-4 md:grid-cols-3">
               <div>
-                <h3 class="text-sm font-semibold text-slate-950">Posts</h3>
+                <h3 class="text-sm font-semibold text-[#141413]">Posts</h3>
                 <div class="mt-3 grid gap-2">
                   @for (item of savedPosts(); track item.id) {
-                    <p class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-600" [textContent]="item.label"></p>
+                    <p class="rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-xs font-semibold text-[#5e5d59]" [textContent]="item.label"></p>
                   } @empty {
-                    <p class="text-sm text-slate-500">No saved posts.</p>
+                    <p class="text-sm text-[#87867f]">No saved posts.</p>
                   }
                 </div>
               </div>
               <div>
-                <h3 class="text-sm font-semibold text-slate-950">Dishes</h3>
+                <h3 class="text-sm font-semibold text-[#141413]">Dishes</h3>
                 <div class="mt-3 grid gap-2">
                   @for (item of savedDishes(); track item.id) {
-                    <p class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-600" [textContent]="item.label"></p>
+                    <p class="rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-xs font-semibold text-[#5e5d59]" [textContent]="item.label"></p>
                   } @empty {
-                    <p class="text-sm text-slate-500">No saved dishes.</p>
+                    <p class="text-sm text-[#87867f]">No saved dishes.</p>
                   }
                 </div>
               </div>
               <div>
-                <h3 class="text-sm font-semibold text-slate-950">Places</h3>
+                <h3 class="text-sm font-semibold text-[#141413]">Places</h3>
                 <div class="mt-3 grid gap-2">
                   @for (item of savedPlaces(); track item.id) {
-                    <p class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-600" [textContent]="item.label"></p>
+                    <p class="rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-xs font-semibold text-[#5e5d59]" [textContent]="item.label"></p>
                   } @empty {
-                    <p class="text-sm text-slate-500">No saved places.</p>
+                    <p class="text-sm text-[#87867f]">No saved places.</p>
                   }
                 </div>
               </div>

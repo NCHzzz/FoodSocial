@@ -7,9 +7,9 @@ import { UiSurfaceDirective } from '../surface/ui-surface.directive';
   imports: [UiSurfaceDirective],
   template: `
     <section appUiSurface="default" appUiSurfacePadding="spacious" appUiSurfaceRadius="feature">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600" [textContent]="eyebrow()"></p>
-      <h1 class="mt-3 text-3xl font-semibold tracking-tight text-slate-950" [textContent]="title()"></h1>
-      <p class="mt-4 max-w-2xl text-sm leading-7 text-slate-600" [textContent]="description()"></p>
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]" [textContent]="eyebrow()"></p>
+      <h1 class="mt-3 text-3xl font-semibold tracking-tight text-[#141413]" [textContent]="title()"></h1>
+      <p class="mt-4 max-w-2xl text-sm leading-7 text-[#5e5d59]" [textContent]="description()"></p>
 
       <ng-content />
     </section>

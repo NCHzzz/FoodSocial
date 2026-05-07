@@ -3,7 +3,6 @@ import { RouterLink } from '@angular/router';
 
 import { AuthSessionService } from '../../core/auth/auth-session.service';
 import {
-  getAuthSessionBadgeClasses,
   getAuthSessionBadgeLabel,
   getDiscoverSessionAvailabilityMessage,
   isAuthenticatedSession,
@@ -39,7 +38,6 @@ export class DiscoverPage {
   protected readonly isAuthenticated = computed(() => isAuthenticatedSession(this.authState()));
   protected readonly session = computed(() => this.authState().session);
   protected readonly roles = computed(() => this.session()?.user.roles ?? []);
-  protected readonly sessionStatusClasses = computed(() => getAuthSessionBadgeClasses(this.authState()));
   protected readonly sessionStatusLabel = computed(() => getAuthSessionBadgeLabel(this.authState()));
   protected readonly sessionAvailabilityMessage = computed(() => getDiscoverSessionAvailabilityMessage(this.authState()));
   protected readonly selectedDish = signal<DishSummaryResponse | null>(null);

@@ -1,28 +1,7 @@
 import { AuthSessionState } from './auth-session.models';
 
-const AUTHENTICATED_SESSION_BADGE_CLASSES = 'bg-emerald-100 text-emerald-700';
-const UNAVAILABLE_SESSION_BADGE_CLASSES = 'bg-rose-100 text-rose-700';
-const LOADING_SESSION_BADGE_CLASSES = 'bg-amber-100 text-amber-700';
-const GUEST_SESSION_BADGE_CLASSES = 'bg-slate-200 text-slate-700';
-
 export function isAuthenticatedSession(state: AuthSessionState): boolean {
   return state.loadStatus === 'authenticated' && state.session !== null;
-}
-
-export function getAuthSessionBadgeClasses(state: AuthSessionState): string {
-  if (isAuthenticatedSession(state)) {
-    return AUTHENTICATED_SESSION_BADGE_CLASSES;
-  }
-
-  if (state.loadStatus === 'unavailable') {
-    return UNAVAILABLE_SESSION_BADGE_CLASSES;
-  }
-
-  if (state.loadStatus === 'loading') {
-    return LOADING_SESSION_BADGE_CLASSES;
-  }
-
-  return GUEST_SESSION_BADGE_CLASSES;
 }
 
 export function getAuthSessionBadgeLabel(state: AuthSessionState): string {

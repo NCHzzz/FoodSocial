@@ -1,16 +1,16 @@
-<div class="min-h-dvh bg-[radial-gradient(circle_at_top,_#fff7ed,_#fffbeb_48%,_#ffffff_100%)] text-slate-950">
-  <header class="border-b border-orange-100/80 bg-white/85 backdrop-blur">
+<div class="min-h-dvh bg-[#f5f4ed] text-[#141413]">
+  <header class="border-b border-[#f0eee6]/80 bg-[#f5f4ed]/90 backdrop-blur">
     <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
       <div class="flex items-start gap-3">
-        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 via-amber-400 to-rose-400 text-lg font-semibold text-white shadow-lg shadow-orange-200/70">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#c96442] font-serif text-lg font-semibold text-[#faf9f5] shadow-[0_0_0_1px_#c96442]">
           FS
         </div>
         <div>
-          <p class="text-sm font-semibold uppercase tracking-[0.24em] text-orange-600">Food-first social</p>
-          <a class="inline-flex items-center text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl" routerLink="/discover">
+          <p class="text-sm font-semibold uppercase tracking-[0.24em] text-[#c96442]">Food-first social</p>
+          <a class="inline-flex items-center font-serif text-2xl font-semibold tracking-tight text-[#141413] sm:text-3xl" routerLink="/discover">
             FoodSocial
           </a>
-          <p class="mt-1 max-w-xl text-sm text-slate-600 sm:text-base">
+          <p class="mt-1 max-w-xl text-sm text-[#5e5d59] sm:text-base">
             Discover dishes and places worth trying. Sign in when you want to save, follow, and share your own picks.
           </p>
         </div>
@@ -21,7 +21,7 @@
           <a
             appShellNavLink
             [routerLink]="item.route"
-            routerLinkActive="border-slate-950 bg-slate-950 text-white shadow-slate-300"
+            routerLinkActive="border-[#141413] bg-[#141413] text-[#faf9f5] shadow-[#c2c0b6]"
             [textContent]="item.label"
           ></a>
         }
@@ -29,15 +29,15 @@
 
       <div class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
         <div appUiSurface="soft" appUiSurfacePadding="compact">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Account</p>
-          <p class="mt-1 text-sm font-medium text-slate-900">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#87867f]">Account</p>
+          <p class="mt-1 text-sm font-medium text-[#141413]">
             @if (isAuthenticated()) {
               <span [textContent]="session()?.user?.preferredUsername || session()?.user?.email || 'Signed in'"></span>
             } @else {
               Guest browser
             }
           </p>
-          <p class="mt-1 text-xs text-slate-500" aria-live="polite" [textContent]="sessionSummary()"></p>
+          <p class="mt-1 text-xs text-[#87867f]" aria-live="polite" [textContent]="sessionSummary()"></p>
         </div>
 
         @if (isAuthenticated()) {

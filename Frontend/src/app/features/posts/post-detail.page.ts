@@ -27,15 +27,15 @@ type PostDetailActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated'
       <div class="mt-8 grid gap-5">
         @if (status() === 'loading') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Loading post</p>
-            <p class="mt-2 text-sm text-slate-600">Fetching the post detail through the BFF.</p>
+            <p class="text-sm font-semibold text-[#141413]">Loading post</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Fetching the post detail through the BFF.</p>
           </div>
         }
 
         @if (status() === 'error') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
-            <p class="text-sm font-semibold text-slate-950">Post could not load</p>
-            <p class="mt-2 text-sm text-slate-600">The post may be hidden, deleted, missing, or temporarily unavailable.</p>
+            <p class="text-sm font-semibold text-[#141413]">Post could not load</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">The post may be hidden, deleted, missing, or temporarily unavailable.</p>
             <div class="mt-4 flex flex-wrap gap-3">
               <button type="button" appUiButton="secondary" (click)="loadPost()">Retry</button>
               <a appUiButton="secondary" routerLink="/posts">Back to posts</a>
@@ -49,23 +49,23 @@ type PostDetailActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated'
               @if (primaryMediaUrl(); as mediaUrl) {
                 <img class="aspect-[4/3] w-full rounded-[1.5rem] object-cover" [src]="mediaUrl" [alt]="mediaAlt()" />
               } @else {
-                <div class="flex aspect-[4/3] items-center justify-center rounded-[1.5rem] border border-dashed border-orange-200 bg-orange-50 text-sm font-semibold text-orange-800">
+                <div class="flex aspect-[4/3] items-center justify-center rounded-[1.5rem] border border-dashed border-[#e8e6dc] bg-[#f0eee6] text-sm font-semibold text-[#4d4c48]">
                   Media pending
                 </div>
               }
 
               <div class="mt-5">
-                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Dish identity</p>
-                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{{ dishLabel() }}</h2>
-                <p class="mt-4 text-base leading-7 text-slate-700" [textContent]="loadedPost.caption"></p>
+                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Dish identity</p>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-[#141413]">{{ dishLabel() }}</h2>
+                <p class="mt-4 text-base leading-7 text-[#4d4c48]" [textContent]="loadedPost.caption"></p>
               </div>
 
               <div class="mt-5 flex flex-wrap gap-2">
                 @for (tag of loadedPost.tags; track tag) {
-                  <span class="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">#{{ tag }}</span>
+                  <span class="rounded-full bg-[#f0eee6] px-3 py-1 text-xs font-semibold text-[#c96442]">#{{ tag }}</span>
                 }
                 @if (loadedPost.priceRange) {
-                  <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700" [textContent]="loadedPost.priceRange"></span>
+                  <span class="rounded-full bg-[#e8e6dc] px-3 py-1 text-xs font-semibold text-[#4d4c48]" [textContent]="loadedPost.priceRange"></span>
                 }
                 @if (loadedPost.rating) {
                   <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{{ loadedPost.rating }}/5</span>
@@ -73,14 +73,14 @@ type PostDetailActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated'
               </div>
 
               @if (loadedPost.locationText) {
-                <p class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700" [textContent]="loadedPost.locationText"></p>
+                <p class="mt-4 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-semibold text-[#4d4c48]" [textContent]="loadedPost.locationText"></p>
               }
             </section>
 
             <aside appUiSurface="soft" appUiSurfacePadding="comfortable" class="grid gap-4">
               <div>
-                <p class="text-sm font-semibold text-slate-950">Post actions</p>
-                <p class="mt-2 text-sm leading-6 text-slate-600">
+                <p class="text-sm font-semibold text-[#141413]">Post actions</p>
+                <p class="mt-2 text-sm leading-6 text-[#5e5d59]">
                   {{ loadedPost.likeCount }} likes · {{ loadedPost.repostCount }} reposts · {{ loadedPost.commentCount }} comments · {{ createdDateLabel() }}
                 </p>
               </div>
@@ -108,8 +108,8 @@ type PostDetailActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated'
           <section appUiSurface="default" appUiSurfacePadding="comfortable">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">Conversation</p>
-                <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Comments</h2>
+                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#c96442]">Conversation</p>
+                <h2 class="mt-2 text-xl font-semibold tracking-tight text-[#141413]">Comments</h2>
               </div>
               @if (!isAuthenticated()) {
                 <button type="button" appUiButton="secondary" (click)="startLogin()">Log in to comment</button>
@@ -117,23 +117,23 @@ type PostDetailActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated'
             </div>
 
             @if (loadedPost.comments.length === 0) {
-              <p class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">No comments yet.</p>
+              <p class="mt-5 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-semibold text-[#5e5d59]">No comments yet.</p>
             } @else {
               <div class="mt-5 grid gap-3">
                 @for (comment of loadedPost.comments; track comment.id) {
-                  <article class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p class="break-all text-xs font-semibold uppercase tracking-[0.18em] text-slate-500" [textContent]="comment.authorId"></p>
-                    <p class="mt-2 text-sm leading-6 text-slate-700" [textContent]="comment.body"></p>
+                  <article class="rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3">
+                    <p class="break-all text-xs font-semibold uppercase tracking-[0.18em] text-[#87867f]" [textContent]="comment.authorId"></p>
+                    <p class="mt-2 text-sm leading-6 text-[#4d4c48]" [textContent]="comment.body"></p>
                   </article>
                 }
               </div>
             }
 
             <form class="mt-5 grid gap-3" (ngSubmit)="createComment()">
-              <label class="grid gap-2 text-sm font-semibold text-slate-950">
+              <label class="grid gap-2 text-sm font-semibold text-[#141413]">
                 Add comment
                 <textarea
-                  class="min-h-28 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium leading-6 text-slate-950 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  class="min-h-28 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
                   [formControl]="commentControl"
                   rows="4"
                   placeholder="Add a useful food note or question."
