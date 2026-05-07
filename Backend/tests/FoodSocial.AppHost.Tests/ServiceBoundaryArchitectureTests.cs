@@ -9,7 +9,7 @@ public sealed class ServiceBoundaryArchitectureTests
     private static readonly ServiceBoundary[] Boundaries =
     [
         new("Identity", "identitydb", "identityDb", "IdentityDbContext"),
-        new("UserProfile", "userprofiledb", "userProfileDb", "UserProfileDbContext"),
+        new("UserProfile", "userprofiledb", "userprofileDb", "UserProfileDbContext"),
         new("Dish", "dishdb", "dishDb", "DishDbContext"),
         new("Place", "placedb", "placeDb", "PlaceDbContext"),
         new("Post", "postdb", "postDb", "PostDbContext")
