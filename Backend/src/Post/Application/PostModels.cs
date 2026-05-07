@@ -58,5 +58,7 @@ public interface IPostStore
     Task<int> CountUnreadNotificationsAsync(Guid recipientId, CancellationToken cancellationToken);
     Task<PostNotificationRecord?> MarkNotificationReadAsync(Guid notificationId, Guid recipientId, CancellationToken cancellationToken);
     Task RegisterMediaUploadAsync(RegisterMediaUploadCommand command, CancellationToken cancellationToken);
+    Task<IReadOnlyList<PostMediaUploadRecord>> ClaimMediaUploadsDueForCleanupAsync(DateTimeOffset utcNow, int limit, CancellationToken cancellationToken);
+    Task MarkMediaUploadDeletedAsync(Guid uploadId, CancellationToken cancellationToken);
     Task<IReadOnlySet<string>> FindAttachableMediaUploadUrlsAsync(Guid ownerId, IReadOnlyList<PostMediaUploadAttachmentRequest> mediaUploads, CancellationToken cancellationToken);
 }

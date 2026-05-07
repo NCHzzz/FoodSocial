@@ -191,6 +191,18 @@ public sealed class PostService(IPostStore postStore, IPostCatalogReferenceValid
         await _postStore.RegisterMediaUploadAsync(command, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PostMediaUploadRecord>> ClaimMediaUploadsDueForCleanupAsync(DateTimeOffset utcNow, int? limit, CancellationToken cancellationToken)
+    {
+        var boundedLimit = Math.Clamp(limit ?? 100, 1, 500);
+        return await _postStore.ClaimMediaUploadsDueForCleanupAsync(utcNow, boundedLimit, cancellationToken);
+    }
+
+    public async Task MarkMediaUploadDeletedAsync(Guid uploadId, CancellationToken cancellationToken)
+    {
+        if (uploadId == Guid.Empty) throw new ArgumentException("Upload id is required.", nameof(uploadId));
+        await _postStore.MarkMediaUploadDeletedAsync(uploadId, cancellationToken);
+    }
+
     private async Task<ReportMutationResult> CreateReportAsync(ReportTargetType targetType, Guid targetId, CreateContentReportRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);

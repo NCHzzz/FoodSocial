@@ -220,6 +220,89 @@ public sealed class PostEndpointTests
     }
 
     [Fact]
+    public async Task CleanupMediaUploads_DeletesStalePendingOriginalAndDerivative()
+    {
+        await using var factory = new PostApiFactory();
+        await factory.EnsureDatabaseCreatedAsync();
+        using var client = factory.CreateTrustedClient();
+        using var form = new MultipartFormDataContent();
+        byte[] jpegBytes = [0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4];
+        using var file = new ByteArrayContent(jpegBytes);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        form.Add(file, "file", "pho.jpg");
+        using var upload = await client.PostAsync("/api/media/uploads", form);
+        upload.StatusCode.Should().Be(HttpStatusCode.Created);
+        var media = (await upload.Content.ReadFromJsonAsync<MediaUploadResponse>())!;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PostDbContext>();
+            var uploadRecord = await dbContext.PostMediaUploads.SingleAsync(item => item.Id == media.UploadId);
+            uploadRecord.CleanupDueAtUtc = DateTimeOffset.UtcNow.AddMinutes(-1);
+            await dbContext.SaveChangesAsync();
+        }
+
+        using var cleanup = await client.PostAsync("/api/media/uploads/cleanup?limit=10", null);
+
+        cleanup.StatusCode.Should().Be(HttpStatusCode.OK);
+        var payload = (await cleanup.Content.ReadFromJsonAsync<MediaCleanupResponse>())!;
+        payload.CleanupDueCount.Should().Be(1);
+        payload.DeletedCount.Should().Be(1);
+        payload.DeletedUploadIds.Should().ContainSingle().Which.Should().Be(media.UploadId);
+        Directory.EnumerateFiles(factory.MediaStoragePath, "*", SearchOption.AllDirectories).Should().BeEmpty();
+        using var read = await client.GetAsync(media.Url);
+        read.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        using var scopeAfterCleanup = factory.Services.CreateScope();
+        var dbContextAfterCleanup = scopeAfterCleanup.ServiceProvider.GetRequiredService<PostDbContext>();
+        var deletedRecord = await dbContextAfterCleanup.PostMediaUploads.SingleAsync(item => item.Id == media.UploadId);
+        deletedRecord.Status.Should().Be(PostMediaUploadStatus.Deleted);
+    }
+
+    [Fact]
+    public async Task CleanupMediaUploads_DoesNotDeleteAttachedMediaEvenWhenCleanupDueAtIsPast()
+    {
+        await using var factory = new PostApiFactory();
+        await factory.EnsureDatabaseCreatedAsync();
+        using var client = factory.CreateTrustedClient();
+        var dishId = Guid.NewGuid();
+        factory.RegisterActiveDish(dishId);
+        using var form = new MultipartFormDataContent();
+        byte[] jpegBytes = [0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4];
+        using var file = new ByteArrayContent(jpegBytes);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        form.Add(file, "file", "pho.jpg");
+        using var upload = await client.PostAsync("/api/media/uploads", form);
+        upload.StatusCode.Should().Be(HttpStatusCode.Created);
+        var media = (await upload.Content.ReadFromJsonAsync<MediaUploadResponse>())!;
+        using var create = await client.PostAsJsonAsync(
+            "/api/posts",
+            new CreatePostRequest(
+                Guid.NewGuid(),
+                dishId,
+                "Attached stale upload should not cleanup.",
+                [new PostMediaRequest(media.Url, "image", media.ThumbnailUrl, null, IsPrimary: true)]));
+        create.StatusCode.Should().Be(HttpStatusCode.Created);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PostDbContext>();
+            var uploadRecord = await dbContext.PostMediaUploads.SingleAsync(item => item.Id == media.UploadId);
+            uploadRecord.CleanupDueAtUtc = DateTimeOffset.UtcNow.AddMinutes(-1);
+            await dbContext.SaveChangesAsync();
+        }
+
+        using var cleanup = await client.PostAsync("/api/media/uploads/cleanup?limit=10", null);
+
+        cleanup.StatusCode.Should().Be(HttpStatusCode.OK);
+        var payload = (await cleanup.Content.ReadFromJsonAsync<MediaCleanupResponse>())!;
+        payload.DeletedCount.Should().Be(0);
+        using var read = await factory.CreateClient().GetAsync(media.Url);
+        read.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var scopeAfterCleanup = factory.Services.CreateScope();
+        var dbContextAfterCleanup = scopeAfterCleanup.ServiceProvider.GetRequiredService<PostDbContext>();
+        var attachedRecord = await dbContextAfterCleanup.PostMediaUploads.SingleAsync(item => item.Id == media.UploadId);
+        attachedRecord.Status.Should().Be(PostMediaUploadStatus.Attached);
+    }
+
+    [Fact]
     public async Task CreatePost_RejectsLocalUploadUrlWithoutOwnedPendingUploadRecord()
     {
         await using var factory = new PostApiFactory();

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FoodSocial.Post.Api.Controllers;
 
 [ApiController]
-public sealed class PostsController(PostService postService) : ControllerBase
+public sealed class PostsController(PostService postService, PostMediaStorage mediaStorage, IConfiguration configuration) : ControllerBase
 {
     private static readonly IReadOnlyDictionary<string, string> AllowedImageContentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -17,6 +17,8 @@ public sealed class PostsController(PostService postService) : ControllerBase
     };
 
     private readonly PostService _postService = postService ?? throw new ArgumentNullException(nameof(postService));
+    private readonly PostMediaStorage _mediaStorage = mediaStorage ?? throw new ArgumentNullException(nameof(mediaStorage));
+    private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
     [HttpPost("api/posts")]
     [ServiceFilter(typeof(PostInternalAuthorizationFilter))]
@@ -35,7 +37,7 @@ public sealed class PostsController(PostService postService) : ControllerBase
     [ServiceFilter(typeof(PostInternalAuthorizationFilter))]
     [RequestSizeLimit(10_000_000)]
     [ProducesResponseType<MediaUploadResponse>(StatusCodes.Status201Created)]
-    public async Task<ActionResult<MediaUploadResponse>> UploadMedia(IFormFile? file, IConfiguration configuration, IWebHostEnvironment environment, CancellationToken cancellationToken)
+    public async Task<ActionResult<MediaUploadResponse>> UploadMedia(IFormFile? file, CancellationToken cancellationToken)
     {
         if (file is null)
         {
@@ -49,35 +51,16 @@ public sealed class PostsController(PostService postService) : ControllerBase
         }
 
         var uploadId = Guid.NewGuid();
-        var root = configuration["Post:Media:StoragePath"];
-        if (string.IsNullOrWhiteSpace(root))
-        {
-            root = Path.Combine(environment.ContentRootPath, "App_Data", "media");
-        }
-
-        var originalDirectory = Path.Combine(root, "originals");
-        var thumbnailDirectory = Path.Combine(root, "thumbnails");
-        Directory.CreateDirectory(originalDirectory);
-        Directory.CreateDirectory(thumbnailDirectory);
-
-        var fileName = $"{uploadId:N}{validation.Extension}";
-        var originalPath = Path.Combine(originalDirectory, fileName);
-        var thumbnailPath = Path.Combine(thumbnailDirectory, fileName);
         try
         {
-            await using (var stream = System.IO.File.Create(originalPath))
-            {
-                await file.CopyToAsync(stream, cancellationToken);
-            }
-
-            System.IO.File.Copy(originalPath, thumbnailPath, overwrite: true);
+            var storedMedia = await _mediaStorage.StoreImageWithDerivativeAsync(uploadId, file, validation.Extension!, cancellationToken);
             var cleanupDueAtUtc = DateTimeOffset.UtcNow.AddDays(7);
             var response = new MediaUploadResponse(
                 uploadId,
-                $"/api/media/uploads/{uploadId}/original",
-                $"/api/media/uploads/{uploadId}/thumbnail",
+                storedMedia.OriginalUrl,
+                storedMedia.ThumbnailUrl,
                 validation.ContentType!,
-                file.Length,
+                storedMedia.SizeBytes,
                 cleanupDueAtUtc,
                 "StoredPendingAttachmentWithDerivativePlaceholder");
             await _postService.RecordMediaUploadAsync(
@@ -95,8 +78,7 @@ public sealed class PostsController(PostService postService) : ControllerBase
         }
         catch
         {
-            DeleteIfExists(originalPath);
-            DeleteIfExists(thumbnailPath);
+            await _mediaStorage.DeleteUploadAsync(uploadId);
             throw;
         }
     }
@@ -104,7 +86,7 @@ public sealed class PostsController(PostService postService) : ControllerBase
     [HttpGet("api/media/uploads/{uploadId:guid}/{variant}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> GetUploadedMedia(Guid uploadId, string variant, IConfiguration configuration, IWebHostEnvironment environment, CancellationToken cancellationToken)
+    public async Task<ActionResult> GetUploadedMedia(Guid uploadId, string variant, CancellationToken cancellationToken)
     {
         if (!string.Equals(variant, "original", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(variant, "thumbnail", StringComparison.OrdinalIgnoreCase))
@@ -112,7 +94,7 @@ public sealed class PostsController(PostService postService) : ControllerBase
             return Problem(title: "Invalid media variant", detail: "Media variant must be original or thumbnail.", statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var callerIdentityId = TryResolveTrustedCallerIdentity(HttpContext, configuration, out var identityId)
+        var callerIdentityId = TryResolveTrustedCallerIdentity(HttpContext, _configuration, out var identityId)
             ? identityId
             : (Guid?)null;
         var upload = await _postService.GetDeliverableMediaUploadAsync(uploadId, callerIdentityId, cancellationToken);
@@ -121,39 +103,30 @@ public sealed class PostsController(PostService postService) : ControllerBase
             return Problem(title: "Media not found", detail: "The requested media upload was not found.", statusCode: StatusCodes.Status404NotFound);
         }
 
-        var root = configuration["Post:Media:StoragePath"];
-        if (string.IsNullOrWhiteSpace(root))
-        {
-            root = Path.Combine(environment.ContentRootPath, "App_Data", "media");
-        }
-
-        var directoryName = string.Equals(variant, "thumbnail", StringComparison.OrdinalIgnoreCase) ? "thumbnails" : "originals";
-        var directory = Path.Combine(root, directoryName);
-        if (!Directory.Exists(directory))
+        var storedMedia = _mediaStorage.Find(uploadId, variant);
+        if (storedMedia is null)
         {
             return Problem(title: "Media not found", detail: "The requested media upload was not found.", statusCode: StatusCodes.Status404NotFound);
         }
 
-        var match = Directory.EnumerateFiles(directory, $"{uploadId:N}.*").FirstOrDefault();
-        if (match is null)
-        {
-            return Problem(title: "Media not found", detail: "The requested media upload was not found.", statusCode: StatusCodes.Status404NotFound);
-        }
-
-        if (!AllowedImageContentTypes.TryGetValue(Path.GetExtension(match), out var contentType))
-        {
-            contentType = "application/octet-stream";
-        }
-
-        return PhysicalFile(match, contentType);
+        return PhysicalFile(storedMedia.Path, storedMedia.ContentType);
     }
 
-    private static void DeleteIfExists(string path)
+    [HttpPost("api/media/uploads/cleanup")]
+    [ServiceFilter(typeof(PostInternalAuthorizationFilter))]
+    [ProducesResponseType<MediaCleanupResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MediaCleanupResponse>> CleanupMediaUploads([FromQuery] int? limit, CancellationToken cancellationToken)
     {
-        if (System.IO.File.Exists(path))
+        var uploads = await _postService.ClaimMediaUploadsDueForCleanupAsync(DateTimeOffset.UtcNow, limit, cancellationToken);
+        var deletedUploadIds = new List<Guid>(uploads.Count);
+        foreach (var upload in uploads)
         {
-            System.IO.File.Delete(path);
+            await _mediaStorage.DeleteUploadAsync(upload.Id);
+            await _postService.MarkMediaUploadDeletedAsync(upload.Id, cancellationToken);
+            deletedUploadIds.Add(upload.Id);
         }
+
+        return Ok(new MediaCleanupResponse(uploads.Count, deletedUploadIds.Count, deletedUploadIds));
     }
 
     private static bool TryResolveTrustedCallerIdentity(HttpContext httpContext, IConfiguration configuration, out Guid identityId) =>

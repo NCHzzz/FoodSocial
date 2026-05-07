@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.StaticFiles;
 
 namespace FoodSocial.Post.Api;
 
-internal sealed class PostMediaStorage(IConfiguration configuration, IWebHostEnvironment environment)
+public sealed class PostMediaStorage(IConfiguration configuration, IWebHostEnvironment environment)
 {
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     private readonly IWebHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
@@ -75,5 +75,5 @@ internal sealed class PostMediaStorage(IConfiguration configuration, IWebHostEnv
         _contentTypeProvider.TryGetContentType(path, out var contentType) ? contentType : "application/octet-stream";
 }
 
-internal sealed record StoredPostMediaUpload(string OriginalUrl, string ThumbnailUrl, long SizeBytes);
-internal sealed record StoredPostMediaFile(string Path, string ContentType);
+public sealed record StoredPostMediaUpload(string OriginalUrl, string ThumbnailUrl, long SizeBytes);
+public sealed record StoredPostMediaFile(string Path, string ContentType);

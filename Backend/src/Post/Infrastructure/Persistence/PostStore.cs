@@ -336,6 +336,80 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PostMediaUploadRecord>> ClaimMediaUploadsDueForCleanupAsync(DateTimeOffset utcNow, int limit, CancellationToken cancellationToken)
+    {
+        if (limit <= 0)
+        {
+            return [];
+        }
+
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var stalePendingUploads = IsSqliteProvider()
+            ? (await _dbContext.PostMediaUploads
+                .Where(upload => upload.Status == PostMediaUploadStatus.StoredPendingAttachment
+                    && upload.AttachedPostId == null)
+                .ToListAsync(cancellationToken))
+                .Where(upload => upload.CleanupDueAtUtc <= utcNow)
+                .OrderBy(upload => upload.CleanupDueAtUtc)
+                .ThenBy(upload => upload.Id)
+                .Take(limit)
+                .ToList()
+            : await _dbContext.PostMediaUploads
+                .Where(upload => upload.Status == PostMediaUploadStatus.StoredPendingAttachment
+                    && upload.AttachedPostId == null
+                    && upload.CleanupDueAtUtc <= utcNow)
+                .OrderBy(upload => upload.CleanupDueAtUtc)
+                .ThenBy(upload => upload.Id)
+                .Take(limit)
+                .ToListAsync(cancellationToken);
+        foreach (var upload in stalePendingUploads)
+        {
+            upload.Status = PostMediaUploadStatus.CleanupDue;
+        }
+
+        if (stalePendingUploads.Count > 0)
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var uploads = IsSqliteProvider()
+            ? (await _dbContext.PostMediaUploads
+                .AsNoTracking()
+                .Where(upload => upload.Status == PostMediaUploadStatus.CleanupDue)
+                .ToListAsync(cancellationToken))
+                .OrderBy(upload => upload.CleanupDueAtUtc)
+                .ThenBy(upload => upload.Id)
+                .Take(limit)
+                .ToList()
+            : await _dbContext.PostMediaUploads
+                .AsNoTracking()
+                .Where(upload => upload.Status == PostMediaUploadStatus.CleanupDue)
+                .OrderBy(upload => upload.CleanupDueAtUtc)
+                .ThenBy(upload => upload.Id)
+                .Take(limit)
+                .ToListAsync(cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+        return uploads;
+    }
+
+    public async Task MarkMediaUploadDeletedAsync(Guid uploadId, CancellationToken cancellationToken)
+    {
+        if (uploadId == Guid.Empty)
+        {
+            return;
+        }
+
+        var upload = await _dbContext.PostMediaUploads.FindAsync([uploadId], cancellationToken);
+        if (upload is null || upload.Status != PostMediaUploadStatus.CleanupDue)
+        {
+            return;
+        }
+
+        upload.Status = PostMediaUploadStatus.Deleted;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlySet<string>> FindAttachableMediaUploadUrlsAsync(Guid ownerId, IReadOnlyList<PostMediaUploadAttachmentRequest> mediaUploads, CancellationToken cancellationToken)
     {
         if (mediaUploads.Count == 0)
