@@ -24,6 +24,8 @@ public sealed record MediaUploadResponse(
     DateTimeOffset CleanupDueAtUtc,
     string Status);
 
+public sealed record MediaCleanupResponse(int CleanupDueCount, int DeletedCount, IReadOnlyList<Guid> DeletedUploadIds);
+
 public sealed record PostDetailResponse(
     Guid Id,
     Guid AuthorId,

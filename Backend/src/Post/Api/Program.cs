@@ -17,6 +17,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddScoped<PostInternalAuthorizationFilter>();
 builder.Services.AddScoped<PostModeratorAuthorizationFilter>();
+builder.Services.AddSingleton<PostMediaStorage>();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
