@@ -142,7 +142,7 @@ internal static class BffRateLimitingExtensions
             return $"sub:{subject}";
         }
 
-        var forwardedFor = context.Request.Headers.XForwardedFor.FirstOrDefault();
+        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(forwardedFor))
         {
             return $"xff:{forwardedFor.Split(',')[0].Trim()}";

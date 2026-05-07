@@ -275,6 +275,14 @@ internal static class BffPostEndpoints
         catch (InvalidOperationException exception) when (exception.InnerException is OperationCanceledException) { logger.LogWarning(exception, "Post service request timed out for {TargetPathAndQuery}. TraceId: {TraceId}", targetPathAndQuery, httpContext.TraceIdentifier); return null; }
     }
 
+    private static async Task<HttpResponseMessage?> GetFollowingGraphAsync(HttpContext httpContext, UserProfileHttpClient userProfileClient, ILoggerFactory loggerFactory, string targetPathAndQuery, CancellationToken cancellationToken)
+    {
+        var logger = loggerFactory.CreateLogger(typeof(BffPostEndpoints).FullName!);
+        try { return await userProfileClient.GetAsync(targetPathAndQuery, accessToken: null, cancellationToken); }
+        catch (HttpRequestException exception) { logger.LogWarning(exception, "UserProfile service request failed for following feed graph {TargetPathAndQuery}. TraceId: {TraceId}", targetPathAndQuery, httpContext.TraceIdentifier); return null; }
+        catch (InvalidOperationException exception) when (exception.InnerException is OperationCanceledException) { logger.LogWarning(exception, "UserProfile service request timed out for following feed graph {TargetPathAndQuery}. TraceId: {TraceId}", targetPathAndQuery, httpContext.TraceIdentifier); return null; }
+    }
+
     private static async Task<DeserializedRequest<TRequest>> DeserializeOrProblemAsync<TRequest>(HttpContext httpContext, string emptyBodyDetail, CancellationToken cancellationToken)
     {
         try
@@ -313,6 +321,16 @@ internal static class BffPostEndpoints
 
         queryItems.Add(new KeyValuePair<string, string?>("includeHidden", bool.FalseString));
         return $"{httpContext.Request.Path}{QueryString.Create(queryItems)}";
+    }
+
+    private static int ResolveFeedLimit(IQueryCollection query)
+    {
+        const int defaultLimit = 20;
+        const int maxLimit = 100;
+
+        return int.TryParse(query["limit"].FirstOrDefault(), out var requestedLimit)
+            ? Math.Clamp(requestedLimit, 1, maxLimit)
+            : defaultLimit;
     }
 
     private static async Task<ResolvedBffIdentity> ResolveAllowedSessionAsync(HttpContext httpContext, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
@@ -368,6 +386,15 @@ internal static class BffPostEndpoints
         Type = "https://foodsocial/errors/bff/post-service-unavailable",
         Title = "Post service unavailable",
         Detail = "The BFF could not reach the Post service. Please retry later.",
+        Status = StatusCodes.Status502BadGateway,
+        Extensions = { ["traceId"] = httpContext.TraceIdentifier }
+    });
+
+    private static IResult CreateUserProfileUnavailableProblem(HttpContext httpContext) => Results.Problem(new Microsoft.AspNetCore.Mvc.ProblemDetails
+    {
+        Type = "https://foodsocial/errors/bff/user-profile-service-unavailable",
+        Title = "UserProfile service unavailable",
+        Detail = "The BFF could not reach the UserProfile service. Please retry later.",
         Status = StatusCodes.Status502BadGateway,
         Extensions = { ["traceId"] = httpContext.TraceIdentifier }
     });
