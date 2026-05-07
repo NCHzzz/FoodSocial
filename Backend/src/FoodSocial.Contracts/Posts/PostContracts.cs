@@ -64,6 +64,8 @@ public sealed record PostSearchResponse(IReadOnlyList<PostSummaryResponse> Items
 
 public sealed record DiscoverFeedResponse(IReadOnlyList<PostSummaryResponse> Items, int Limit);
 
+public sealed record FollowingFeedResponse(IReadOnlyList<PostSummaryResponse> Items, int Limit);
+
 public sealed record ActorRequest(Guid ActorId);
 
 public sealed record PostLikeResponse(Guid PostId, Guid ActorId, bool Liked, int LikeCount);
