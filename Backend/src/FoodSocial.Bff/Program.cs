@@ -14,6 +14,8 @@ builder.Services.AddBffDishClient();
 builder.Services.AddBffPlaceClient();
 builder.Services.AddBffPostClient();
 builder.Services.AddBffCatalogResponseCache(builder.Configuration);
+builder.Services.Configure<BffRecommendationOptions>(builder.Configuration.GetSection(BffRecommendationOptions.SectionName));
+builder.Services.AddScoped<IDiscoverRecommendationProvider, DeterministicDiscoverRecommendationProvider>();
 builder.Services.AddBffAuthentication(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
@@ -36,6 +38,7 @@ app.MapBffDishEndpoints();
 app.MapBffPlaceEndpoints();
 app.MapBffPostEndpoints();
 app.MapBffSearchAssistEndpoints();
+app.MapBffRecommendationEndpoints();
 
 app.MapDefaultEndpoints();
 
