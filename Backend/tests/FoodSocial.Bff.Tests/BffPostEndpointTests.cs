@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using FoodSocial.Contracts.Identity;
 using FoodSocial.Contracts.Posts;
+using FoodSocial.Contracts.UserProfiles;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -185,6 +186,85 @@ public sealed class BffPostEndpointTests
     }
 
     [Fact]
+    public async Task FollowingFeed_WithoutAuthenticatedSession_ReturnsUnauthorizedWithoutCallingServices()
+    {
+        await using var factory = new BffPostTestApplicationFactory(_ => JsonResponse(HttpStatusCode.OK, new PostSearchResponse([], 20)));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var response = await client.GetAsync("/api/feed/following");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        factory.UserProfileHandler.Requests.Should().BeEmpty();
+        factory.PostHandler.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FollowingFeed_WithEmptyFollowGraph_ReturnsEmptyFeedWithoutCallingPostApi()
+    {
+        var sessionIdentityId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        await using var factory = new BffPostTestApplicationFactory(
+            _ => JsonResponse(HttpStatusCode.OK, new PostSearchResponse([], 20)),
+            userProfileResponseFactory: _ => JsonResponse(HttpStatusCode.OK, new UserProfileListResponse([], TotalCount: 0)));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("following-access-token"));
+
+        using var response = await client.GetAsync("/api/feed/following?limit=5");
+        var payload = await response.Content.ReadFromJsonAsync<FollowingFeedResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        payload.Should().BeEquivalentTo(new FollowingFeedResponse([], 5));
+        var graphRequest = factory.UserProfileHandler.Requests.Should().ContainSingle().Subject;
+        graphRequest.Method.Should().Be(HttpMethod.Get);
+        graphRequest.RequestUri!.PathAndQuery.Should().Be($"/api/users/{sessionIdentityId}/following");
+        factory.PostHandler.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FollowingFeed_WithFollowGraph_ComposesBoundedPostsFromFollowedAuthors()
+    {
+        var firstAuthorId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var secondAuthorId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        var olderPost = CreatePostSummary(Guid.Parse("10000000-0000-0000-0000-000000000000"), firstAuthorId, DateTimeOffset.Parse("2026-05-01T00:00:00Z"));
+        var newestPost = CreatePostSummary(Guid.Parse("20000000-0000-0000-0000-000000000000"), firstAuthorId, DateTimeOffset.Parse("2026-05-03T00:00:00Z"));
+        var middlePost = CreatePostSummary(Guid.Parse("30000000-0000-0000-0000-000000000000"), secondAuthorId, DateTimeOffset.Parse("2026-05-02T00:00:00Z"));
+
+        await using var factory = new BffPostTestApplicationFactory(
+            request =>
+            {
+                var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(request.RequestUri!.Query);
+                var authorId = Guid.Parse(query["authorId"].ToString());
+                var items = authorId == firstAuthorId
+                    ? new[] { olderPost, newestPost }
+                    : [middlePost];
+                return JsonResponse(HttpStatusCode.OK, new PostSearchResponse(items, 2));
+            },
+            userProfileResponseFactory: _ => JsonResponse(
+                HttpStatusCode.OK,
+                new UserProfileListResponse(
+                    [
+                        new UserProfileSummaryDto(firstAuthorId, "First", null),
+                        new UserProfileSummaryDto(secondAuthorId, "Second", null)
+                    ],
+                    TotalCount: 2)));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Cookie", factory.CreateAuthenticatedSessionCookie("following-access-token"));
+
+        using var response = await client.GetAsync("/api/feed/following?limit=2");
+        var payload = await response.Content.ReadFromJsonAsync<FollowingFeedResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        payload.Should().NotBeNull();
+        payload!.Limit.Should().Be(2);
+        payload.Items.Select(item => item.Id).Should().Equal(newestPost.Id, middlePost.Id);
+        factory.UserProfileHandler.Requests.Should().ContainSingle();
+        factory.PostHandler.Requests.Select(request => request.RequestUri!.PathAndQuery)
+            .Should()
+            .Equal(
+                $"/api/posts/search?authorId={firstAuthorId}&limit=2&includeHidden=False",
+                $"/api/posts/search?authorId={secondAuthorId}&limit=2&includeHidden=False");
+    }
+
+    [Fact]
     public async Task CreatePost_WithMalformedJson_ReturnsBadRequestWithoutForwarding()
     {
         await using var factory = new BffPostTestApplicationFactory(_ => JsonResponse(HttpStatusCode.Created, new { }));
@@ -357,25 +437,50 @@ public sealed class BffPostEndpointTests
             PriceRange: "$$",
             Tags: ["pho"]);
 
+    private static PostSummaryResponse CreatePostSummary(Guid postId, Guid authorId, DateTimeOffset createdAtUtc) =>
+        new(
+            postId,
+            authorId,
+            Guid.Parse("33333333-3333-3333-3333-333333333333"),
+            PlaceId: null,
+            "Food post",
+            Rating: 5,
+            PriceRange: "$$",
+            Tags: ["pho"],
+            PrimaryMediaUrl: "https://cdn.example.test/pho.jpg",
+            IsHidden: false,
+            LikeCount: 0,
+            RepostCount: 0,
+            CommentCount: 0,
+            createdAtUtc);
+
     private static HttpResponseMessage JsonResponse<TValue>(HttpStatusCode statusCode, TValue value) =>
         new(statusCode)
         {
             Content = JsonContent.Create(value)
         };
 
-    private sealed class BffPostTestApplicationFactory(Func<HttpRequestMessage, HttpResponseMessage> responseFactory, IReadOnlyList<string>? roles = null) : WebApplicationFactory<Program>
+    private sealed class BffPostTestApplicationFactory(
+        Func<HttpRequestMessage, HttpResponseMessage> responseFactory,
+        IReadOnlyList<string>? roles = null,
+        Func<HttpRequestMessage, HttpResponseMessage>? userProfileResponseFactory = null) : WebApplicationFactory<Program>
     {
         private static readonly string FullTypedPostClientName = typeof(Program).Assembly
             .GetType("FoodSocial.Bff.PostHttpClient", throwOnError: true)!
+            .FullName!;
+        private static readonly string FullTypedUserProfileClientName = typeof(Program).Assembly
+            .GetType("FoodSocial.Bff.UserProfileHttpClient", throwOnError: true)!
             .FullName!;
         private static readonly string FullTypedIdentityClientName = typeof(Program).Assembly
             .GetType("FoodSocial.Bff.IdentityOrchestrationHttpClient", throwOnError: true)!
             .FullName!;
         private const string ShortTypedPostClientName = "PostHttpClient";
+        private const string ShortTypedUserProfileClientName = "UserProfileHttpClient";
         private const string ShortTypedIdentityClientName = "IdentityOrchestrationHttpClient";
         private readonly IdentityStateHttpMessageHandler _identityHandler = new(roles ?? ["user"]);
 
         internal PostCaptureHttpMessageHandler PostHandler { get; } = new(responseFactory);
+        internal UserProfileCaptureHttpMessageHandler UserProfileHandler { get; } = new(userProfileResponseFactory ?? (_ => JsonResponse(HttpStatusCode.OK, new UserProfileListResponse([], TotalCount: 0))));
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -387,6 +492,7 @@ public sealed class BffPostEndpointTests
             builder.UseSetting("Keycloak:BffClientSecret", "test-client-secret");
             builder.UseSetting("Services:identity-api:https:0", "https://identity-api.example.test");
             builder.UseSetting("Services:post-api:https:0", "https://post-api.example.test");
+            builder.UseSetting("Services:userprofile-api:https:0", "https://userprofile-api.example.test");
             builder.UseSetting("Identity:InternalTrust:SharedSecret", "test-shared-secret");
             builder.UseSetting("Post:InternalTrust:SharedSecret", "test-post-shared-secret");
 
@@ -394,6 +500,8 @@ public sealed class BffPostEndpointTests
             {
                 services.Configure<HttpClientFactoryOptions>(FullTypedPostClientName, ConfigurePostClient);
                 services.Configure<HttpClientFactoryOptions>(ShortTypedPostClientName, ConfigurePostClient);
+                services.Configure<HttpClientFactoryOptions>(FullTypedUserProfileClientName, ConfigureUserProfileClient);
+                services.Configure<HttpClientFactoryOptions>(ShortTypedUserProfileClientName, ConfigureUserProfileClient);
                 services.Configure<HttpClientFactoryOptions>(FullTypedIdentityClientName, ConfigureIdentityClient);
                 services.Configure<HttpClientFactoryOptions>(ShortTypedIdentityClientName, ConfigureIdentityClient);
             });
@@ -441,6 +549,14 @@ public sealed class BffPostEndpointTests
             options.HttpMessageHandlerBuilderActions.Add(builder =>
             {
                 builder.PrimaryHandler = PostHandler;
+            });
+        }
+
+        private void ConfigureUserProfileClient(HttpClientFactoryOptions options)
+        {
+            options.HttpMessageHandlerBuilderActions.Add(builder =>
+            {
+                builder.PrimaryHandler = UserProfileHandler;
             });
         }
 
@@ -507,6 +623,31 @@ public sealed class BffPostEndpointTests
                 {
                     clone.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
                 }
+            }
+
+            return clone;
+        }
+    }
+
+    private sealed class UserProfileCaptureHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory) : HttpMessageHandler
+    {
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _responseFactory = responseFactory ?? throw new ArgumentNullException(nameof(responseFactory));
+        private readonly List<HttpRequestMessage> _requests = [];
+
+        internal IReadOnlyList<HttpRequestMessage> Requests => _requests;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            _requests.Add(CloneRequest(request));
+            return Task.FromResult(_responseFactory(request));
+        }
+
+        private static HttpRequestMessage CloneRequest(HttpRequestMessage request)
+        {
+            var clone = new HttpRequestMessage(request.Method, request.RequestUri);
+            foreach (var header in request.Headers)
+            {
+                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
             return clone;
