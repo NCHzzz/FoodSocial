@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FoodSocial.Contracts.Identity;
 using FoodSocial.Contracts.Posts;
+using FoodSocial.Contracts.UserProfiles;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,6 +17,7 @@ internal static class BffPostEndpoints
         endpoints.MapGet("/api/posts/search", ForwardAsync);
         endpoints.MapGet("/api/posts/{postId:guid}", ForwardAsync);
         endpoints.MapGet("/api/feed/discover", ForwardAsync);
+        endpoints.MapGet("/api/feed/following", ComposeFollowingFeedAsync);
         endpoints.MapGet("/api/media/uploads/{uploadId:guid}/{variant}", ForwardMediaReadAsync);
         endpoints.MapPost("/api/posts", ForwardCreatePostAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         endpoints.MapPost("/api/media/uploads", ForwardMediaUploadAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
@@ -31,6 +33,74 @@ internal static class BffPostEndpoints
         endpoints.MapGet("/api/admin/reports", ForwardModeratorReadAsync);
         endpoints.MapPost("/api/admin/reports/{reportId:guid}/resolve", ForwardResolveReportAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         return endpoints;
+    }
+
+    private static async Task<IResult> ComposeFollowingFeedAsync(
+        HttpContext httpContext,
+        PostHttpClient postClient,
+        UserProfileHttpClient userProfileClient,
+        IdentityOrchestrationHttpClient identityClient,
+        ILoggerFactory loggerFactory,
+        CancellationToken cancellationToken)
+    {
+        var session = await ResolveAllowedSessionAsync(httpContext, identityClient, loggerFactory, cancellationToken);
+        if (session.Result is not null) return session.Result;
+
+        var limit = ResolveFeedLimit(httpContext.Request.Query);
+        var followingPath = $"/api/users/{session.IdentityId}/following";
+        using var followingResponse = await GetFollowingGraphAsync(httpContext, userProfileClient, loggerFactory, followingPath, cancellationToken);
+        if (followingResponse is null) return CreateUserProfileUnavailableProblem(httpContext);
+        if (!followingResponse.IsSuccessStatusCode)
+        {
+            return await CreateUpstreamResultAsync(followingResponse, cancellationToken);
+        }
+
+        var following = await followingResponse.Content.ReadFromJsonAsync<UserProfileListResponse>(JsonOptions, cancellationToken);
+        if (following is null)
+        {
+            return CreateUserProfileUnavailableProblem(httpContext);
+        }
+
+        if (following.Items.Count == 0)
+        {
+            return Results.Ok(new FollowingFeedResponse([], limit));
+        }
+
+        var posts = new List<PostSummaryResponse>();
+        foreach (var followedProfile in following.Items)
+        {
+            var postQuery = QueryString.Create(
+            [
+                new KeyValuePair<string, string?>("authorId", followedProfile.IdentityId.ToString()),
+                new KeyValuePair<string, string?>("limit", limit.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                new KeyValuePair<string, string?>("includeHidden", bool.FalseString)
+            ]);
+            var postPathAndQuery = $"/api/posts/search{postQuery}";
+            using var postsResponse = await ForwardToPostApiAsync(httpContext, postClient, loggerFactory, postPathAndQuery, session.IdentityId, session.Roles, cancellationToken);
+            if (postsResponse is null) return CreateUnavailableProblem(httpContext);
+            if (!postsResponse.IsSuccessStatusCode)
+            {
+                return await CreateUpstreamResultAsync(postsResponse, cancellationToken);
+            }
+
+            var authorPosts = await postsResponse.Content.ReadFromJsonAsync<PostSearchResponse>(JsonOptions, cancellationToken);
+            if (authorPosts is null)
+            {
+                return CreateUnavailableProblem(httpContext);
+            }
+
+            posts.AddRange(authorPosts.Items);
+        }
+
+        var items = posts
+            .GroupBy(post => post.Id)
+            .Select(group => group.First())
+            .OrderByDescending(post => post.CreatedAtUtc)
+            .ThenBy(post => post.Id)
+            .Take(limit)
+            .ToArray();
+
+        return Results.Ok(new FollowingFeedResponse(items, limit));
     }
 
     private static async Task<IResult> ForwardCreatePostAsync(HttpContext httpContext, PostHttpClient postClient, IdentityOrchestrationHttpClient identityClient, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
@@ -157,6 +227,13 @@ internal static class BffPostEndpoints
         var targetPathAndQuery = CreatePublicForwardPathAndQuery(httpContext);
         using var upstreamResponse = await ForwardToPostApiAsync(httpContext, postClient, loggerFactory, targetPathAndQuery, Guid.Empty, [], cancellationToken);
         if (upstreamResponse is null) return CreateUnavailableProblem(httpContext);
+        var contentType = upstreamResponse.Content.Headers.ContentType?.ToString();
+        var responseBytes = await upstreamResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+        return new BffUpstreamHttpResult((int)upstreamResponse.StatusCode, contentType, responseBytes);
+    }
+
+    private static async Task<IResult> CreateUpstreamResultAsync(HttpResponseMessage upstreamResponse, CancellationToken cancellationToken)
+    {
         var contentType = upstreamResponse.Content.Headers.ContentType?.ToString();
         var responseBytes = await upstreamResponse.Content.ReadAsByteArrayAsync(cancellationToken);
         return new BffUpstreamHttpResult((int)upstreamResponse.StatusCode, contentType, responseBytes);

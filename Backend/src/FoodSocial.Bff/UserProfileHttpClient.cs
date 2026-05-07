@@ -53,6 +53,37 @@ internal sealed class UserProfileHttpClient(HttpClient httpClient, ILogger<UserP
         return response;
     }
 
+    public async Task<HttpResponseMessage> GetAsync(
+        string targetPathAndQuery,
+        string? accessToken,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetPathAndQuery);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, targetPathAndQuery);
+        if (!string.IsNullOrWhiteSpace(accessToken))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        }
+
+        try
+        {
+            return await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                exception,
+                "UserProfile request to {TargetPathAndQuery} timed out after {Timeout}.",
+                targetPathAndQuery,
+                _httpClient.Timeout);
+
+            throw new InvalidOperationException(
+                $"UserProfile request to '{targetPathAndQuery}' timed out after {_httpClient.Timeout}.",
+                exception);
+        }
+    }
+
     public static async Task<string?> ResolveAccessTokenAsync(HttpContext httpContext)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
