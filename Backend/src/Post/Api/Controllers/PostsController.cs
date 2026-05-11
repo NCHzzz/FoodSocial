@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FoodSocial.Post.Api.Controllers;
 
 [ApiController]
-public sealed class PostsController(PostService postService, PostMediaStorage mediaStorage, IConfiguration configuration) : ControllerBase
+public sealed class PostsController(PostService postService, PostMediaStorage mediaStorage, IConfiguration configuration, ILogger<PostsController> logger) : ControllerBase
 {
     private static readonly IReadOnlyDictionary<string, string> AllowedImageContentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -19,6 +19,7 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
     private readonly PostService _postService = postService ?? throw new ArgumentNullException(nameof(postService));
     private readonly PostMediaStorage _mediaStorage = mediaStorage ?? throw new ArgumentNullException(nameof(mediaStorage));
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+    private readonly ILogger<PostsController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     [HttpPost("api/posts")]
     [ServiceFilter(typeof(PostInternalAuthorizationFilter))]
@@ -129,8 +130,8 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
         return Ok(new MediaCleanupResponse(uploads.Count, deletedUploadIds.Count, deletedUploadIds));
     }
 
-    private static bool TryResolveTrustedCallerIdentity(HttpContext httpContext, IConfiguration configuration, out Guid identityId) =>
-        PostInternalAuthorization.TryAuthorize(httpContext, configuration, requireModerator: false, out identityId, out _);
+    private bool TryResolveTrustedCallerIdentity(HttpContext httpContext, IConfiguration configuration, out Guid identityId) =>
+        PostInternalAuthorization.TryAuthorize(httpContext, configuration, _logger, requireModerator: false, out identityId, out _);
 
     private static async Task<ValidatedImageUpload> ValidateImageUploadAsync(IFormFile file, CancellationToken cancellationToken)
     {

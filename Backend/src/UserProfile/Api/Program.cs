@@ -56,7 +56,7 @@ builder.Services
 
 var app = builder.Build();
 
-var applyMigrationsOnStartup = builder.Configuration.GetValue("UserProfile:ApplyMigrationsOnStartup", true);
+var applyMigrationsOnStartup = ShouldApplyMigrationsOnStartup(builder.Configuration, builder.Environment, requireExplicitNonDevelopmentFlag: true);
 
 if (applyMigrationsOnStartup)
 {
@@ -79,7 +79,7 @@ if (app.Environment.IsDevelopment())
 
             return Results.Ok(new
             {
-                ApplyMigrationsOnStartup = configuration.GetValue("UserProfile:ApplyMigrationsOnStartup", true),
+                ApplyMigrationsOnStartup = ShouldApplyMigrationsOnStartup(configuration, app.Environment, requireExplicitNonDevelopmentFlag: true),
                 Provider = dbContext.Database.ProviderName,
                 Database = connectionBuilder?.Database,
                 Host = connectionBuilder?.Host,
@@ -122,6 +122,25 @@ static async Task ApplyUserProfileDatabaseMigrationsAsync(IServiceProvider servi
     logger.LogInformation(
         "Finished applying UserProfile EF migrations against database {DatabaseName}.",
         connectionBuilder.Database);
+}
+
+static bool ShouldApplyMigrationsOnStartup(
+    IConfiguration configuration,
+    IHostEnvironment environment,
+    bool requireExplicitNonDevelopmentFlag = false)
+{
+    var configuredValue = configuration.GetValue<bool?>("UserProfile:ApplyMigrationsOnStartup");
+    if (configuredValue is not null)
+    {
+        return configuredValue.Value;
+    }
+
+    if (!environment.IsDevelopment() && requireExplicitNonDevelopmentFlag)
+    {
+        throw new InvalidOperationException("UserProfile:ApplyMigrationsOnStartup must be explicitly configured outside development.");
+    }
+
+    return environment.IsDevelopment();
 }
 
 static string ResolveKeycloakAuthority(IConfiguration configuration, string realm)

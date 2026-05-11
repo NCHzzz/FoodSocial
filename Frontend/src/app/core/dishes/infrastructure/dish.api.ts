@@ -13,13 +13,11 @@ export class DishApi {
   searchDishes(request: DishSearchRequest): Observable<DishSearchResponse> {
     return this.httpClient.get<DishSearchResponse>(`${DishApi.dishesEndpoint}/search`, {
       params: this.buildSearchParams(request),
-      withCredentials: true,
     });
   }
 
   getDish(dishId: string): Observable<DishDetailResponse> {
     return this.httpClient.get<DishDetailResponse>(`${DishApi.dishesEndpoint}/${encodeURIComponent(dishId)}`, {
-      withCredentials: true,
     });
   }
 

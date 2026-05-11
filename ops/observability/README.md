@@ -10,7 +10,7 @@ Run an OpenTelemetry Collector with `ops/observability/otel-collector.yaml`, the
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
-The collector accepts OTLP over gRPC (`4317`) and HTTP (`4318`), exposes Prometheus-scrapable metrics at `9464`, and logs telemetry to stdout for local inspection.
+The collector accepts OTLP over gRPC (`4317`) and HTTP (`4318`) and exposes Prometheus-scrapable metrics at `9464`. It does not enable the OpenTelemetry debug exporter by default, so telemetry is not echoed to collector stdout.
 
 ## Prometheus example
 

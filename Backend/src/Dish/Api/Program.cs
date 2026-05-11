@@ -24,7 +24,7 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-var applyMigrationsOnStartup = builder.Configuration.GetValue("Dish:ApplyMigrationsOnStartup", builder.Environment.IsDevelopment());
+var applyMigrationsOnStartup = ShouldApplyMigrationsOnStartup(builder.Configuration, builder.Environment, "Dish", requireExplicitNonDevelopmentFlag: true);
 
 if (applyMigrationsOnStartup)
 {
@@ -70,6 +70,26 @@ static async Task ApplyDishDatabaseMigrationsAsync(IServiceProvider services)
     logger.LogInformation(
         "Finished applying Dish EF migrations against database {DatabaseName}.",
         connectionBuilder.Database);
+}
+
+static bool ShouldApplyMigrationsOnStartup(
+    IConfiguration configuration,
+    IHostEnvironment environment,
+    string serviceName,
+    bool requireExplicitNonDevelopmentFlag = false)
+{
+    var configuredValue = configuration.GetValue<bool?>($"{serviceName}:ApplyMigrationsOnStartup");
+    if (configuredValue is not null)
+    {
+        return configuredValue.Value;
+    }
+
+    if (!environment.IsDevelopment() && requireExplicitNonDevelopmentFlag)
+    {
+        throw new InvalidOperationException($"{serviceName}:ApplyMigrationsOnStartup must be explicitly configured outside development.");
+    }
+
+    return environment.IsDevelopment();
 }
 
 public partial class Program;

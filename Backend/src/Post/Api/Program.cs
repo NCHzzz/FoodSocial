@@ -25,7 +25,7 @@ builder.Services.AddHealthChecks().AddCheck<PostPostgresHealthCheck>("post-postg
 
 var app = builder.Build();
 
-var applyMigrationsOnStartup = builder.Configuration.GetValue("Post:ApplyMigrationsOnStartup", builder.Environment.IsDevelopment());
+var applyMigrationsOnStartup = ShouldApplyMigrationsOnStartup(builder.Configuration, builder.Environment, "Post", requireExplicitNonDevelopmentFlag: true);
 if (applyMigrationsOnStartup)
 {
     await ApplyPostDatabaseMigrationsAsync(app.Services);
@@ -58,6 +58,26 @@ static async Task ApplyPostDatabaseMigrationsAsync(IServiceProvider services)
     logger.LogInformation("Applying Post EF migrations against database {DatabaseName} on host {Host}:{Port}.", connectionBuilder.Database, connectionBuilder.Host, connectionBuilder.Port);
     await dbContext.Database.MigrateAsync();
     logger.LogInformation("Finished applying Post EF migrations against database {DatabaseName}.", connectionBuilder.Database);
+}
+
+static bool ShouldApplyMigrationsOnStartup(
+    IConfiguration configuration,
+    IHostEnvironment environment,
+    string serviceName,
+    bool requireExplicitNonDevelopmentFlag = false)
+{
+    var configuredValue = configuration.GetValue<bool?>($"{serviceName}:ApplyMigrationsOnStartup");
+    if (configuredValue is not null)
+    {
+        return configuredValue.Value;
+    }
+
+    if (!environment.IsDevelopment() && requireExplicitNonDevelopmentFlag)
+    {
+        throw new InvalidOperationException($"{serviceName}:ApplyMigrationsOnStartup must be explicitly configured outside development.");
+    }
+
+    return environment.IsDevelopment();
 }
 
 public partial class Program;

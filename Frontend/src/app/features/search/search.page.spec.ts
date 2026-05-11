@@ -16,6 +16,7 @@ import { PostApi } from '../../core/posts/infrastructure/post.api';
 import { SearchAssistApi } from '../../core/search/infrastructure/search-assist.api';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
 import { SearchPage } from './search.page';
+import { SearchStateService } from './search-state.service';
 
 describe('SearchPage', () => {
   const identityId = '11111111-1111-1111-1111-111111111111';
@@ -39,33 +40,31 @@ describe('SearchPage', () => {
     isLoggingOut: false,
     lastLoadFailed: false,
   };
+  const dishItem = {
+    id: '22222222-2222-2222-2222-222222222222',
+    name: 'Phở bò',
+    category: 'Noodle soup',
+    cuisineType: 'Vietnamese',
+    aliases: ['pho bo'],
+    status: 'Active' as const,
+  };
   const dishSearchResponse: DishSearchResponse = {
-    items: [
-      {
-        id: '22222222-2222-2222-2222-222222222222',
-        name: 'Phở bò',
-        category: 'Noodle soup',
-        cuisineType: 'Vietnamese',
-        aliases: ['pho bo'],
-        status: 'Active',
-      },
-    ],
+    items: [dishItem],
     limit: 8,
   };
+  const placeItem = {
+    id: '33333333-3333-3333-3333-333333333333',
+    name: 'Quán Ăn Ngon',
+    addressText: '18 Phan Bội Châu',
+    area: 'District 1',
+    city: 'Ho Chi Minh City',
+    country: 'Vietnam',
+    cuisineTypes: ['Vietnamese'],
+    priceRange: '$$',
+    status: 'Active' as const,
+  };
   const placeSearchResponse: PlaceSearchResponse = {
-    items: [
-      {
-        id: '33333333-3333-3333-3333-333333333333',
-        name: 'Quán Ăn Ngon',
-        addressText: '18 Phan Bội Châu',
-        area: 'District 1',
-        city: 'Ho Chi Minh City',
-        country: 'Vietnam',
-        cuisineTypes: ['Vietnamese'],
-        priceRange: '$$',
-        status: 'Active',
-      },
-    ],
+    items: [placeItem],
     limit: 8,
   };
   const postSearchResponse: PostSearchResponse = {
@@ -73,8 +72,8 @@ describe('SearchPage', () => {
       {
         id: '44444444-4444-4444-4444-444444444444',
         authorId: identityId,
-        dishId: dishSearchResponse.items[0].id,
-        placeId: placeSearchResponse.items[0].id,
+        dishId: dishItem.id,
+        placeId: placeItem.id,
         caption: 'Search found rich phở broth.',
         rating: 5,
         priceRange: '$$',
@@ -145,6 +144,7 @@ describe('SearchPage', () => {
             navigator: { clipboard: { writeText: vi.fn() } },
           },
         },
+        SearchStateService,
       ],
     }).compileComponents();
   });

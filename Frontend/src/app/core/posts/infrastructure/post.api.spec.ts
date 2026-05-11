@@ -1,4 +1,5 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { credentialsInterceptor } from '../../http/credentials.interceptor';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
@@ -65,7 +66,7 @@ describe('PostApi', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withInterceptors([credentialsInterceptor])),
         provideHttpClientTesting(),
       ],
     });
@@ -93,7 +94,7 @@ describe('PostApi', () => {
   it('searches posts with trimmed bounded query parameters', () => {
     const response: PostSearchResponse = { items: feedResponse.items, limit: 24 };
 
-    api.searchPosts({ query: '  pho  ', tag: ' soup ', authorId: '', dishId: null, placeId: undefined, limit: 24 }).subscribe((result) => {
+    api.searchPosts({ query: '  pho  ', tag: ' soup ', authorId: '', dishId: null, placeId: null, limit: 24 }).subscribe((result) => {
       expect(result).toEqual(response);
     });
 
@@ -190,6 +191,8 @@ describe('PostApi', () => {
       ],
       limit: 20,
     };
+    const reportItem = reportResponse.items[0];
+    if (reportItem === undefined) throw new Error('reportItem missing');
 
     api.getAdminReports(20).subscribe((response) => {
       expect(response).toEqual(reportResponse);
@@ -200,7 +203,7 @@ describe('PostApi', () => {
     expect(adminRequest.request.withCredentials).toBe(true);
     adminRequest.flush(reportResponse);
 
-    api.resolveReport(reportResponse.items[0].id, {
+    api.resolveReport(reportItem.id, {
       moderatorId: '00000000-0000-0000-0000-000000000000',
       action: 'dismiss',
       auditNote: 'Reviewed manually.',
@@ -209,13 +212,13 @@ describe('PostApi', () => {
     });
 
     httpTestingController.expectOne('/api/auth/csrf').flush({ requestToken: 'moderation-token', headerName: 'X-XSRF-TOKEN' });
-    const resolveRequest = httpTestingController.expectOne(`/api/admin/reports/${reportResponse.items[0].id}/resolve`);
+    const resolveRequest = httpTestingController.expectOne(`/api/admin/reports/${reportItem.id}/resolve`);
     expect(resolveRequest.request.method).toBe('POST');
     expect(resolveRequest.request.withCredentials).toBe(true);
     expect(resolveRequest.request.headers.get('X-XSRF-TOKEN')).toBe('moderation-token');
     expect(resolveRequest.request.body.action).toBe('dismiss');
     resolveRequest.flush({
-      ...reportResponse.items[0],
+      ...reportItem,
       status: 'ResolvedNoAction',
       moderatorId: postDetail.authorId,
       resolutionNote: 'Reviewed manually.',

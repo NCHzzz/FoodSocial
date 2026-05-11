@@ -13,13 +13,11 @@ export class PlaceApi {
   searchPlaces(request: PlaceSearchRequest): Observable<PlaceSearchResponse> {
     return this.httpClient.get<PlaceSearchResponse>(`${PlaceApi.placesEndpoint}/search`, {
       params: this.buildSearchParams(request),
-      withCredentials: true,
     });
   }
 
   getPlace(placeId: string): Observable<PlaceDetailResponse> {
     return this.httpClient.get<PlaceDetailResponse>(`${PlaceApi.placesEndpoint}/${encodeURIComponent(placeId)}`, {
-      withCredentials: true,
     });
   }
 

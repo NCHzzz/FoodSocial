@@ -33,20 +33,17 @@ export class PostApi {
   getDiscoverFeed(limit: number | null = null): Observable<DiscoverFeedResponse> {
     return this.httpClient.get<DiscoverFeedResponse>(PostApi.discoverFeedEndpoint, {
       params: this.buildLimitParams(limit),
-      withCredentials: true,
     });
   }
 
   searchPosts(request: PostSearchRequest): Observable<PostSearchResponse> {
     return this.httpClient.get<PostSearchResponse>(`${PostApi.postsEndpoint}/search`, {
       params: this.buildSearchParams(request),
-      withCredentials: true,
     });
   }
 
   getPost(postId: string): Observable<PostDetailResponse> {
     return this.httpClient.get<PostDetailResponse>(this.buildPostEndpoint(postId), {
-      withCredentials: true,
     });
   }
 
@@ -97,7 +94,6 @@ export class PostApi {
   getNotifications(limit: number | null = null): Observable<NotificationListResponse> {
     return this.httpClient.get<NotificationListResponse>('/api/me/notifications', {
       params: this.buildLimitParams(limit),
-      withCredentials: true,
     });
   }
 
@@ -110,7 +106,6 @@ export class PostApi {
   getAdminReports(limit: number | null = null): Observable<AdminReportsResponse> {
     return this.httpClient.get<AdminReportsResponse>('/api/admin/reports', {
       params: this.buildLimitParams(limit),
-      withCredentials: true,
     });
   }
 

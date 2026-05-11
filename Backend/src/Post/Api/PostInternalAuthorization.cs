@@ -12,14 +12,21 @@ internal static class PostInternalAuthorization
     private const string IdentityIdHeaderName = "X-FoodSocial-Identity-Id";
     private const string RolesHeaderName = "X-FoodSocial-Identity-Roles";
 
-    internal static bool TryAuthorize(HttpContext httpContext, IConfiguration configuration, bool requireModerator, out Guid identityId, out ObjectResult? problem)
+    internal static bool TryAuthorize(HttpContext httpContext, IConfiguration configuration, ILogger logger, bool requireModerator, out Guid identityId, out ObjectResult? problem)
     {
+        ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(logger);
+
         identityId = Guid.Empty;
         problem = null;
 
         var configuredSecret = configuration["Post:InternalTrust:SharedSecret"];
         if (string.IsNullOrWhiteSpace(configuredSecret))
         {
+            logger.LogError(
+                "Post internal trust is not configured. TraceId: {TraceId}",
+                httpContext.TraceIdentifier);
             problem = CreateProblemResult(
                 StatusCodes.Status503ServiceUnavailable,
                 "Post internal trust is not configured",
@@ -31,6 +38,10 @@ internal static class PostInternalAuthorization
         var providedSecret = httpContext.Request.Headers[InternalSecretHeaderName].ToString();
         if (!FixedTimeEquals(providedSecret, configuredSecret))
         {
+            logger.LogWarning(
+                "Post internal trust secret validation failed from {RemoteIpAddress}. TraceId: {TraceId}",
+                httpContext.Connection.RemoteIpAddress,
+                httpContext.TraceIdentifier);
             problem = CreateProblemResult(
                 StatusCodes.Status401Unauthorized,
                 "Post internal trust required",
@@ -41,6 +52,9 @@ internal static class PostInternalAuthorization
 
         if (!Guid.TryParse(httpContext.Request.Headers[IdentityIdHeaderName].ToString(), out identityId) || identityId == Guid.Empty)
         {
+            logger.LogWarning(
+                "Post internal trust request omitted a valid caller identity. TraceId: {TraceId}",
+                httpContext.TraceIdentifier);
             problem = CreateProblemResult(
                 StatusCodes.Status401Unauthorized,
                 "Post caller identity required",
@@ -51,6 +65,10 @@ internal static class PostInternalAuthorization
 
         if (requireModerator && !HasModeratorRole(httpContext.Request.Headers[RolesHeaderName].ToString()))
         {
+            logger.LogWarning(
+                "Post moderation trust request for identity {IdentityId} lacked moderator role. TraceId: {TraceId}",
+                identityId,
+                httpContext.TraceIdentifier);
             problem = CreateProblemResult(
                 StatusCodes.Status403Forbidden,
                 "Post moderation authorization required",
@@ -101,14 +119,15 @@ internal static class PostInternalAuthorization
     }
 }
 
-internal sealed class PostInternalAuthorizationFilter(IConfiguration configuration) : IAsyncAuthorizationFilter
+internal sealed class PostInternalAuthorizationFilter(IConfiguration configuration, ILogger<PostInternalAuthorizationFilter> logger) : IAsyncAuthorizationFilter
 {
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+    private readonly ILogger<PostInternalAuthorizationFilter> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (!PostInternalAuthorization.TryAuthorize(context.HttpContext, _configuration, requireModerator: false, out _, out var problem))
+        if (!PostInternalAuthorization.TryAuthorize(context.HttpContext, _configuration, _logger, requireModerator: false, out _, out var problem))
         {
             context.Result = problem;
         }
@@ -117,14 +136,15 @@ internal sealed class PostInternalAuthorizationFilter(IConfiguration configurati
     }
 }
 
-internal sealed class PostModeratorAuthorizationFilter(IConfiguration configuration) : IAsyncAuthorizationFilter
+internal sealed class PostModeratorAuthorizationFilter(IConfiguration configuration, ILogger<PostModeratorAuthorizationFilter> logger) : IAsyncAuthorizationFilter
 {
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+    private readonly ILogger<PostModeratorAuthorizationFilter> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (!PostInternalAuthorization.TryAuthorize(context.HttpContext, _configuration, requireModerator: true, out _, out var problem))
+        if (!PostInternalAuthorization.TryAuthorize(context.HttpContext, _configuration, _logger, requireModerator: true, out _, out var problem))
         {
             context.Result = problem;
         }

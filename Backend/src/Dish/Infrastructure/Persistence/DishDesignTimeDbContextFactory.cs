@@ -11,8 +11,11 @@ public sealed class DishDesignTimeDbContextFactory : IDesignTimeDbContextFactory
     /// <inheritdoc />
     public DishDbContext CreateDbContext(string[] args)
     {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__dishdb")
+            ?? "Host=localhost;Database=dishdb;Username=postgres;Password=postgres";
+
         var options = new DbContextOptionsBuilder<DishDbContext>()
-            .UseNpgsql("Host=localhost;Database=dishdb;Username=postgres;Password=postgres", npgsql =>
+            .UseNpgsql(connectionString, npgsql =>
                 npgsql.MigrationsHistoryTable("__DishMigrationsHistory"))
             .Options;
 

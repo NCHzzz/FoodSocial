@@ -50,6 +50,11 @@ export const routes: Routes = [
         loadChildren: () => import('./features/notifications/notifications.routes').then((module) => module.NOTIFICATIONS_ROUTES),
       },
       {
+        path: 'saved',
+        canActivate: [authenticatedRouteGuard],
+        loadChildren: () => import('./features/saved/saved.routes').then((module) => module.SAVED_ROUTES),
+      },
+      {
         path: 'profile',
         canActivate: [authenticatedRouteGuard],
         loadChildren: () => import('./features/profile/profile.routes').then((module) => module.PROFILE_ROUTES),

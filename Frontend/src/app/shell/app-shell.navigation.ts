@@ -15,6 +15,7 @@ export const AUTHENTICATED_NAVIGATION_ITEMS: readonly AppShellNavigationItem[] =
   { label: 'Search', route: '/search' },
   { label: 'Following', route: '/following' },
   { label: 'Create', route: '/post-create' },
+  { label: 'Saved', route: '/saved' },
   { label: 'Notifications', route: '/notifications' },
   { label: 'Profile', route: '/profile' },
 ];

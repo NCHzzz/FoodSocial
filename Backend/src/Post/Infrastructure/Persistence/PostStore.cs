@@ -93,7 +93,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         if (criteria.AuthorId is { } authorId) query = query.Where(post => post.AuthorId == authorId);
         if (criteria.DishId is { } dishId) query = query.Where(post => post.DishId == dishId);
         if (criteria.PlaceId is { } placeId) query = query.Where(post => post.PlaceId == placeId);
-        if (!string.IsNullOrWhiteSpace(criteria.Tag)) query = query.Where(post => post.TagsSearchText.ToLower().Contains(criteria.Tag));
+        if (!string.IsNullOrWhiteSpace(criteria.Tag)) query = query.Where(post => post.TagsSearchText.Contains(criteria.Tag));
         if (!string.IsNullOrWhiteSpace(criteria.Query)) query = query.Where(post => post.Caption.ToLower().Contains(criteria.Query) || post.TagsSearchText.ToLower().Contains(criteria.Query) || (post.LocationText != null && post.LocationText.ToLower().Contains(criteria.Query)));
         var postIds = IsSqliteProvider()
             ? (await query.AsNoTracking().ToListAsync(cancellationToken))

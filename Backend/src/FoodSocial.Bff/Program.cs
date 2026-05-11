@@ -1,4 +1,6 @@
 using FoodSocial.Bff;
+using Microsoft.AspNetCore.HttpOverrides;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,10 +20,23 @@ builder.Services.AddBffRateLimiting(builder.Configuration);
 builder.Services.Configure<BffRecommendationOptions>(builder.Configuration.GetSection(BffRecommendationOptions.SectionName));
 builder.Services.AddScoped<IDiscoverRecommendationProvider, DeterministicDiscoverRecommendationProvider>();
 builder.Services.AddBffAuthentication(builder.Configuration, builder.Environment);
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [])
+    {
+        if (IPAddress.TryParse(proxy, out var proxyAddress))
+        {
+            options.KnownProxies.Add(proxyAddress);
+        }
+    }
+});
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
+
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {

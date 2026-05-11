@@ -11,8 +11,11 @@ public sealed class UserProfileDesignTimeDbContextFactory : IDesignTimeDbContext
     /// <inheritdoc />
     public UserProfileDbContext CreateDbContext(string[] args)
     {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__userprofiledb")
+            ?? "Host=localhost;Port=5432;Database=userprofiledb;Username=postgres;Password=postgres";
+
         var optionsBuilder = new DbContextOptionsBuilder<UserProfileDbContext>();
-        optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=userprofiledb;Username=postgres;Password=postgres");
+        optionsBuilder.UseNpgsql(connectionString);
         return new UserProfileDbContext(optionsBuilder.Options);
     }
 }

@@ -89,6 +89,19 @@ type PostDetailActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated'
                 <button type="button" appUiButton="secondary" (click)="savePost()">Save post</button>
                 <button type="button" appUiButton="secondary" (click)="repostPost()">Repost</button>
                 <button type="button" appUiButton="secondary" (click)="sharePost()">Copy share link</button>
+                <label class="grid gap-2 text-sm font-semibold text-[#141413]">
+                  Report reason
+                  <select class="min-h-11 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 text-sm font-medium text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20" [formControl]="reportReasonControl">
+                    <option value="spam_or_low_quality">Spam or low quality</option>
+                    <option value="unsafe_or_harmful">Unsafe or harmful</option>
+                    <option value="incorrect_food_information">Incorrect food information</option>
+                    <option value="harassment_or_abuse">Harassment or abuse</option>
+                  </select>
+                </label>
+                <label class="grid gap-2 text-sm font-semibold text-[#141413]">
+                  Report note
+                  <textarea class="min-h-24 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20" [formControl]="reportDescriptionControl" rows="3" placeholder="Optional context for manual review."></textarea>
+                </label>
                 <button type="button" appUiButton="secondary" (click)="reportPost()">Report for review</button>
               </div>
               <a appUiButton="secondary" routerLink="/posts">Back to posts</a>
@@ -162,6 +175,8 @@ export class PostDetailPage {
   protected readonly actionMessage = signal('');
   protected readonly post = signal<PostDetailResponse | null>(null);
   protected readonly commentControl = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(500)] });
+  protected readonly reportReasonControl = new FormControl('spam_or_low_quality', { nonNullable: true, validators: [Validators.required] });
+  protected readonly reportDescriptionControl = new FormControl('', { nonNullable: true, validators: [Validators.maxLength(500)] });
   protected readonly authState = this.authSessionService.authState;
   protected readonly isAuthenticated = computed(() => isAuthenticatedSession(this.authState()));
   protected readonly signedInIdentityId = computed(() => this.authState().session?.identity.identityId ?? null);
@@ -240,8 +255,14 @@ export class PostDetailPage {
 
   protected reportPost(): void {
     if (!this.requireAuthenticatedAction('Sign in to report this post for manual review.')) return;
+    if (this.reportReasonControl.invalid || this.reportDescriptionControl.invalid) {
+      this.reportReasonControl.markAsTouched();
+      this.reportDescriptionControl.markAsTouched();
+      return;
+    }
+
     this.actionStatus.set('pending');
-    this.postApi.reportPost(this.postId, 'spam_or_low_quality', 'Reported from post detail page.').subscribe({
+    this.postApi.reportPost(this.postId, this.reportReasonControl.value, this.trimToNull(this.reportDescriptionControl.value) ?? 'Reported from post detail page.').subscribe({
       next: () => this.showActionSuccess('Report submitted for manual review.'),
       error: () => this.showActionError('Report failed. Retry when moderation intake is available.'),
     });
@@ -288,5 +309,10 @@ export class PostDetailPage {
   private showActionError(message: string): void {
     this.actionStatus.set('error');
     this.actionMessage.set(message);
+  }
+
+  private trimToNull(value: string): string | null {
+    const trimmedValue = value.trim();
+    return trimmedValue.length > 0 ? trimmedValue : null;
   }
 }

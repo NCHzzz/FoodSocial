@@ -1,13 +1,18 @@
 global:
   imageRegistry: ghcr.io
   imageRepository: OWNER/foodsocial
-  imageTag: latest
+  imageTag: REPLACE_WITH_IMMUTABLE_RELEASE_TAG
   imagePullPolicy: IfNotPresent
   otlpEndpoint: http://otel-collector.observability.svc.cluster.local:4317
 
 commonEnv:
   ASPNETCORE_URLS: http://+:8080
   ServiceDefaults__ExposeHealthEndpoints: "true"
+  Identity__ApplyMigrationsOnStartup: "false"
+  UserProfile__ApplyMigrationsOnStartup: "false"
+  Dish__ApplyMigrationsOnStartup: "false"
+  Place__ApplyMigrationsOnStartup: "false"
+  Post__ApplyMigrationsOnStartup: "false"
 
 services:
   bff:

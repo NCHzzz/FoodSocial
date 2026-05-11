@@ -59,6 +59,7 @@ import { UiSurfaceDirective } from '../../shared/ui/surface/ui-surface.directive
           <button type="button" appUiButton="secondary" (click)="saveRequested.emit(post().id)">Save</button>
           <button type="button" appUiButton="secondary" (click)="repostRequested.emit(post().id)">Repost</button>
           <button type="button" appUiButton="secondary" (click)="shareRequested.emit(post().id)">Share</button>
+          <button type="button" appUiButton="secondary" (click)="reportRequested.emit(post().id)">Report</button>
           <a appUiButton="accent" [routerLink]="['/posts', post().id]">Open</a>
         </div>
       </div>
@@ -72,6 +73,7 @@ export class PostCardComponent {
   readonly saveRequested = output<string>();
   readonly repostRequested = output<string>();
   readonly shareRequested = output<string>();
+  readonly reportRequested = output<string>();
 
   protected readonly primaryMediaUrl = computed(() => this.post().primaryMediaUrl?.trim() || null);
   protected readonly visibleTags = computed(() => this.post().tags.slice(0, 4));

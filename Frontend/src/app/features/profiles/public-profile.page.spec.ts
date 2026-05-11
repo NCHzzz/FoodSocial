@@ -13,6 +13,7 @@ import {
   UserSavedItemsResponse,
 } from '../../core/user-profiles/user-profile.models';
 import { PublicProfilePage } from './public-profile.page';
+import { PublicProfileStateService } from './public-profile-state.service';
 
 describe('PublicProfilePage', () => {
   const identityId = '6f4ad594-e916-4f0c-9d08-b1043e15db4b';
@@ -151,6 +152,7 @@ describe('PublicProfilePage', () => {
             },
           },
         },
+        PublicProfileStateService,
       ],
     }).compileComponents();
 

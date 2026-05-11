@@ -93,28 +93,43 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             .AsNoTracking()
             .LongCountAsync(follow => follow.FollowedUserProfileShellId == ownership.ShellId, cancellationToken);
 
-        // NOTE: EF Core SQLite cannot translate DateTimeOffset in SQL ORDER BY, so we
-        // materialize the full result set and apply sort+limit in memory. The result set is
-        // bounded per user (NormalizeLimit caps at 50), making this acceptable for MVP.
-        // For production PostgreSQL, consider pushing OrderByDescending + Take into SQL.
-        var rawItems = await (
-                from follow in _dbContext.UserFollows.AsNoTracking()
-                join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowerUserProfileShellId equals shell.Id
-                join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
-                from detail in detailGroup.DefaultIfEmpty()
-                where follow.FollowedUserProfileShellId == ownership.ShellId
-                select new
-                {
-                    follow.CreatedAtUtc,
-                    shell.IdentityId,
-                    DisplayName = detail != null ? detail.DisplayName : null,
-                    AvatarUrl = detail != null ? detail.AvatarUrl : null
-                })
-            .ToListAsync(cancellationToken);
+        var rawItems = IsSqliteProvider()
+            ? (await (
+                    from follow in _dbContext.UserFollows.AsNoTracking()
+                    join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowerUserProfileShellId equals shell.Id
+                    join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
+                    from detail in detailGroup.DefaultIfEmpty()
+                    where follow.FollowedUserProfileShellId == ownership.ShellId
+                    select new
+                    {
+                        follow.CreatedAtUtc,
+                        shell.IdentityId,
+                        DisplayName = detail != null ? detail.DisplayName : null,
+                        AvatarUrl = detail != null ? detail.AvatarUrl : null
+                    })
+                .ToListAsync(cancellationToken))
+                .OrderByDescending(item => item.CreatedAtUtc)
+                .ThenBy(item => item.IdentityId)
+                .Take(normalizedLimit)
+                .ToList()
+            : await (
+                    from follow in _dbContext.UserFollows.AsNoTracking()
+                    join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowerUserProfileShellId equals shell.Id
+                    join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
+                    from detail in detailGroup.DefaultIfEmpty()
+                    where follow.FollowedUserProfileShellId == ownership.ShellId
+                    orderby follow.CreatedAtUtc descending, shell.IdentityId
+                    select new
+                    {
+                        follow.CreatedAtUtc,
+                        shell.IdentityId,
+                        DisplayName = detail != null ? detail.DisplayName : null,
+                        AvatarUrl = detail != null ? detail.AvatarUrl : null
+                    })
+                .Take(normalizedLimit)
+                .ToListAsync(cancellationToken);
 
         var boundedItems = rawItems
-            .OrderByDescending(item => item.CreatedAtUtc)
-            .Take(normalizedLimit)
             .Select(item => new UserProfileSummary(item.IdentityId, item.DisplayName, item.AvatarUrl))
             .ToArray();
 
@@ -135,28 +150,43 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             .AsNoTracking()
             .LongCountAsync(follow => follow.FollowerUserProfileShellId == ownership.ShellId, cancellationToken);
 
-        // NOTE: EF Core SQLite cannot translate DateTimeOffset in SQL ORDER BY, so we
-        // materialize the full result set and apply sort+limit in memory. The result set is
-        // bounded per user (NormalizeLimit caps at 50), making this acceptable for MVP.
-        // For production PostgreSQL, consider pushing OrderByDescending + Take into SQL.
-        var rawItems = await (
-                from follow in _dbContext.UserFollows.AsNoTracking()
-                join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowedUserProfileShellId equals shell.Id
-                join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
-                from detail in detailGroup.DefaultIfEmpty()
-                where follow.FollowerUserProfileShellId == ownership.ShellId
-                select new
-                {
-                    follow.CreatedAtUtc,
-                    shell.IdentityId,
-                    DisplayName = detail != null ? detail.DisplayName : null,
-                    AvatarUrl = detail != null ? detail.AvatarUrl : null
-                })
-            .ToListAsync(cancellationToken);
+        var rawItems = IsSqliteProvider()
+            ? (await (
+                    from follow in _dbContext.UserFollows.AsNoTracking()
+                    join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowedUserProfileShellId equals shell.Id
+                    join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
+                    from detail in detailGroup.DefaultIfEmpty()
+                    where follow.FollowerUserProfileShellId == ownership.ShellId
+                    select new
+                    {
+                        follow.CreatedAtUtc,
+                        shell.IdentityId,
+                        DisplayName = detail != null ? detail.DisplayName : null,
+                        AvatarUrl = detail != null ? detail.AvatarUrl : null
+                    })
+                .ToListAsync(cancellationToken))
+                .OrderByDescending(item => item.CreatedAtUtc)
+                .ThenBy(item => item.IdentityId)
+                .Take(normalizedLimit)
+                .ToList()
+            : await (
+                    from follow in _dbContext.UserFollows.AsNoTracking()
+                    join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowedUserProfileShellId equals shell.Id
+                    join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
+                    from detail in detailGroup.DefaultIfEmpty()
+                    where follow.FollowerUserProfileShellId == ownership.ShellId
+                    orderby follow.CreatedAtUtc descending, shell.IdentityId
+                    select new
+                    {
+                        follow.CreatedAtUtc,
+                        shell.IdentityId,
+                        DisplayName = detail != null ? detail.DisplayName : null,
+                        AvatarUrl = detail != null ? detail.AvatarUrl : null
+                    })
+                .Take(normalizedLimit)
+                .ToListAsync(cancellationToken);
 
         var boundedItems = rawItems
-            .OrderByDescending(item => item.CreatedAtUtc)
-            .Take(normalizedLimit)
             .Select(item => new UserProfileSummary(item.IdentityId, item.DisplayName, item.AvatarUrl))
             .ToArray();
 

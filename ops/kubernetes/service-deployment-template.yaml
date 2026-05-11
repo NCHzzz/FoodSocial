@@ -59,6 +59,11 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: post-media
+              mountPath: /app/App_Data/media
           resources:
             requests:
               cpu: 100m
@@ -71,11 +76,16 @@ spec:
             capabilities:
               drop:
                 - ALL
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: post-media
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

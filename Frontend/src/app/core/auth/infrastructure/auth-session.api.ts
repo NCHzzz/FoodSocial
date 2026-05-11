@@ -17,7 +17,7 @@ export class AuthSessionApi {
 
   loadSessionState(): Observable<AuthSessionState> {
     return this.httpClient
-      .get<CurrentUserResponse>(AuthSessionApi.sessionEndpoint, { withCredentials: true })
+      .get<CurrentUserResponse>(AuthSessionApi.sessionEndpoint)
       .pipe(
         map((session): AuthSessionState => ({
           loadStatus: 'authenticated',

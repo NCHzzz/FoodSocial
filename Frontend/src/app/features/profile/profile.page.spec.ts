@@ -6,12 +6,15 @@ import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { AuthSessionState } from '../../core/auth/auth-session.models';
 import { AuthSessionService } from '../../core/auth/auth-session.service';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
+import { PostApi } from '../../core/posts/infrastructure/post.api';
+import { PostSearchResponse } from '../../core/posts/post.models';
 import {
   UpdateUserProfileRequest,
   UserProfileResponse,
   UserSavedItemsResponse,
 } from '../../core/user-profiles/user-profile.models';
 import { ProfilePage } from './profile.page';
+import { ProfileStateService } from './profile-state.service';
 
 describe('ProfilePage', () => {
   const identityId = '3bbd95ab-b927-4ec1-bbf3-9a82e20ac2f5';
@@ -30,6 +33,27 @@ describe('ProfilePage', () => {
     posts: [{ postId: 'post-1', savedAtUtc: '2026-04-25T00:00:00Z' }],
     dishes: [{ dishId: 'dish-1', savedAtUtc: '2026-04-25T00:00:00Z' }],
     places: [],
+  };
+  const authoredPosts: PostSearchResponse = {
+    items: [
+      {
+        id: 'authored-post-1',
+        authorId: identityId,
+        dishId: 'dish-authored-1',
+        placeId: null,
+        caption: 'My best cơm tấm note.',
+        rating: 5,
+        priceRange: '$$',
+        tags: ['com-tam'],
+        primaryMediaUrl: null,
+        isHidden: false,
+        likeCount: 3,
+        repostCount: 0,
+        commentCount: 1,
+        createdAtUtc: '2026-04-26T00:00:00Z',
+      },
+    ],
+    limit: 12,
   };
   const authState = new BehaviorSubject<AuthSessionState>({
     loadStatus: 'authenticated',
@@ -56,6 +80,7 @@ describe('ProfilePage', () => {
     getProfile?: () => Observable<UserProfileResponse>;
     updateProfile?: (request: UpdateUserProfileRequest) => Observable<UserProfileResponse>;
     getSavedItems?: () => Observable<UserSavedItemsResponse>;
+    searchPosts?: () => Observable<PostSearchResponse>;
   }) => {
     const updateRequests: UpdateUserProfileRequest[] = [];
 
@@ -84,6 +109,13 @@ describe('ProfilePage', () => {
             getSavedItems: () => (options?.getSavedItems ?? (() => of(savedItems)))(),
           },
         },
+        {
+          provide: PostApi,
+          useValue: {
+            searchPosts: () => (options?.searchPosts ?? (() => of(authoredPosts)))(),
+          },
+        },
+        ProfileStateService,
       ],
     }).compileComponents();
 
@@ -106,6 +138,8 @@ describe('ProfilePage', () => {
     expect(compiled.textContent).toContain('Demo Explorer');
     expect(compiled.textContent).toContain('Post post-1');
     expect(compiled.textContent).toContain('Dish dish-1');
+    expect(compiled.textContent).toContain('Authored posts');
+    expect(compiled.textContent).toContain('My best cơm tấm note.');
     expect(compiled.textContent).toContain('No saved places.');
   });
 

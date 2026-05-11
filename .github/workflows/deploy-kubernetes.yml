@@ -39,6 +39,22 @@ jobs:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v4
 
+      - name: Validate Helm ingress TLS values
+        shell: bash
+        run: |
+          helm template foodsocial ops/helm/foodsocial \
+            --values "ops/helm/foodsocial/values.${{ inputs.environment }}.yaml" \
+            --set global.imageRegistry="ghcr.io" \
+            --set global.imageRepository="${{ github.repository_owner }}/foodsocial" \
+            --set global.imageTag="${{ inputs.image-tag }}" \
+            --set ingress.enabled=true \
+            --set ingress.className=nginx \
+            --set ingress.hosts[0].host=foodsocial.example.com \
+            --set ingress.hosts[0].paths[0].path=/ \
+            --set ingress.hosts[0].paths[0].serviceName=foodsocial-web \
+            --set ingress.tls[0].hosts[0]=foodsocial.example.com \
+            --set ingress.tls[0].secretName=foodsocial-tls >/dev/null
+
       - name: Configure kubeconfig
         shell: bash
         run: |

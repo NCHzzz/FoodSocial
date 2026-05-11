@@ -22,7 +22,7 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-var applyMigrationsOnStartup = builder.Configuration.GetValue("Place:ApplyMigrationsOnStartup", builder.Environment.IsDevelopment());
+var applyMigrationsOnStartup = ShouldApplyMigrationsOnStartup(builder.Configuration, builder.Environment, "Place", requireExplicitNonDevelopmentFlag: true);
 
 if (applyMigrationsOnStartup)
 {
@@ -64,6 +64,26 @@ static async Task ApplyPlaceDatabaseMigrationsAsync(IServiceProvider services)
     logger.LogInformation(
         "Finished applying Place EF migrations against database {DatabaseName}.",
         connectionBuilder.Database);
+}
+
+static bool ShouldApplyMigrationsOnStartup(
+    IConfiguration configuration,
+    IHostEnvironment environment,
+    string serviceName,
+    bool requireExplicitNonDevelopmentFlag = false)
+{
+    var configuredValue = configuration.GetValue<bool?>($"{serviceName}:ApplyMigrationsOnStartup");
+    if (configuredValue is not null)
+    {
+        return configuredValue.Value;
+    }
+
+    if (!environment.IsDevelopment() && requireExplicitNonDevelopmentFlag)
+    {
+        throw new InvalidOperationException($"{serviceName}:ApplyMigrationsOnStartup must be explicitly configured outside development.");
+    }
+
+    return environment.IsDevelopment();
 }
 
 public partial class Program;

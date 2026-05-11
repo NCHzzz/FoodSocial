@@ -70,6 +70,13 @@ spec:
             periodSeconds: {{ $.Values.probes.liveness.periodSeconds }}
             timeoutSeconds: {{ $.Values.probes.liveness.timeoutSeconds }}
             failureThreshold: {{ $.Values.probes.liveness.failureThreshold }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if eq $name "post-api" }}
+            - name: post-media
+              mountPath: /app/App_Data/media
+            {{- end }}
           resources:
             {{ toYaml $.Values.resources | nindent 12 }}
           securityContext:
@@ -77,7 +84,14 @@ spec:
             capabilities:
               drop:
                 - ALL
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if eq $name "post-api" }}
+        - name: post-media
+          emptyDir: {}
+        {{- end }}
 ---
 apiVersion: v1
 kind: Service

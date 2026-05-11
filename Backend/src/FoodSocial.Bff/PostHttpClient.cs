@@ -65,7 +65,8 @@ internal sealed class PostHttpClient(HttpClient httpClient, IConfiguration confi
         var sharedSecret = _configuration["Post:InternalTrust:SharedSecret"];
         if (string.IsNullOrWhiteSpace(sharedSecret))
         {
-            return;
+            _logger.LogError("Post internal trust shared secret is not configured; refusing to forward trusted Post request for identity {IdentityId}.", identityId);
+            throw new InvalidOperationException("Post internal trust shared secret is not configured.");
         }
 
         request.Headers.TryAddWithoutValidation(InternalSecretHeaderName, sharedSecret);

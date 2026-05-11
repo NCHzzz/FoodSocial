@@ -46,56 +46,55 @@ describe('DiscoverPage', () => {
     lastLoadFailed: false,
   };
 
+  const authenticatedIdentityId = authenticatedState.session?.identity.identityId ?? (() => { throw new Error('authenticatedState.session must be defined in test fixture'); })();
+
+  const dishItem = {
+    id: '11111111-1111-1111-1111-111111111111',
+    name: 'Phở bò',
+    category: 'Noodle soup',
+    cuisineType: 'Vietnamese',
+    aliases: ['pho bo'],
+    status: 'Active' as const,
+  };
   const dishSearchResponse: DishSearchResponse = {
-    items: [
-      {
-        id: '11111111-1111-1111-1111-111111111111',
-        name: 'Phở bò',
-        category: 'Noodle soup',
-        cuisineType: 'Vietnamese',
-        aliases: ['pho bo'],
-        status: 'Active',
-      },
-    ],
+    items: [dishItem],
     limit: 10,
   };
 
+  const discoverFeedItem = {
+    id: '44444444-4444-4444-4444-444444444444',
+    authorId: '33333333-3333-3333-3333-333333333333',
+    dishId: '11111111-1111-1111-1111-111111111111',
+    placeId: '22222222-2222-2222-2222-222222222222',
+    caption: 'Real phở broth from the live feed.',
+    rating: 5,
+    priceRange: '$$',
+    tags: ['pho'],
+    primaryMediaUrl: 'https://example.com/pho.jpg',
+    isHidden: false,
+    likeCount: 2,
+    repostCount: 0,
+    commentCount: 1,
+    createdAtUtc: '2026-05-04T00:00:00Z',
+  };
   const discoverFeedResponse: DiscoverFeedResponse = {
-    items: [
-      {
-        id: '44444444-4444-4444-4444-444444444444',
-        authorId: '33333333-3333-3333-3333-333333333333',
-        dishId: '11111111-1111-1111-1111-111111111111',
-        placeId: '22222222-2222-2222-2222-222222222222',
-        caption: 'Real phở broth from the live feed.',
-        rating: 5,
-        priceRange: '$$',
-        tags: ['pho'],
-        primaryMediaUrl: 'https://example.com/pho.jpg',
-        isHidden: false,
-        likeCount: 2,
-        repostCount: 0,
-        commentCount: 1,
-        createdAtUtc: '2026-05-04T00:00:00Z',
-      },
-    ],
+    items: [discoverFeedItem],
     limit: 12,
   };
 
+  const placeItem = {
+    id: '22222222-2222-2222-2222-222222222222',
+    name: 'Quán Ăn Ngon',
+    addressText: '18 Phan Bội Châu',
+    area: 'District 1',
+    city: 'Ho Chi Minh City',
+    country: 'Vietnam',
+    cuisineTypes: ['Vietnamese'],
+    priceRange: '$$',
+    status: 'Active' as const,
+  };
   const placeSearchResponse: PlaceSearchResponse = {
-    items: [
-      {
-        id: '22222222-2222-2222-2222-222222222222',
-        name: 'Quán Ăn Ngon',
-        addressText: '18 Phan Bội Châu',
-        area: 'District 1',
-        city: 'Ho Chi Minh City',
-        country: 'Vietnam',
-        cuisineTypes: ['Vietnamese'],
-        priceRange: '$$',
-        status: 'Active',
-      },
-    ],
+    items: [placeItem],
     limit: 10,
   };
 
@@ -130,13 +129,13 @@ describe('DiscoverPage', () => {
           provide: PostApi,
           useValue: {
             getDiscoverFeed: (_limit: number) => of(discoverFeedResponse),
-            likePost: (_postId: string) => of({ postId: discoverFeedResponse.items[0].id, actorId: authenticatedState.session!.identity.identityId, liked: true, likeCount: 3 }),
+            likePost: (_postId: string) => of({ postId: discoverFeedItem.id, actorId: authenticatedIdentityId, liked: true, likeCount: 3 }),
           },
         },
         {
           provide: UserProfileApi,
           useValue: {
-            savePost: (_identityId: string, _postId: string) => of({ userIdentityId: authenticatedState.session!.identity.identityId, targetId: discoverFeedResponse.items[0].id, targetType: 'Post', saved: true }),
+            savePost: (_identityId: string, _postId: string) => of({ userIdentityId: authenticatedIdentityId, targetId: discoverFeedItem.id, targetType: 'Post', saved: true }),
           },
         },
       ],
@@ -165,8 +164,8 @@ describe('DiscoverPage', () => {
 
     const dishSelector = fixture.debugElement.query(By.directive(DishSearchSelectComponent)).componentInstance as DishSearchSelectComponent;
     const placeSelector = fixture.debugElement.query(By.directive(PlaceSearchSelectComponent)).componentInstance as PlaceSearchSelectComponent;
-    dishSelector.dishSelected.emit(dishSearchResponse.items[0]);
-    placeSelector.placeSelected.emit(placeSearchResponse.items[0]);
+    dishSelector.dishSelected.emit(dishItem);
+    placeSelector.placeSelected.emit(placeItem);
     fixture.detectChanges();
 
     expect(compiled.textContent).toContain('Dish selected');

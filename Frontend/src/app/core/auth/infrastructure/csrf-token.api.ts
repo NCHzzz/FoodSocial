@@ -16,13 +16,8 @@ export class CsrfTokenApi {
 
   private static readonly csrfEndpoint = '/api/auth/csrf';
 
-  withCsrfHeader(): Observable<{ headers: HttpHeaders; withCredentials: true }> {
-    return this.resolveHeaders().pipe(
-      map((headers) => ({
-        headers,
-        withCredentials: true as const,
-      })),
-    );
+  withCsrfHeader(): Observable<{ headers: HttpHeaders }> {
+    return this.resolveHeaders().pipe(map((headers) => ({ headers })));
   }
 
   private resolveHeaders(): Observable<HttpHeaders> {
@@ -43,7 +38,7 @@ export class CsrfTokenApi {
   getToken(): Observable<CsrfTokenResponse> {
     if (this.csrfTokenRequest === null) {
       this.csrfTokenRequest = this.httpClient
-        .get<CsrfTokenResponse>(CsrfTokenApi.csrfEndpoint, { withCredentials: true })
+        .get<CsrfTokenResponse>(CsrfTokenApi.csrfEndpoint)
         .pipe(
           map((token) => this.validateToken(token)),
           tap(() => {

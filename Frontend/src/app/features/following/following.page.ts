@@ -87,6 +87,7 @@ type FollowingActionStatus = 'idle' | 'pending' | 'success' | 'error';
                 (saveRequested)="savePost($event)"
                 (repostRequested)="repostPost($event)"
                 (shareRequested)="sharePost($event)"
+                (reportRequested)="reportPost($event)"
               />
             }
           </div>
@@ -188,6 +189,14 @@ export class FollowingPage {
     const url = `${this.browserWindow.location.origin}/posts/${encodeURIComponent(postId)}`;
     void this.browserWindow.navigator.clipboard?.writeText(url);
     this.showActionSuccess('Post link copied.');
+  }
+
+  protected reportPost(postId: string): void {
+    this.actionStatus.set('pending');
+    this.postApi.reportPost(postId, 'spam_or_low_quality', 'Reported from Following feed.').subscribe({
+      next: () => this.showActionSuccess('Report submitted for manual review.'),
+      error: () => this.showActionError('Report failed. Retry when moderation intake is available.'),
+    });
   }
 
   private showActionSuccess(message: string): void {

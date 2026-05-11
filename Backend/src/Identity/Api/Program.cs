@@ -89,7 +89,7 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
-if (builder.Configuration.GetValue("Identity:ApplyMigrationsOnStartup", true))
+if (ShouldApplyMigrationsOnStartup(builder.Configuration, builder.Environment, "Identity", requireExplicitNonDevelopmentFlag: true))
 {
     await ApplyIdentityDatabaseMigrationsAsync(app.Services);
 }
@@ -166,6 +166,26 @@ static async Task ApplyIdentityDatabaseMigrationsAsync(IServiceProvider services
     using var scope = services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await dbContext.Database.MigrateAsync();
+}
+
+static bool ShouldApplyMigrationsOnStartup(
+    IConfiguration configuration,
+    IHostEnvironment environment,
+    string serviceName,
+    bool requireExplicitNonDevelopmentFlag = false)
+{
+    var configuredValue = configuration.GetValue<bool?>($"{serviceName}:ApplyMigrationsOnStartup");
+    if (configuredValue is not null)
+    {
+        return configuredValue.Value;
+    }
+
+    if (!environment.IsDevelopment() && requireExplicitNonDevelopmentFlag)
+    {
+        throw new InvalidOperationException($"{serviceName}:ApplyMigrationsOnStartup must be explicitly configured outside development.");
+    }
+
+    return environment.IsDevelopment();
 }
 
 public partial class Program;

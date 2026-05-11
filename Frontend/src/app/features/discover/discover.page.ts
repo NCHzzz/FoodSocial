@@ -116,6 +116,15 @@ export class DiscoverPage {
     this.showActionSuccess('Post link copied.');
   }
 
+  protected reportPost(postId: string): void {
+    if (!this.requireAuthenticatedAction('Sign in to report posts from Discover.')) return;
+    this.actionStatus.set('pending');
+    this.postApi.reportPost(postId, 'spam_or_low_quality', 'Reported from Discover feed.').subscribe({
+      next: () => this.showActionSuccess('Report submitted for manual review.'),
+      error: () => this.showActionError('Report failed. Retry when moderation intake is available.'),
+    });
+  }
+
   private requireAuthenticatedAction(message: string): boolean {
     if (this.isAuthenticated()) return true;
     this.actionStatus.set('gated');

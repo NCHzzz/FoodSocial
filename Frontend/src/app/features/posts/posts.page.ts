@@ -100,6 +100,7 @@ type PostListActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
                 (saveRequested)="savePost($event)"
                 (repostRequested)="repostPost($event)"
                 (shareRequested)="sharePost($event)"
+                (reportRequested)="reportPost($event)"
               />
             }
           </div>
@@ -188,6 +189,15 @@ export class PostsPage {
     const url = `${this.browserWindow.location.origin}/posts/${encodeURIComponent(postId)}`;
     void this.browserWindow.navigator.clipboard?.writeText(url);
     this.showActionSuccess('Post link copied for sharing.');
+  }
+
+  protected reportPost(postId: string): void {
+    if (!this.requireAuthenticatedAction('Sign in to report posts.')) return;
+    this.actionStatus.set('pending');
+    this.postApi.reportPost(postId, 'spam_or_low_quality', 'Reported from post listing.').subscribe({
+      next: () => this.showActionSuccess('Report submitted for manual review.'),
+      error: () => this.showActionError('Report failed. Retry when moderation intake is available.'),
+    });
   }
 
   private setPosts(posts: PostSummaryResponse[]): void {

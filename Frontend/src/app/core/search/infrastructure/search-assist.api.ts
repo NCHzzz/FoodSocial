@@ -9,8 +9,6 @@ export class SearchAssistApi {
   private readonly httpClient = inject(HttpClient);
 
   assist(request: SearchAssistRequest): Observable<SearchAssistResponse> {
-    return this.httpClient.post<SearchAssistResponse>('/api/search/assist', request, {
-      withCredentials: true,
-    });
+    return this.httpClient.post<SearchAssistResponse>('/api/search/assist', request);
   }
 }

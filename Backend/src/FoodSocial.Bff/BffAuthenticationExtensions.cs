@@ -176,14 +176,14 @@ internal static class BffAuthenticationExtensions
                         return Task.CompletedTask;
                     }
 
-                    context.ProtocolMessage.RedirectUri = $"{ResolveBffPublicOrigin(context.Request)}{options.CallbackPath}";
+                    context.ProtocolMessage.RedirectUri = $"{ResolveBffPublicOrigin(context.Request, configuration)}{options.CallbackPath}";
 
                     return Task.CompletedTask;
                 };
 
                 options.Events.OnRedirectToIdentityProviderForSignOut = context =>
                 {
-                    context.ProtocolMessage.PostLogoutRedirectUri = $"{ResolveBffPublicOrigin(context.Request)}{options.SignedOutCallbackPath}";
+                    context.ProtocolMessage.PostLogoutRedirectUri = $"{ResolveBffPublicOrigin(context.Request, configuration)}{options.SignedOutCallbackPath}";
                     return Task.CompletedTask;
                 };
 
@@ -204,9 +204,16 @@ internal static class BffAuthenticationExtensions
             });
     }
 
-    private static string ResolveBffPublicOrigin(HttpRequest request)
+    private static string ResolveBffPublicOrigin(HttpRequest request, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var configuredOrigin = configuration["Bff:PublicOrigin"];
+        if (!string.IsNullOrWhiteSpace(configuredOrigin))
+        {
+            return configuredOrigin.TrimEnd('/');
+        }
 
         return $"{request.Scheme}://{request.Host}{request.PathBase}".TrimEnd('/');
     }

@@ -97,6 +97,17 @@ type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
           </label>
 
           <label class="grid gap-2 text-sm font-semibold text-[#141413]">
+            Additional media URLs
+            <textarea
+              class="min-h-24 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
+              formControlName="additionalMediaUrls"
+              rows="3"
+              placeholder="One image URL per line for gallery photos."
+            ></textarea>
+            <span class="text-xs font-medium text-[#87867f]">Optional gallery photos stay attached to the post media list.</span>
+          </label>
+
+          <label class="grid gap-2 text-sm font-semibold text-[#141413]">
             Caption or quick review
             <textarea
               class="min-h-32 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20"
@@ -152,6 +163,25 @@ type MediaUploadStatus = 'idle' | 'pending' | 'success' | 'error';
             <span class="text-xs font-medium text-[#87867f]">Comma-separated tags.</span>
           </label>
 
+          <section class="grid gap-4 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-4">
+            <div>
+              <p class="text-sm font-semibold text-[#141413]">Recipe notes</p>
+              <p class="mt-1 text-xs font-medium text-[#87867f]">Use this for home-cooked dishes. MVP stores recipe context in caption and tags until a dedicated recipe contract exists.</p>
+            </div>
+            <label class="grid gap-2 text-sm font-semibold text-[#141413]">
+              Recipe title
+              <input class="min-h-11 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 text-sm font-medium text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20" type="text" formControlName="recipeTitle" placeholder="Grandma's canh chua" />
+            </label>
+            <label class="grid gap-2 text-sm font-semibold text-[#141413]">
+              Ingredients
+              <textarea class="min-h-24 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20" formControlName="recipeIngredients" rows="3" placeholder="Tamarind, fish, pineapple, tomato..."></textarea>
+            </label>
+            <label class="grid gap-2 text-sm font-semibold text-[#141413]">
+              Steps
+              <textarea class="min-h-28 rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3 text-sm font-medium leading-6 text-[#141413] outline-none transition focus:border-[#d1cfc5] focus:ring-2 focus:ring-[#3898ec]/20" formControlName="recipeSteps" rows="4" placeholder="1. Simmer broth&#10;2. Add fish&#10;3. Finish with herbs"></textarea>
+            </label>
+          </section>
+
           @if (publishStatus() === 'success' && createdPost(); as post) {
             <p class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
               Post published. <a class="underline" [routerLink]="['/posts', post.id]">Open it now</a>.
@@ -205,10 +235,14 @@ export class PostCreatePage {
       validators: [Validators.required, Validators.pattern(/^(https?:\/\/.+|\/api\/media\/uploads\/.+)/u)],
     }),
     caption: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(500)] }),
+    additionalMediaUrls: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(1000)] }),
     rating: new FormControl<number | null>(null, { validators: [Validators.min(1), Validators.max(5)] }),
     priceRange: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(20)] }),
     locationText: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(120)] }),
     tags: new FormControl('', { nonNullable: true }),
+    recipeTitle: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(120)] }),
+    recipeIngredients: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(500)] }),
+    recipeSteps: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(1000)] }),
   });
 
 
@@ -271,11 +305,11 @@ export class PostCreatePage {
       authorId: '00000000-0000-0000-0000-000000000000',
       dishId: dish.id,
       placeId: this.selectedPlace()?.id ?? null,
-      caption: this.postForm.controls.caption.value.trim(),
+      caption: this.buildCaption(),
       rating: this.postForm.controls.rating.value,
       priceRange: this.trimToNull(this.postForm.controls.priceRange.value),
       locationText: this.trimToNull(this.postForm.controls.locationText.value),
-      tags: this.parseTags(this.postForm.controls.tags.value),
+      tags: this.buildTags(),
       media: [
         {
           url: this.postForm.controls.primaryMediaUrl.value.trim(),
@@ -284,8 +318,37 @@ export class PostCreatePage {
           caption: null,
           isPrimary: true,
         },
+        ...this.parseAdditionalMediaUrls().map((url) => ({
+          url,
+          type: 'image',
+          thumbnailUrl: null,
+          caption: null,
+          isPrimary: false,
+        })),
       ],
     };
+  }
+
+  private buildCaption(): string {
+    const baseCaption = this.postForm.controls.caption.value.trim();
+    const recipeTitle = this.trimToNull(this.postForm.controls.recipeTitle.value);
+    const ingredients = this.trimToNull(this.postForm.controls.recipeIngredients.value);
+    const steps = this.trimToNull(this.postForm.controls.recipeSteps.value);
+    const recipeLines = [
+      recipeTitle ? `Recipe: ${recipeTitle}` : null,
+      ingredients ? `Ingredients: ${ingredients}` : null,
+      steps ? `Steps: ${steps}` : null,
+    ].filter((line): line is string => line !== null);
+
+    return recipeLines.length > 0 ? `${baseCaption}\n\n${recipeLines.join('\n')}` : baseCaption;
+  }
+
+  private buildTags(): string[] {
+    const tags = this.parseTags(this.postForm.controls.tags.value);
+    const hasRecipeNotes = [this.postForm.controls.recipeTitle.value, this.postForm.controls.recipeIngredients.value, this.postForm.controls.recipeSteps.value]
+      .some((value) => value.trim().length > 0);
+
+    return hasRecipeNotes && !tags.includes('recipe') ? [...tags, 'recipe'] : tags;
   }
 
   private parseTags(value: string): string[] {
@@ -293,6 +356,13 @@ export class PostCreatePage {
       .split(',')
       .map((tag) => tag.trim().replace(/^#/u, ''))
       .filter((tag) => tag.length > 0);
+  }
+
+  private parseAdditionalMediaUrls(): string[] {
+    return this.postForm.controls.additionalMediaUrls.value
+      .split(/\r?\n/u)
+      .map((url) => url.trim())
+      .filter((url) => /^(https?:\/\/.+|\/api\/media\/uploads\/.+)/u.test(url));
   }
 
   private trimToNull(value: string): string | null {

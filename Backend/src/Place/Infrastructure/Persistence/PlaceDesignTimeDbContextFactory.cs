@@ -11,8 +11,11 @@ public sealed class PlaceDesignTimeDbContextFactory : IDesignTimeDbContextFactor
     /// <inheritdoc />
     public PlaceDbContext CreateDbContext(string[] args)
     {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__placedb")
+            ?? "Host=localhost;Database=placedb;Username=postgres;Password=postgres";
+
         var options = new DbContextOptionsBuilder<PlaceDbContext>()
-            .UseNpgsql("Host=localhost;Database=placedb;Username=postgres;Password=postgres", npgsql =>
+            .UseNpgsql(connectionString, npgsql =>
                 npgsql.MigrationsHistoryTable("__PlaceMigrationsHistory"))
             .Options;
 

@@ -107,6 +107,51 @@ public sealed class UserProfilePersistenceIntegrationTests
         await action.Should().ThrowAsync<DbUpdateException>();
     }
 
+    [Fact]
+    public async Task FollowersAndFollowing_AreOrderedByMostRecentRelationshipFirst()
+    {
+        await using var connection = await OpenDatabaseAsync();
+
+        var targetIdentityId = Guid.NewGuid();
+        var followerOneIdentityId = Guid.NewGuid();
+        var followerTwoIdentityId = Guid.NewGuid();
+        var followingOneIdentityId = Guid.NewGuid();
+        var followingTwoIdentityId = Guid.NewGuid();
+
+        await using (var setupContext = CreateDbContext(connection))
+        {
+            var targetShell = new FoodSocial.UserProfile.Domain.UserProfileShell(targetIdentityId, "target-subject");
+            var followerOneShell = new FoodSocial.UserProfile.Domain.UserProfileShell(followerOneIdentityId, "follower-one-subject");
+            var followerTwoShell = new FoodSocial.UserProfile.Domain.UserProfileShell(followerTwoIdentityId, "follower-two-subject");
+            var followingOneShell = new FoodSocial.UserProfile.Domain.UserProfileShell(followingOneIdentityId, "following-one-subject");
+            var followingTwoShell = new FoodSocial.UserProfile.Domain.UserProfileShell(followingTwoIdentityId, "following-two-subject");
+
+            setupContext.UserProfileShells.AddRange(targetShell, followerOneShell, followerTwoShell, followingOneShell, followingTwoShell);
+            var olderFollower = new FoodSocial.UserProfile.Domain.UserFollow(followerOneShell.Id, targetShell.Id);
+            var newerFollower = new FoodSocial.UserProfile.Domain.UserFollow(followerTwoShell.Id, targetShell.Id);
+            var olderFollowing = new FoodSocial.UserProfile.Domain.UserFollow(targetShell.Id, followingOneShell.Id);
+            var newerFollowing = new FoodSocial.UserProfile.Domain.UserFollow(targetShell.Id, followingTwoShell.Id);
+
+            setupContext.UserFollows.AddRange(olderFollower, newerFollower, olderFollowing, newerFollowing);
+            setupContext.Entry(olderFollower).Property(follow => follow.CreatedAtUtc).CurrentValue = DateTimeOffset.UtcNow.AddMinutes(-10);
+            setupContext.Entry(newerFollower).Property(follow => follow.CreatedAtUtc).CurrentValue = DateTimeOffset.UtcNow.AddMinutes(-1);
+            setupContext.Entry(olderFollowing).Property(follow => follow.CreatedAtUtc).CurrentValue = DateTimeOffset.UtcNow.AddMinutes(-20);
+            setupContext.Entry(newerFollowing).Property(follow => follow.CreatedAtUtc).CurrentValue = DateTimeOffset.UtcNow.AddMinutes(-2);
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = CreateDbContext(connection);
+        var store = new UserProfileStore(dbContext);
+
+        var followers = await store.GetFollowersAsync(targetIdentityId, 10, CancellationToken.None);
+        var following = await store.GetFollowingAsync(targetIdentityId, 10, CancellationToken.None);
+
+        followers.Should().NotBeNull();
+        following.Should().NotBeNull();
+        followers!.Items.Select(item => item.IdentityId).Should().ContainInOrder(followerTwoIdentityId, followerOneIdentityId);
+        following!.Items.Select(item => item.IdentityId).Should().ContainInOrder(followingTwoIdentityId, followingOneIdentityId);
+    }
+
     private static UserProvisionedIntegrationEvent CreateProvisionedEvent(Guid identityId, string subject, string preferredUsername) =>
         new(
             EventId: Guid.NewGuid(),

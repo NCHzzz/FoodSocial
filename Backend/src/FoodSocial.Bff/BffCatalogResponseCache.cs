@@ -65,8 +65,18 @@ internal sealed class BffCatalogResponseCache(
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPathAndQuery);
         ArgumentNullException.ThrowIfNull(body);
 
-        if (!CanUseCache(request) || !CanStoreResponse(statusCode, contentType))
+        if (!CanUseCache(request) || !CanStoreResponse(statusCode, contentType) || body.Length > _options.MaxBodyBytes)
         {
+            if (body.Length > _options.MaxBodyBytes)
+            {
+                _logger.LogInformation(
+                    "Catalog response cache skipped for {CatalogName} request {TargetPathAndQuery} because response body size {BodyLength} exceeds max {MaxBodyBytes}.",
+                    catalogName,
+                    targetPathAndQuery,
+                    body.Length,
+                    _options.MaxBodyBytes);
+            }
+
             return;
         }
 
@@ -75,7 +85,7 @@ internal sealed class BffCatalogResponseCache(
         var serializedResponse = JsonSerializer.SerializeToUtf8Bytes(cachedResponse);
         var cacheEntryOptions = new DistributedCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(_options.SuccessfulResponseTtlSeconds)
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(ResolveSuccessfulResponseTtlSeconds(_options.SuccessfulResponseTtlSeconds))
         };
 
         try
@@ -95,7 +105,10 @@ internal sealed class BffCatalogResponseCache(
     private bool CanUseCache(HttpRequest request) =>
         _options.Enabled
         && _options.SuccessfulResponseTtlSeconds > 0
-        && HttpMethods.IsGet(request.Method);
+        && _options.MaxBodyBytes > 0
+        && HttpMethods.IsGet(request.Method)
+        && request.HttpContext.User.Identity?.IsAuthenticated != true
+        && !request.Headers.ContainsKey(Microsoft.Net.Http.Headers.HeaderNames.Authorization);
 
     private static bool CanStoreResponse(int statusCode, string? contentType) =>
         statusCode == StatusCodes.Status200OK
@@ -109,4 +122,10 @@ internal sealed class BffCatalogResponseCache(
         var keyHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawKey)));
         return $"bff:catalog-response:{catalogName}:v1:{keyHash}";
     }
+
+    private static int ResolveSuccessfulResponseTtlSeconds(int configuredTtlSeconds) =>
+        Math.Clamp(
+            configuredTtlSeconds,
+            BffCatalogCacheOptions.MinimumSuccessfulResponseTtlSeconds,
+            BffCatalogCacheOptions.MaximumSuccessfulResponseTtlSeconds);
 }

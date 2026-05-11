@@ -25,9 +25,7 @@ export class UserProfileApi {
   private static readonly usersEndpoint = '/api/users';
 
   getProfile(identityId: string): Observable<UserProfileResponse> {
-    return this.httpClient.get<UserProfileResponse>(this.buildUserEndpoint(identityId), {
-      withCredentials: true,
-    });
+    return this.httpClient.get<UserProfileResponse>(this.buildUserEndpoint(identityId));
   }
 
   updateProfile(identityId: string, request: UpdateUserProfileRequest): Observable<UserProfileResponse> {
@@ -37,15 +35,11 @@ export class UserProfileApi {
   }
 
   getFollowers(identityId: string): Observable<UserProfileListResponse> {
-    return this.httpClient.get<UserProfileListResponse>(`${this.buildUserEndpoint(identityId)}/followers`, {
-      withCredentials: true,
-    });
+    return this.httpClient.get<UserProfileListResponse>(`${this.buildUserEndpoint(identityId)}/followers`);
   }
 
   getFollowing(identityId: string): Observable<UserProfileListResponse> {
-    return this.httpClient.get<UserProfileListResponse>(`${this.buildUserEndpoint(identityId)}/following`, {
-      withCredentials: true,
-    });
+    return this.httpClient.get<UserProfileListResponse>(`${this.buildUserEndpoint(identityId)}/following`);
   }
 
   follow(identityId: string): Observable<FollowUserResponse> {
@@ -61,15 +55,11 @@ export class UserProfileApi {
   }
 
   getSavedItems(identityId: string): Observable<UserSavedItemsResponse> {
-    return this.httpClient.get<UserSavedItemsResponse>(`${this.buildUserEndpoint(identityId)}/saved`, {
-      withCredentials: true,
-    });
+    return this.httpClient.get<UserSavedItemsResponse>(`${this.buildUserEndpoint(identityId)}/saved`);
   }
 
   getNotifications(identityId: string): Observable<UserNotificationListResponse> {
-    return this.httpClient.get<UserNotificationListResponse>(`${this.buildUserEndpoint(identityId)}/notifications`, {
-      withCredentials: true,
-    });
+    return this.httpClient.get<UserNotificationListResponse>(`${this.buildUserEndpoint(identityId)}/notifications`);
   }
 
   markNotificationRead(identityId: string, notificationId: string): Observable<UserNotificationResponse> {

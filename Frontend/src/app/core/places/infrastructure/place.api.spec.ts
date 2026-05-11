@@ -1,4 +1,5 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { credentialsInterceptor } from '../../http/credentials.interceptor';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
@@ -29,7 +30,7 @@ describe('PlaceApi', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withInterceptors([credentialsInterceptor])),
         provideHttpClientTesting(),
       ],
     });
