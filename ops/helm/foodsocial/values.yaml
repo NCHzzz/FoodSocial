@@ -39,12 +39,19 @@ services:
     replicas: 1
     port: 8080
     env: {}
+  place-api:
+    enabled: true
+    image: place-api
+    replicas: 1
+    port: 8080
+    env: {}
   post-api:
     enabled: true
     image: post-api
     replicas: 1
     port: 8080
-    env: {}
+    env:
+      Post__Media__StoragePath: /app/App_Data/media
   web:
     enabled: true
     image: web
@@ -80,3 +87,14 @@ ingress:
   className: ""
   hosts: []
   tls: []
+
+mediaStorage:
+  postApi:
+    mountPath: /app/App_Data/media
+    persistentVolumeClaim:
+      enabled: true
+      existingClaim: ""
+      storageClassName: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 10Gi

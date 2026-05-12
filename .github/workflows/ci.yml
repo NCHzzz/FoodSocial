@@ -155,6 +155,9 @@ jobs:
           - image: foodsocial-dish-api
             context: Backend
             dockerfile: Backend/src/Dish/Api/Dockerfile
+          - image: foodsocial-place-api
+            context: Backend
+            dockerfile: Backend/src/Place/Api/Dockerfile
           - image: foodsocial-post-api
             context: Backend
             dockerfile: Backend/src/Post/Api/Dockerfile

@@ -1,3 +1,24 @@
+{{- $postApiService := index .Values.services "post-api" }}
+{{- $postMedia := .Values.mediaStorage.postApi }}
+{{- if and $postApiService.enabled $postMedia.persistentVolumeClaim.enabled (not $postMedia.persistentVolumeClaim.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: foodsocial-post-api-media
+  labels:
+    {{ include "foodsocial.labels" . | nindent 4 }}
+    app.kubernetes.io/name: foodsocial-post-api-media
+spec:
+  accessModes:
+    {{ toYaml $postMedia.persistentVolumeClaim.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ $postMedia.persistentVolumeClaim.size | quote }}
+  {{- if $postMedia.persistentVolumeClaim.storageClassName }}
+  storageClassName: {{ $postMedia.persistentVolumeClaim.storageClassName | quote }}
+  {{- end }}
+{{- end }}
 {{- range $name, $service := .Values.services }}
 {{- if $service.enabled }}
 ---
@@ -75,7 +96,7 @@ spec:
               mountPath: /tmp
             {{- if eq $name "post-api" }}
             - name: post-media
-              mountPath: /app/App_Data/media
+              mountPath: {{ $.Values.mediaStorage.postApi.mountPath }}
             {{- end }}
           resources:
             {{ toYaml $.Values.resources | nindent 12 }}
@@ -90,7 +111,12 @@ spec:
           emptyDir: {}
         {{- if eq $name "post-api" }}
         - name: post-media
+          {{ if $.Values.mediaStorage.postApi.persistentVolumeClaim.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default "foodsocial-post-api-media" $.Values.mediaStorage.postApi.persistentVolumeClaim.existingClaim }}
+          {{ else }}
           emptyDir: {}
+          {{ end }}
         {{- end }}
 ---
 apiVersion: v1

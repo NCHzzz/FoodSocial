@@ -34,6 +34,7 @@ Suggested initial service names from AppHost:
 - `identity-api`
 - `userprofile-api`
 - `dish-api`
+- `place-api`
 - `post-api`
 
 ## Dependencies

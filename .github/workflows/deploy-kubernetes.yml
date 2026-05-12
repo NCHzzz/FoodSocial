@@ -81,4 +81,7 @@ jobs:
           kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-bff --timeout=5m
           kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-identity-api --timeout=5m
           kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-userprofile-api --timeout=5m
+          kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-dish-api --timeout=5m
+          kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-place-api --timeout=5m
+          kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-post-api --timeout=5m
           kubectl -n "${{ inputs.namespace }}" get pods -l app.kubernetes.io/part-of=foodsocial

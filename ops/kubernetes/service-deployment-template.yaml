@@ -62,8 +62,6 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-            - name: post-media
-              mountPath: /app/App_Data/media
           resources:
             requests:
               cpu: 100m
@@ -83,8 +81,6 @@ spec:
           type: RuntimeDefault
       volumes:
         - name: tmp
-          emptyDir: {}
-        - name: post-media
           emptyDir: {}
 ---
 apiVersion: v1

@@ -19,7 +19,7 @@ The collector accepts OTLP over gRPC (`4317`) and HTTP (`4318`) and exposes Prom
 - the collector metrics endpoint at `otel-collector:9464`
 - Prometheus itself at `localhost:9090`
 
-`ops/observability/alerts/foodsocial-alerts.yml` provides starter alerts for scrape availability, HTTP 5xx rate, and HTTP p95 latency. Tune thresholds per environment before treating them as an SLO contract.
+`ops/observability/alerts/foodsocial-alerts.yml` provides starter alerts for scrape availability, HTTP 5xx rate, HTTP p95 latency, Post media cleanup failures, and moderation backlog growth. Tune thresholds per environment before treating them as an SLO contract.
 
 In Kubernetes, prefer service discovery or `ServiceMonitor`/equivalent objects for real environments. Keep scrape targets environment-driven rather than hardcoding cluster topology into application code.
 

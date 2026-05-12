@@ -11,5 +11,11 @@ services:
     replicas: 1
   userprofile-api:
     replicas: 1
+  dish-api:
+    replicas: 1
+  place-api:
+    replicas: 1
+  post-api:
+    replicas: 1
   web:
     replicas: 1

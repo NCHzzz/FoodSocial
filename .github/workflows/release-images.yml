@@ -40,6 +40,9 @@ jobs:
           - image: dish-api
             context: Backend
             dockerfile: Backend/src/Dish/Api/Dockerfile
+          - image: place-api
+            context: Backend
+            dockerfile: Backend/src/Place/Api/Dockerfile
           - image: post-api
             context: Backend
             dockerfile: Backend/src/Post/Api/Dockerfile
