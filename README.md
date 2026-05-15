@@ -230,7 +230,6 @@ FoodSocial/
 │   ├── project-discovery/               # Product and architecture truth
 │   ├── context/                         # Current implementation state
 │   └── ai/                              # Repo and agent engineering rules
-├── openspec/                            # Structured change workflow
 ├── ops/                                 # Observability and Kubernetes starters
 └── .github/workflows/ci.yml             # CI workflow
 ```

@@ -1,6 +1,7 @@
 # FoodSocial Design System
 
 > Status: Canonical UI/UX design source of truth
+> Last updated: 2026-05-15
 > Inspiration: Claude / Anthropic editorial warmth
 > Product fit: AI-native, food-first social platform for Vietnam launch market
 
@@ -147,7 +148,13 @@ Rules:
 - Primary interaction must not depend on hover alone.
 - Guest-visible actions and authenticated-only actions must be honest.
 
-## 10. Short Rule
+## 10. Deferred Design Decisions
+
+- **Dark mode**: not in scope for beta/launch. Do not generate dark mode variants unless explicitly approved.
+- **Animation timing and easing**: no canonical spec yet. Prefer subtle, fast transitions (150–250ms ease-out). Respect `prefers-reduced-motion`.
+- **Responsive breakpoints**: follow TailwindCSS v4 defaults until a custom breakpoint set is approved.
+
+## 11. Short Rule
 
 - keep shell quiet
 - keep food content primary

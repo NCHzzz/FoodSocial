@@ -13,12 +13,15 @@ It governs:
 - state, template, diagnostics, and quality rules
 - Tailwind usage discipline
 - performance, failure-state, and maintainability rules for frontend code
+- frontend testing, security, and observability rules
 
 It does **not** define the shared FoodSocial UI/UX design system.
 
 For the active FoodSocial visual system standard, also read:
 
 - root `DESIGN.md`
+
+For rule-level definitions (MUST / SHOULD / MAY), see `docs/ai/engineering-rules.md`.
 
 ## Boundary With `DESIGN.md`
 
@@ -48,7 +51,7 @@ Use `DESIGN.md` when the question is:
 - TypeScript strict mode and Angular strict template diagnostics
 - signals for local and view-oriented state
 - `provideHttpClient()` and `provideRouter()` in `app.config.ts`
-- single-app workspace today, with a future path to `apps/ + libs/` if frontend scope grows beyond one deployable Angular app
+- single-app workspace today, with a future path to `apps/ + libs/` when this repo has multiple deployable Angular apps or real shared frontend libraries
 
 ## Angular Architecture Rules
 
@@ -170,6 +173,23 @@ Examples that match this rule:
 
 Canonical user-facing accessibility, responsive behavior, shell language, CTA hierarchy, page patterns, guest/auth honesty, and AI fallback UX belong to root `DESIGN.md`.
 
+## Frontend Security Rules
+
+- User input **MUST** be sanitized before rendering in templates to prevent XSS
+- Do not bypass Angular's built-in sanitization using `bypassSecurityTrust*` unless there is a documented, reviewed reason
+- Auth tokens **MUST NOT** be stored in `localStorage`; prefer `httpOnly` cookies managed by the BFF
+- Frontend code **MUST NOT** contain secrets, API keys, or credentials
+- CORS behavior is owned by the API Gateway and BFF; frontend code **SHOULD NOT** work around CORS restrictions with proxy hacks in production
+- Content Security Policy headers **SHOULD** be configured at the API Gateway or BFF level; frontend code **SHOULD NOT** use inline scripts or `eval`
+- Third-party scripts and dependencies **SHOULD** be audited before addition; `npm audit` **SHOULD** remain clean
+
+## Frontend Observability Rules
+
+- Unhandled errors **SHOULD** be captured by a global error handler and reported
+- Frontend performance metrics (route navigation timing, API call latency) **SHOULD** be measurable when observability tooling is in place
+- Console logging **SHOULD** be intentional and structured; do not leave debug `console.log` in production code
+- Frontend error states **SHOULD** produce useful context for debugging, not just generic "something went wrong" messages
+
 ## Frontend Failure-State Implementation Rules
 
 - Async UI flows **MUST** model realistic loading, empty, retryable error, hard error, and gated states explicitly in code rather than leaving them implicit in component null-check behavior
@@ -190,6 +210,17 @@ Visible user-facing async-state treatment, state naming, state hierarchy, and de
 
 Semantic roles, design-token intent, and primitive growth policy belong to root `DESIGN.md`.
 
+## Frontend Testing Rules
+
+- Components with meaningful logic **SHOULD** have unit tests
+- Feature-critical user flows **SHOULD** have integration or E2E tests where practical
+- Test files **MUST** use the `*.spec.ts` suffix and live alongside the code they test
+- Tests **MUST** run with `npm test -- --watch=false` and pass before frontend work is considered complete
+- Do not write tests that only assert that Angular renders a component without errors unless the component has no meaningful behavior
+- Prefer testing observable behavior (user interactions, rendered output, service calls) over internal implementation details
+- Mock HTTP calls and external services; do not make real API calls in unit tests
+- Keep test descriptions clear and behavior-focused
+
 ## Frontend Maintainability Rules
 
 - Prefer readable templates over dense utility-class noise; extract components when markup becomes hard to reason about
@@ -204,6 +235,23 @@ Semantic roles, design-token intent, and primitive growth policy belong to root 
 - AI-generated frontend code **MUST NOT** hide meaningful behavior in template cleverness, silent side effects, or unnecessary reusable layers
 
 Design-system primitive rules, semantic roles, and intentional exception policy belong to root `DESIGN.md`.
+
+## Frontend Verification Checklist
+
+Before frontend work is complete, verify:
+
+- TypeScript and Angular template diagnostics are clean
+- `npm run lint` passes
+- `npm test -- --watch=false` passes
+- `npm run build` succeeds
+- components use `ChangeDetectionStrategy.OnPush`
+- no legacy directives (`*ngIf`, `*ngFor`, `CommonModule`) were introduced
+- no `as any`, `@ts-ignore`, or `bypassSecurityTrust*` were introduced
+- loading, empty, and error states are handled for new async flows
+- accessibility basics are met (keyboard, focus, labels, semantic HTML)
+- route and feature boundaries remain traceable
+- no secrets or credentials exist in frontend code
+- BFF-facing service boundaries are used instead of direct multi-endpoint orchestration
 
 ## Frontend Exception Handling Rule
 

@@ -2,23 +2,13 @@
 
 ## Purpose
 
-This file is the single backend engineering rule source for FoodSocial .NET services. It combines the previous .NET stack rules with the DPUnity-style folder rules used by this repository.
+This file is the single backend engineering rule source for FoodSocial .NET services ( FoodSocial/Backend )
 
 Use this file when creating, moving, reviewing, or refactoring backend code. Product behavior and business truth still live in `docs/project-discovery/`.
 
 ## Rule Levels
 
-- **MUST** = required default.
-- **SHOULD** = strong default; deviations need a clear reason.
-- **MAY** = allowed when useful and consistent with the rest of the rules.
-
-When deviating from a **MUST** or major **SHOULD**, document:
-
-- the rule being deviated from
-- why the default does not fit
-- the risk introduced
-- how the risk is mitigated
-- who approved the exception when approval is required
+For rule-level definitions (MUST / SHOULD / MAY) and deviation documentation requirements, see `docs/ai/engineering-rules.md`.
 
 ## Backend Architecture Direction
 
@@ -44,7 +34,7 @@ FoodSocial backend services use Clean Architecture with explicit microservice bo
 - Infrastructure **MUST NOT** leak into Domain.
 - Services **SHOULD** prefer clear vertical slices over abstraction-heavy internal layering.
 - Shared packages **MUST NOT** become a backdoor for cross-service business logic.
-- Dish and Place **MUST** remain explicit first-class owned boundaries.
+- Dish and Place **MUST** remain explicit first-class owned boundaries as defined in `docs/project-discovery/`.
 - Tenant-aware services **MUST** keep tenant isolation explicit in authorization and data access boundaries.
 
 ## DPUnity-Style Service Tree
@@ -119,7 +109,8 @@ API owns the transport boundary.
 - Authorization **SHOULD** be explicit and policy-based where possible.
 - Public APIs **SHOULD** be stable and resource-oriented.
 - Breaking API changes **MUST** be intentional and versioned.
-- List and feed endpoints **MUST** use an intentional result-bounding strategy.
+- API versioning **SHOULD** use URL path segments (for example `/api/v1/dishes`) as the default strategy unless a documented exception exists.
+- List and feed endpoints **MUST** use an intentional result-bounding strategy. Prefer cursor-based pagination for feed-like surfaces and offset-based pagination for admin-like lists. Default page size **SHOULD** be explicit in code and bounded by a maximum.
 - `Program.cs` **MUST** stay thin: build app, call service registration, apply startup tasks, configure pipeline, run.
 
 ### Application Layer

@@ -54,3 +54,18 @@ Do not append minor churn, repetitive edits, or every small refactor.
 - Compressed `current_build_status.md` back into a current-state snapshot and archived older progress milestones.
 - Removed the duplicate production readiness checklist because readiness gates now live canonically in `docs/context/product_launch_readiness.md`.
 - Removed stale delivery archive plans and the old frontend UI compatibility shim after `README.md`, `Frontend/README.md`, and active agent rules pointed to current canonical docs.
+
+## 2026-05-15
+
+- Restructured the AI agent documentation system for consistency and completeness.
+- Unified the canonical load order in `AGENTS.md` (single source of truth, no duplication in `workflows.md`).
+- Added 5 new task types to `workflows.md`: Full-Stack, DevOps/Infra, Database Migration, Documentation, Architecture.
+- Added ambiguous-task routing rules and "When Things Go Wrong" error recovery guidance.
+- Centralized MUST/SHOULD/MAY rule-level definitions in `engineering-rules.md`.
+- Added Frontend Security, Observability, Testing sections and 12-point Verification Checklist to `angular-tailwind.md`.
+- Added API versioning strategy and pagination defaults to `dotnet.md`.
+- Added Deferred Design Decisions section (dark mode, animation, breakpoints) to `DESIGN.md`.
+- Created `docs/ai/git-rules.md` to standardize version control practices (commit formatting, pull strategy, push requirements).
+- Removed all OpenSpec references and deleted `openspec/` directory.
+- Deduplicated content across files: migration commands point to `Backend/MIGRATIONS.md`, doc pointers point to `repo-map.md`.
+

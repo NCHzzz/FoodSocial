@@ -38,33 +38,9 @@ Last recorded repo verification was green, but production launch still needs ope
 
 ## Migration Commands
 
-Run these from the repository root only after target connection strings are set through the deployment environment or a safe local secret store.
+For the canonical migration service map and commands, see `Backend/MIGRATIONS.md`.
 
-```bash
-dotnet tool restore
-dotnet tool run dotnet-ef database update \
-  --project "Backend/src/Identity/Infrastructure/FoodSocial.Identity.Infrastructure.csproj" \
-  --startup-project "Backend/src/Identity/Api/FoodSocial.Identity.Api.csproj" \
-  --context FoodSocial.Identity.Infrastructure.Persistence.IdentityDbContext
-dotnet tool run dotnet-ef database update \
-  --project "Backend/src/Post/Infrastructure/FoodSocial.Post.Infrastructure.csproj" \
-  --startup-project "Backend/src/Post/Api/FoodSocial.Post.Api.csproj" \
-  --context FoodSocial.Post.Infrastructure.Persistence.PostDbContext
-dotnet tool run dotnet-ef database update \
-  --project "Backend/src/UserProfile/Infrastructure/FoodSocial.UserProfile.Infrastructure.csproj" \
-  --startup-project "Backend/src/UserProfile/Api/FoodSocial.UserProfile.Api.csproj" \
-  --context FoodSocial.UserProfile.Infrastructure.Persistence.UserProfileDbContext
-dotnet tool run dotnet-ef database update \
-  --project "Backend/src/Dish/Infrastructure/FoodSocial.Dish.Infrastructure.csproj" \
-  --startup-project "Backend/src/Dish/Api/FoodSocial.Dish.Api.csproj" \
-  --context FoodSocial.Dish.Infrastructure.Persistence.DishDbContext
-dotnet tool run dotnet-ef database update \
-  --project "Backend/src/Place/Infrastructure/FoodSocial.Place.Infrastructure.csproj" \
-  --startup-project "Backend/src/Place/Api/FoodSocial.Place.Api.csproj" \
-  --context FoodSocial.Place.Infrastructure.Persistence.PlaceDbContext
-```
-
-For staging and production, prefer the deployment pipeline or a controlled release job over ad hoc local execution.
+Run migrations from the repository root only after target connection strings are set through the deployment environment or a safe local secret store. For staging and production, prefer the deployment pipeline or a controlled release job over ad hoc local execution.
 
 ## Keycloak Minimum Configuration
 

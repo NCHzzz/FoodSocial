@@ -21,16 +21,6 @@ This file is a current-state snapshot, not a history log.
 - Scope of this update: backend DPUnity-style layering cleanup and Identity application refactor verification
 - Verification: backend build and full no-build test suite passed after Identity current-user, bootstrap, and outbox idempotency updates
 
-## Canonical Documentation State
-
-- product and architecture truth live in `docs/project-discovery/`
-- product scope lives in `docs/project-discovery/03_product_scope.md`
-- product sequencing lives in `docs/project-discovery/13_product_backlog.md`
-- logical database direction lives in `docs/project-discovery/09_database_design.md`
-- maturity staging lives in `docs/project-discovery/16_maturity_roadmap.md`
-- launch readiness gates live in `docs/context/product_launch_readiness.md`
-- `DESIGN.md` remains the canonical UI/UX design source of truth
-
 ## Current Runtime Shape
 
 - backend solution: `Backend/FoodSocial.slnx`
@@ -140,4 +130,4 @@ Helm was installed as a repo-local portable tool under `.tools\helm\windows-amd6
 
 ## Delivery Artifact Note
 
-Do not treat this file as an implementation plan. Current-state snapshots belong here; active `/opsx-*` change workflow belongs in `openspec/`, and durable runbooks/checklists belong in `docs/delivery/` only when they add current value outside the launch readiness file.
+Do not treat this file as an implementation plan. Current-state snapshots belong here; durable runbooks and checklists belong in `docs/delivery/` only when they add current value outside the launch readiness file.

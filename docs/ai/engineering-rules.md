@@ -4,6 +4,21 @@
 
 This file defines repository-wide engineering expectations that go beyond generic clean code.
 
+## Rule Levels
+
+All rule files in this repository use these levels:
+
+- **MUST** = required default. Deviations need documented exception with approval.
+- **SHOULD** = strong default. Deviations need a clear reason.
+- **MAY** = allowed when useful and consistent with the rest of the rules.
+
+When deviating from a **MUST** or major **SHOULD**, document:
+
+- the rule being deviated from
+- why the default does not fit
+- the risk introduced
+- how the risk is mitigated
+
 ## Universal Engineering Rules
 
 - Prefer explicit, readable, maintainable code over clever abstractions
@@ -19,10 +34,20 @@ This file defines repository-wide engineering expectations that go beyond generi
 - Prefer present needs over speculative flexibility; do not add abstractions or extension points without a real second use case
 - Keep changes surgical and directly traceable to the requested outcome, except cleanup forced by the change itself
 - Define verifiable success criteria before editing when behavior, diagnostics, or validation could drift
+
 ## Execution Principles
 
-These principles are now covered by the `karpathy-guidelines` skill.
-Load the skill when needed: `skill({ name: "karpathy-guidelines" })`
+Key principles for safe, effective implementation:
+
+- read the existing code first; understand before editing
+- change as little as possible to achieve the goal
+- make one focused change at a time, then verify
+- do not refactor while fixing a bug; do not fix bugs while refactoring
+- surface assumptions in comments or conversation rather than hiding them
+- prefer small verifiable steps over large speculative rewrites
+- when uncertain, stop and ask rather than guessing
+
+For the full discipline framework, load the `karpathy-guidelines` skill.
 
 ## Professional Standards
 

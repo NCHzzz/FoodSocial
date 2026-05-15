@@ -12,10 +12,11 @@ Read in this order:
 2. `docs/ai/repo-map.md`
 3. relevant `docs/project-discovery/` files
 4. `docs/ai/workflows.md`
-5. active OpenSpec change in `openspec/changes/` when the task is driven through `/opsx-*`
-6. relevant files in `docs/delivery/` only when curated markdown records already exist for the task
-7. relevant stack rules in `docs/ai/stack-rules/`
-8. `docs/context/current_build_status.md` when current implementation state matters
+5. relevant stack rules in `docs/ai/stack-rules/` and `docs/ai/engineering-rules.md`
+6. `docs/context/current_build_status.md` when current implementation state matters
+7. relevant files in `docs/delivery/` only when curated markdown records already exist for the task
+
+This is the single canonical load order. Other files reference it but do not restate it.
 
 ## Priority
 
@@ -42,26 +43,16 @@ Read in this order:
 - Markdown in the repo must remain English
 - do not invent business rules that discovery docs have not approved
 - keep implementation aligned with the MVP direction in `docs/project-discovery/`
-- treat `Dish` and `Place` as first-class entities
 - keep moderation manual-review-first in MVP
+- product-level entity decisions (such as first-class status of Dish and Place) are owned by `docs/project-discovery/`, not by agent rule files
 
 ## Rule Loading by Task Type
 
-- Task-type rule files are a required load step before implementation, not a soft reference.
-- After reading `docs/ai/workflows.md`, agents MUST explicitly load the rule files for the current task type before editing.
-- For backend, frontend, or UI work, also load `docs/ai/engineering-rules.md` together with the stack-specific rule files listed below.
+Task-type rule files are a required load step before implementation, not a soft reference.
 
-- backend code -> `docs/ai/stack-rules/dotnet.md`
-- frontend code -> `docs/ai/stack-rules/angular-tailwind.md`
-- UI / visual work -> `docs/ai/stack-rules/angular-tailwind.md` + root `DESIGN.md`
+After reading `docs/ai/workflows.md`, agents MUST explicitly load the rule files for the current task type before editing.
 
-## Repo Layer Model
-
-- `docs/project-discovery/` = truth
-- `docs/ai/` = agent rules
-- `docs/context/` = current state
-- `openspec/` = active `/opsx-*` change workflow
-- `docs/delivery/` = curated markdown records when durable reference outside OpenSpec is useful
+For the full task-type rule table and ambiguity routing, see `docs/ai/workflows.md`.
 
 ## Hard Gates
 

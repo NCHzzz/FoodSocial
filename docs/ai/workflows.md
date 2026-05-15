@@ -2,71 +2,140 @@
 
 ## Purpose
 
-This file defines the default execution flow for agents in this repo.
+This file defines the task-type execution rules and recovery guidance for agents in this repo.
 
-## Global Load Order
-
-1. `AGENTS.md`
-2. `docs/ai/repo-map.md`
-3. relevant `docs/project-discovery/` files
-4. `docs/context/current_build_status.md` when current state matters
-5. `docs/context/progress_log.md` when recent history matters
-6. active OpenSpec change in `openspec/changes/` when the task is driven through `/opsx-*`
-7. `docs/delivery/` only when curated markdown records already exist and still matter
-
-## Global Rules
-
-- load truth before implementation
-- make task scope explicit before editing
-- keep current state in `docs/context/`
-- keep product truth in `docs/project-discovery/`
-- keep agent rules in `docs/ai/`
-- keep active `/opsx-*` change workflow in `openspec/`
-- keep `docs/delivery/` for curated markdown records only
-- do not duplicate the same live work across `openspec/` and `docs/delivery/`
-- verify before claiming completion
+For the canonical source-read order, see `AGENTS.md`.
 
 ## Task-Type Rule Loading
 
-### Backend/API work
+Before implementation, agents MUST load the rule files for the current task type. Reading `AGENTS.md` or `repo-map.md` alone is not sufficient.
 
-Always load:
+### Backend / API work
+
+Load:
 
 - `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/dotnet.md`
 
-These files must be explicitly read before backend implementation starts. Reading `AGENTS.md` or `repo-map.md` alone is not sufficient.
-
 ### Frontend work
 
-Always load:
+Load:
 
 - `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/angular-tailwind.md`
 
-These files must be explicitly read before frontend implementation starts. Reading `AGENTS.md` or `repo-map.md` alone is not sufficient.
+### UI / visual work
 
-### UI work
-
-Always load:
+Load:
 
 - `docs/ai/engineering-rules.md`
 - `docs/ai/stack-rules/angular-tailwind.md`
 - root `DESIGN.md`
 
-These files must be explicitly read before UI implementation starts. Reading `AGENTS.md` or `repo-map.md` alone is not sufficient.
+### Full-stack work
 
-## Active Change Workflow Rule
+Load:
 
-For non-trivial work driven by `/opsx-*`, OpenSpec is the active workflow home.
+- `docs/ai/engineering-rules.md`
+- `docs/ai/stack-rules/dotnet.md`
+- `docs/ai/stack-rules/angular-tailwind.md`
+- root `DESIGN.md` when the task includes user-facing UI changes
 
-- proposals, design, tasks, and change state stay in `openspec/`
-- durable markdown records go in `docs/delivery/` only when they add value outside OpenSpec
+### DevOps / infrastructure work
 
-## Repo/Docs Update Rule
+Load:
 
-When updating repo workflow/docs:
+- `docs/ai/engineering-rules.md`
+- `docs/context/current_build_status.md` for current runtime shape
+- `docs/delivery/ops-production-runbook.md` when modifying ops assets
 
-- prefer fewer canonical files
-- do not restate the same rule in multiple places unless the shorter file points clearly to the canonical one
-- keep the system understandable by task type: backend, frontend, UI, or OpenSpec-driven change
+### Database migration work
+
+Load:
+
+- `docs/ai/engineering-rules.md`
+- `docs/ai/stack-rules/dotnet.md`
+- `Backend/MIGRATIONS.md`
+
+### Documentation work
+
+Load:
+
+- `docs/ai/engineering-rules.md`
+
+Rules for documentation changes:
+
+- do not invent product truth; cite or update `docs/project-discovery/`
+- keep markdown in English
+- keep current state in `docs/context/`, not in rule or discovery files
+- do not duplicate content across files; point to the canonical source
+
+### Version Control / Git work
+
+Load:
+
+- `docs/ai/engineering-rules.md`
+- `docs/ai/git-rules.md`
+
+### Architecture / design work
+
+Load:
+
+- `docs/ai/engineering-rules.md`
+- relevant `docs/project-discovery/` files for current architecture truth
+- `docs/ai/stack-rules/dotnet.md` when the design affects backend boundaries
+- `docs/ai/stack-rules/angular-tailwind.md` when the design affects frontend structure
+
+## Ambiguous Task Routing
+
+When the task type is unclear:
+
+- If the task touches both backend and frontend, treat it as full-stack
+- If the task is about fixing a user-visible bug, load both backend and frontend rules plus `DESIGN.md`
+- If the task involves committing, pulling, or pushing code, load `git-rules.md`
+- If the task is about CI/CD, Helm, Docker, or Kubernetes, treat it as DevOps
+- If the task involves EF Core migrations or schema changes, treat it as database migration work
+- When genuinely uncertain, load `engineering-rules.md` and ask the user for clarification before loading stack-specific rules
+
+## Global Rules
+
+- load truth before implementation
+- make task scope explicit before editing
+- verify before claiming completion
+- keep current state in `docs/context/`
+- keep product truth in `docs/project-discovery/`
+- keep agent rules in `docs/ai/`
+
+## When Things Go Wrong
+
+### A referenced file does not exist
+
+- Skip it and note in your response that the file was missing
+- Do not invent content to fill the gap
+- If the missing file is critical to the task, ask the user before proceeding
+
+### Build fails after implementation
+
+- Read the error output carefully before attempting fixes
+- Fix one error at a time, starting from the first reported error
+- Do not introduce speculative fixes for errors you have not seen
+- If the build failure is unrelated to your changes, note it and ask the user
+
+### Tests fail after implementation
+
+- Determine whether the failure is caused by your change or was pre-existing
+- Fix failures caused by your change before claiming completion
+- Do not silently delete or skip failing tests
+- If a pre-existing test failure blocks your work, report it and ask the user
+
+### Two rules conflict
+
+- `AGENTS.md` priority chain applies: user instructions > repo workflow guidance > assistant defaults
+- Between rule files at the same level, prefer the more specific file (stack rules over engineering rules)
+- If the conflict is genuine and unresolvable, document both rules and ask the user
+
+### Discovery docs appear outdated vs actual code
+
+- Treat `docs/project-discovery/` as intended truth unless the user explicitly says otherwise
+- Do not silently update discovery docs to match code drift
+- Report the discrepancy to the user with specific file references
