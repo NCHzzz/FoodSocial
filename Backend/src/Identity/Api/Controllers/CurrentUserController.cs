@@ -1,8 +1,6 @@
 using System.Security.Claims;
 using FoodSocial.Contracts.Identity;
-using FoodSocial.Identity.Application;
 using FoodSocial.Identity.Api.Authorization;
-using FoodSocial.Identity.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,11 +10,11 @@ namespace FoodSocial.Identity.Api.Controllers;
 [Route("identity/current-user")]
 public sealed class CurrentUserController(
     EnsureIdentityCommandHandler ensureIdentityCommandHandler,
-    IIdentityUserStore identityUserStore)
+    GetCurrentUserQueryHandler getCurrentUserQueryHandler)
     : ControllerBase
 {
     private readonly EnsureIdentityCommandHandler _ensureIdentityCommandHandler = ensureIdentityCommandHandler ?? throw new ArgumentNullException(nameof(ensureIdentityCommandHandler));
-    private readonly IIdentityUserStore _identityUserStore = identityUserStore ?? throw new ArgumentNullException(nameof(identityUserStore));
+    private readonly GetCurrentUserQueryHandler _getCurrentUserQueryHandler = getCurrentUserQueryHandler ?? throw new ArgumentNullException(nameof(getCurrentUserQueryHandler));
 
     [HttpGet]
     [Authorize]
@@ -28,30 +26,9 @@ public sealed class CurrentUserController(
             return missingSubjectResult!;
         }
 
-        var roles = await _identityUserStore.GetRoleNamesBySubjectAsync(claims.Subject, cancellationToken);
-        var normalizedRoles = roles
-            .Select(IdentityAppRoles.Normalize)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(role => role, StringComparer.Ordinal)
-            .ToArray();
-
-        var identityUser = await _identityUserStore.FindBySubjectAsync(claims.Subject, cancellationToken);
-        var lifecyclePolicy = identityUser is null
-            ? null
-            : IdentityLifecyclePolicy.Describe(identityUser.State);
-
-        var response = new CurrentUserResponse(
-            new AuthenticatedUserDto(
-                claims.Subject,
-                identityUser?.PreferredUsername ?? claims.PreferredUsername,
-                identityUser?.Email ?? claims.Email,
-                normalizedRoles),
-            new SessionIdentityDto(
-                IdentityId: identityUser?.Id ?? Guid.Empty,
-                State: lifecyclePolicy?.CurrentState.ToString() ?? "Unknown",
-                BootstrapPending: lifecyclePolicy?.DownstreamBootstrapPending ?? false,
-                DownstreamBootstrapPending: lifecyclePolicy?.DownstreamBootstrapPending ?? false),
-            DateTimeOffset.UtcNow);
+        var response = await _getCurrentUserQueryHandler.HandleAsync(
+            new CurrentUserQuery(claims.Subject, claims.PreferredUsername, claims.Email),
+            cancellationToken);
 
         return Ok(response);
     }

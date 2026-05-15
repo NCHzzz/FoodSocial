@@ -106,6 +106,20 @@ public sealed class EnsureIdentityCommandHandlerTests
         outbox.Roles.Should().ContainSingle().Which.Should().Be(IdentityAppRoles.User);
     }
 
+    [Fact]
+    public async Task Handle_Outbox_DoesNotStageDuplicatePendingMessage_WhenPendingBootstrapIdentityAlreadyHasPendingOutbox()
+    {
+        var existingIdentity = new IdentityUser("outbox-repeat-subject", "demo-user", "demo@example.com");
+        var store = new InMemoryIdentityUserStore(existingIdentity);
+        var handler = new EnsureIdentityCommandHandler(store, NoOpLogger.Instance);
+
+        await handler.HandleAsync(
+            new EnsureIdentityCommand("outbox-repeat-subject", "demo-user", "demo@example.com"),
+            CancellationToken.None);
+
+        store.OutboxMessages.Should().BeEmpty();
+    }
+
     private sealed class InMemoryIdentityUserStore(params IdentityUser[] users) : IIdentityUserStore
     {
         private readonly List<IdentityUser> _users = [.. users];
@@ -149,6 +163,9 @@ public sealed class EnsureIdentityCommandHandlerTests
             OutboxMessages.Add(integrationEvent);
             return Task.CompletedTask;
         }
+
+        public Task<bool> HasPendingUserProvisionedOutboxMessageAsync(string subject, CancellationToken cancellationToken) =>
+            Task.FromResult(_users.Any(user => string.Equals(user.Subject, subject, StringComparison.Ordinal)) && OutboxMessages.Count == 0);
 
         public Task<TResult> ExecuteInTransactionAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken)
         {
@@ -208,6 +225,8 @@ public sealed class EnsureIdentityCommandHandlerTests
 
         public Task AddOutboxMessageAsync(UserProvisionedIntegrationEvent integrationEvent, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+
+        public Task<bool> HasPendingUserProvisionedOutboxMessageAsync(string subject, CancellationToken cancellationToken) => Task.FromResult(false);
 
         public Task<TResult> ExecuteInTransactionAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken)
         {

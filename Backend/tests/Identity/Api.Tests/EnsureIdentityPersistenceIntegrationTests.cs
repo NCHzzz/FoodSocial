@@ -97,7 +97,7 @@ public sealed class EnsureIdentityPersistenceIntegrationTests
         var outboxCount = await dbContext.IdentityOutboxMessages
             .LongCountAsync(message => message.Subject == "persistent-repeat-subject");
 
-        outboxCount.Should().Be(2);
+        outboxCount.Should().Be(1);
     }
 
     [Fact]

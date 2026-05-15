@@ -144,6 +144,8 @@ internal sealed class IdentityApiFactory : WebApplicationFactory<Program>
         public Task AddOutboxMessageAsync(FoodSocial.Contracts.Identity.UserProvisionedIntegrationEvent integrationEvent, CancellationToken cancellationToken) =>
             Task.CompletedTask;
 
+        public Task<bool> HasPendingUserProvisionedOutboxMessageAsync(string subject, CancellationToken cancellationToken) => Task.FromResult(false);
+
         public Task<TResult> ExecuteInTransactionAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(operation);

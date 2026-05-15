@@ -65,6 +65,14 @@ public interface IIdentityUserStore
     Task AddOutboxMessageAsync(UserProvisionedIntegrationEvent integrationEvent, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Determines whether a pending user-provisioned outbox message already exists for the subject.
+    /// </summary>
+    /// <param name="subject">The trusted subject.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns><c>true</c> when a pending bootstrap outbox message exists; otherwise <c>false</c>.</returns>
+    Task<bool> HasPendingUserProvisionedOutboxMessageAsync(string subject, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Executes the supplied operation inside the persistence transaction boundary.
     /// </summary>
     /// <typeparam name="TResult">The operation result type.</typeparam>

@@ -108,6 +108,18 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
     }
 
     /// <inheritdoc />
+    public Task<bool> HasPendingUserProvisionedOutboxMessageAsync(string subject, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subject);
+
+        return _dbContext.IdentityOutboxMessages.AnyAsync(
+            message => message.Subject == subject
+                && message.EventType == nameof(UserProvisionedIntegrationEvent)
+                && message.DeliveryState == IdentityOutboxDeliveryState.Pending,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task<TResult> ExecuteInTransactionAsync<TResult>(
         Func<CancellationToken, Task<TResult>> operation,
         CancellationToken cancellationToken)

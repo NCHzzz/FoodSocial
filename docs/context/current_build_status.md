@@ -17,9 +17,9 @@ This file is a current-state snapshot, not a history log.
 
 ## Snapshot
 
-- Updated: 2026-05-13
-- Scope of this update: backend/frontend stability verification, frontend audit cleanup, and frontend test log cleanup
-- Verification: backend restore/build/full test suite passed; frontend install/audit/lint/test/build passed; frontend tests no longer emit `ECONNREFUSED :3000` noise
+- Updated: 2026-05-15
+- Scope of this update: backend DPUnity-style layering cleanup and Identity application refactor verification
+- Verification: backend build and full no-build test suite passed after Identity current-user, bootstrap, and outbox idempotency updates
 
 ## Canonical Documentation State
 
@@ -60,7 +60,7 @@ Active backend projects:
 - BFF exposes narrow browser-facing facades for UserProfile, Dish, Place, Post, recommendation/search-assist, notifications, and moderation review routes while preserving upstream status and safe ProblemDetails behavior.
 - BFF applies Redis-backed anonymous catalog response caching with memory fallback, config-driven rate limiting, browser security headers, production HSTS, and persistent Data Protection key-ring requirements outside development.
 - Local Keycloak browser redirect/origin entries now target the Angular dev server and API Gateway, not direct BFF browser callback ports.
-- Identity owns subject mapping, lifecycle state, app-owned RBAC, and trusted service identity behavior.
+- Identity owns subject mapping, lifecycle state, app-owned RBAC, trusted service identity behavior, application-level current-user projection, and idempotent pending-bootstrap outbox staging.
 - UserProfile owns profile, follow graph, saved item, and follow-notification behavior.
 - Dish and Place own canonical catalog creation, lifecycle, search, and detail reads.
 - Post owns launch content creation, media upload/cleanup lifecycle, feed/search reads, engagement, reports, moderation review, reposts, and interaction notifications.
@@ -102,6 +102,8 @@ The latest local verification recorded these passing checks:
 - `dotnet restore Backend\FoodSocial.slnx`
 - `dotnet build Backend\FoodSocial.slnx --configuration Release --no-restore --maxcpucount:1`
 - `dotnet test Backend\FoodSocial.slnx --configuration Release --no-build`
+- `dotnet test Backend\tests\Identity\Application.Tests\FoodSocial.Identity.Application.Tests.csproj --configuration Release --no-restore`
+- `dotnet test Backend\tests\Identity\Api.Tests\FoodSocial.Identity.Api.Tests.csproj --configuration Release --no-restore`
 - `dotnet test Backend\tests\FoodSocial.ApiGateway.Tests\FoodSocial.ApiGateway.Tests.csproj --configuration Release --no-build`
 - `dotnet test Backend\tests\FoodSocial.AppHost.Tests\FoodSocial.AppHost.Tests.csproj --configuration Release --no-build`
 - `dotnet test Backend\tests\FoodSocial.AppHost.Tests\FoodSocial.AppHost.Tests.csproj --configuration Release --no-build --filter FullyQualifiedName~ServiceBoundaryArchitectureTests`

@@ -17,6 +17,7 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddScoped<EnsureIdentityCommandHandler>();
+        services.AddScoped<GetCurrentUserQueryHandler>();
         services.AddScoped<CompleteUserProfileBootstrapService>();
 
         return services;

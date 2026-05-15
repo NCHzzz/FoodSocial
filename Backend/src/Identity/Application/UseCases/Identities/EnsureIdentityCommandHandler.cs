@@ -61,6 +61,14 @@ public sealed class EnsureIdentityCommandHandler(IIdentityUserStore identityUser
             return;
         }
 
+        if (!created && await _identityUserStore.HasPendingUserProvisionedOutboxMessageAsync(identityUser.Subject, cancellationToken))
+        {
+            _logger.LogInformation(
+                "Skipping duplicate pending bootstrap outbox staging for subject '{Subject}'.",
+                identityUser.Subject);
+            return;
+        }
+
         var integrationEvent = new UserProvisionedIntegrationEvent(
             EventId: Guid.NewGuid(),
             IdentityId: identityUser.Id,
