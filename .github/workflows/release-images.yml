@@ -31,6 +31,9 @@ jobs:
           - image: bff
             context: Backend
             dockerfile: Backend/src/FoodSocial.Bff/Dockerfile
+          - image: api-gateway
+            context: Backend
+            dockerfile: Backend/src/FoodSocial.ApiGateway/Dockerfile
           - image: identity-api
             context: Backend
             dockerfile: Backend/src/Identity/Api/Dockerfile

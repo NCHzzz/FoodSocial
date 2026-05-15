@@ -46,11 +46,11 @@ The product can differentiate by being:
 - more trustworthy than high-noise, high-seeding channels
 - eventually enhanced with AI-based food suggestions
 
-Detailed AI-native and MVP product direction live in `00_project_overview.md` and `04_functional_requirements.md`.
+Detailed AI-native and launch product direction live in `00_project_overview.md` and `04_functional_requirements.md`.
 
 ## Positioning Direction
 
-The product is trending toward an **AI-native food social platform**.
+The product is positioned as an **AI-native food social platform**.
 
 This means the product should not only store and display food posts, but also help users answer food-related intent.
 
@@ -58,7 +58,7 @@ Detailed AI-native product direction lives in `00_project_overview.md`.
 
 ## Success Metrics
 
-Primary MVP success metric:
+Primary launch success metric:
 
 - establish a small group of real users who use the product repeatedly and find it genuinely useful
 
@@ -68,7 +68,7 @@ Public expansion gate after beta:
 
 ## Monetization Direction
 
-- MVP: no immediate monetization focus
+- Controlled launch: no immediate monetization focus
 - Later direction: keep a path open for multiple monetization models
 - Primary long-term monetization priority: mixed model with affiliate / ordering commission as the main direction
 
@@ -80,7 +80,7 @@ Public expansion gate after beta:
 ## Need Confirmation
 
 - Business model
-- Primary KPI for MVP
+- Primary KPI for launch
 - Whether authenticity/trust is a brand promise that must become a measurable product objective
 
 ## Launch Market Direction

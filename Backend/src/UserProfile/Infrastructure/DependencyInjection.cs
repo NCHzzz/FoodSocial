@@ -1,6 +1,7 @@
 using FoodSocial.UserProfile.Application;
 using FoodSocial.UserProfile.Infrastructure.Messaging;
 using FoodSocial.UserProfile.Infrastructure.Persistence;
+using FoodSocial.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserProfileShellStore, UserProfileShellStore>();
         services.AddScoped<IUserProfileStore, UserProfileStore>();
+        services.AddScoped<IntegrationOutboxDrainWorker<UserProfileDbContext>>();
 
         var rabbitMqConnectionString = configuration.GetConnectionString("rabbitmq")
             ?? configuration["ConnectionStrings:rabbitmq"]
@@ -40,10 +42,12 @@ public static class DependencyInjection
         if (!string.IsNullOrWhiteSpace(rabbitMqConnectionString))
         {
             services.AddSingleton<IUserProfileBootstrapCompletionPublisher>(_ => new RabbitMqUserProfileBootstrapCompletionPublisher(rabbitMqConnectionString));
+            services.AddSingleton<IIntegrationEventPublisher>(_ => new RabbitMqIntegrationEventPublisher(rabbitMqConnectionString));
         }
         else
         {
             services.AddSingleton<IUserProfileBootstrapCompletionPublisher, MissingRabbitMqConfigurationUserProfileBootstrapCompletionPublisher>();
+            services.AddSingleton<IIntegrationEventPublisher>(_ => new MissingRabbitMqConfigurationIntegrationEventPublisher("UserProfile"));
         }
 
         return services;

@@ -8,6 +8,8 @@ namespace FoodSocial.Dish.Domain;
 /// </summary>
 public sealed class DishRecord
 {
+    public static readonly Guid DefaultTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
     private DishRecord()
     {
     }
@@ -41,6 +43,11 @@ public sealed class DishRecord
     /// Gets the stable Dish identifier.
     /// </summary>
     public Guid Id { get; private set; }
+
+    /// <summary>
+    /// Gets the tenant isolation identifier.
+    /// </summary>
+    public Guid TenantId { get; private set; } = DefaultTenantId;
 
     /// <summary>
     /// Gets the display name.

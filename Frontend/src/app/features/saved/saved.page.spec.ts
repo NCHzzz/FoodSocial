@@ -4,6 +4,8 @@ import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 
 import { AuthSessionState } from '../../core/auth/auth-session.models';
 import { AuthSessionService } from '../../core/auth/auth-session.service';
+import { DishApi } from '../../core/dishes/infrastructure/dish.api';
+import { PlaceApi } from '../../core/places/infrastructure/place.api';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
 import { UserSavedItemsResponse } from '../../core/user-profiles/user-profile.models';
 import { SavedPage } from './saved.page';
@@ -55,6 +57,48 @@ describe('SavedPage', () => {
             getSavedItems: () => (options?.getSavedItems ?? (() => of(savedItems)))(),
           },
         },
+        {
+          provide: DishApi,
+          useValue: {
+            getDish: () => of({
+              id: 'dish-1',
+              name: 'Bún bò Huế',
+              normalizedName: 'bun bo hue',
+              description: null,
+              category: null,
+              cuisineType: 'Vietnamese',
+              aliases: [],
+              ingredients: [],
+              dietaryFlags: [],
+              status: 'Active',
+              createdAtUtc: '2026-04-25T00:00:00Z',
+              updatedAtUtc: '2026-04-25T00:00:00Z',
+              deprecatedAtUtc: null,
+            }),
+          },
+        },
+        {
+          provide: PlaceApi,
+          useValue: {
+            getPlace: () => of({
+              id: 'place-1',
+              name: 'Quán Ăn Ngon',
+              normalizedName: 'quan an ngon',
+              description: null,
+              addressText: '18 Phan Bội Châu',
+              area: 'District 1',
+              city: 'Ho Chi Minh City',
+              country: 'Vietnam',
+              latitude: null,
+              longitude: null,
+              cuisineTypes: [],
+              priceRange: '$$',
+              status: 'Active',
+              createdAtUtc: '2026-04-25T00:00:00Z',
+              updatedAtUtc: '2026-04-25T00:00:00Z',
+            }),
+          },
+        },
       ],
     }).compileComponents();
   };
@@ -75,10 +119,20 @@ describe('SavedPage', () => {
     expect(compiled.textContent).toContain('Saved content');
     expect(compiled.textContent).toContain('Saved posts');
     expect(compiled.textContent).toContain('Post post-1');
-    expect(compiled.textContent).toContain('Dish dish-1');
-    expect(compiled.textContent).toContain('Place place-1');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(compiled.textContent).toContain('Bún bò Huế');
+    expect(compiled.textContent).toContain('Quán Ăn Ngon');
+    expect(compiled.textContent).not.toContain('Dish dish-1');
+    expect(compiled.textContent).not.toContain('Place place-1');
     expect(compiled.textContent).toContain('Find posts for this dish');
     expect(compiled.textContent).toContain('Find posts for this place');
+
+    const dishLink = Array.from(compiled.querySelectorAll('a')).find((link) => link.textContent?.includes('Find posts for this dish'));
+    const placeLink = Array.from(compiled.querySelectorAll('a')).find((link) => link.textContent?.includes('Find posts for this place'));
+    expect(dishLink?.getAttribute('href')).toContain('query=B%C3%BAn%20b%C3%B2%20Hu%E1%BA%BF');
+    expect(placeLink?.getAttribute('href')).toContain('query=Qu%C3%A1n%20%C4%82n%20Ngon');
   });
 
   it('shows explicit empty and error saved states', async () => {

@@ -45,7 +45,7 @@ Primary consumption and discovery persona.
 
 ### 3. Recipe-Oriented User / Home Cook
 
-Secondary MVP persona.
+Secondary launch persona.
 
 #### Goals
 
@@ -57,7 +57,7 @@ Secondary MVP persona.
 - Recipe posting support
 - Structured recipe content with ingredients, steps, and media
 
-## Role Priority for MVP
+## Role Priority for Launch
 
 1. Food sharers / reviewers
 2. Food explorers
@@ -80,6 +80,7 @@ Use `## Permissions Overview` as the canonical permissions view.
 - Like, comment, save, share
 - Search
 - Follow users
+- Block or mute users
 - Manage profile
 - Report content
 
@@ -93,7 +94,7 @@ Profile and identity direction are canonical in `04_functional_requirements.md` 
 
 ## Permissions Overview
 
-This is the canonical permissions section for MVP role behavior.
+This is the canonical permissions section for launch role behavior.
 
 ### Guest
 
@@ -102,7 +103,7 @@ This is the canonical permissions section for MVP role behavior.
 - Browse public profiles at a limited level (Assumption)
 - Cannot post, like, comment, save, follow, report, or manage profile data
 
-### MVP visibility direction
+### Launch visibility direction
 
 Public/private visibility direction is canonical in `04_functional_requirements.md`.
 
@@ -115,6 +116,7 @@ Public/private visibility direction is canonical in `04_functional_requirements.
 - Edit basic profile and taste preferences
 - Report posts, users, and comments
 - View notification center
+- Control basic profile/content visibility where supported
 
 ### Admin / Moderator
 
@@ -124,6 +126,7 @@ Public/private visibility direction is canonical in `04_functional_requirements.
 - Warn users
 - Suspend or restrict users
 - Review moderation history and audit data
+- Monitor moderation backlog and abuse signals
 
 ## Key Needs by Role
 
@@ -143,5 +146,5 @@ This section is intentionally brief and only keeps needs not already obvious fro
 
 ## Need Confirmation
 
-- Whether restaurant owners or business accounts exist in MVP
-- Whether creators have special profile features in MVP
+- Whether restaurant owners or business accounts exist at launch
+- Whether creators have special profile features at launch

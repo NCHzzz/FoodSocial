@@ -1,6 +1,6 @@
-@FoodSocial.Bff_HostAddress = http://localhost:5276
+@FoodSocial.ApiGateway_HostAddress = http://localhost:5280
 
-GET {{FoodSocial.Bff_HostAddress}}/weatherforecast/
+GET {{FoodSocial.ApiGateway_HostAddress}}/api/auth/session
 Accept: application/json
 
 ###

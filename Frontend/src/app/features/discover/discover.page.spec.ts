@@ -117,12 +117,31 @@ describe('DiscoverPage', () => {
           provide: DishApi,
           useValue: {
             searchDishes: (_request: DishSearchRequest) => of(dishSearchResponse),
+            getDish: (_dishId: string) => of({
+              ...dishItem,
+              normalizedName: 'pho bo',
+              description: null,
+              ingredients: [],
+              dietaryFlags: [],
+              createdAtUtc: '2026-05-04T00:00:00Z',
+              updatedAtUtc: '2026-05-04T00:00:00Z',
+              deprecatedAtUtc: null,
+            }),
           },
         },
         {
           provide: PlaceApi,
           useValue: {
             searchPlaces: (_request: PlaceSearchRequest) => of(placeSearchResponse),
+            getPlace: (_placeId: string) => of({
+              ...placeItem,
+              normalizedName: 'quan an ngon',
+              description: null,
+              latitude: null,
+              longitude: null,
+              createdAtUtc: '2026-05-04T00:00:00Z',
+              updatedAtUtc: '2026-05-04T00:00:00Z',
+            }),
           },
         },
         {

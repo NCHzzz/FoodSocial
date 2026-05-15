@@ -82,14 +82,17 @@ public sealed class CurrentUserController(
         [FromBody] TrustedEnsureIdentityRequest? request,
         CancellationToken cancellationToken)
     {
-        _ = request;
-
-        if (!TryGetAuthenticatedIdentityClaims(User, out var claims, out var missingSubjectResult))
+        if (request is null || string.IsNullOrWhiteSpace(request.Subject))
         {
-            return missingSubjectResult!;
+            return Problem(
+                title: "Missing subject claim",
+                detail: "The trusted internal ensure request must include the browser-authenticated subject.",
+                statusCode: StatusCodes.Status400BadRequest);
         }
 
-        return await EnsureIdentityForAuthenticatedUserAsync(claims, cancellationToken);
+        return await EnsureIdentityForAuthenticatedUserAsync(
+            new AuthenticatedIdentityClaims(request.Subject, request.PreferredUsername, request.Email),
+            cancellationToken);
     }
 
     private async Task<ActionResult<EnsureIdentityResponse>> EnsureIdentityForAuthenticatedUserAsync(
@@ -139,4 +142,3 @@ public sealed class CurrentUserController(
         string? PreferredUsername,
         string? Email);
 }
-

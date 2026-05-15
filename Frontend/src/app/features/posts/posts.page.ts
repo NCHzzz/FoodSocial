@@ -11,7 +11,7 @@ import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-pro
 import { UiButtonDirective } from '../../shared/ui/button/ui-button.directive';
 import { UiPageScaffoldComponent } from '../../shared/ui/page-scaffold/ui-page-scaffold.component';
 import { UiSurfaceDirective } from '../../shared/ui/surface/ui-surface.directive';
-import { PostCardComponent } from './post-card.component';
+import { PostCardComponent, PostReportSubmission } from './post-card.component';
 
 type PostListStatus = 'loading' | 'loaded' | 'empty' | 'error';
 type PostListActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
@@ -185,16 +185,20 @@ export class PostsPage {
     });
   }
 
-  protected sharePost(postId: string): void {
+  protected async sharePost(postId: string): Promise<void> {
     const url = `${this.browserWindow.location.origin}/posts/${encodeURIComponent(postId)}`;
-    void this.browserWindow.navigator.clipboard?.writeText(url);
-    this.showActionSuccess('Post link copied for sharing.');
+    try {
+      await this.browserWindow.navigator.clipboard?.writeText(url);
+      this.showActionSuccess('Post link copied for sharing.');
+    } catch {
+      this.showActionError('Share failed. Copy the URL from the address bar.');
+    }
   }
 
-  protected reportPost(postId: string): void {
+  protected reportPost(report: PostReportSubmission): void {
     if (!this.requireAuthenticatedAction('Sign in to report posts.')) return;
     this.actionStatus.set('pending');
-    this.postApi.reportPost(postId, 'spam_or_low_quality', 'Reported from post listing.').subscribe({
+    this.postApi.reportPost(report.postId, report.reason, report.description).subscribe({
       next: () => this.showActionSuccess('Report submitted for manual review.'),
       error: () => this.showActionError('Report failed. Retry when moderation intake is available.'),
     });

@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { AuthSessionService } from '../../core/auth/auth-session.service';
 import { isAuthenticatedSession } from '../../core/auth/auth-session.presentation';
 import { BROWSER_WINDOW } from '../../core/auth/browser-window.token';
+import { CatalogLabelService } from '../../core/catalog/catalog-label.service';
 import { PostApi } from '../../core/posts/infrastructure/post.api';
 import { PostDetailResponse } from '../../core/posts/post.models';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
@@ -167,6 +168,7 @@ export class PostDetailPage {
   private readonly userProfileApi = inject(UserProfileApi);
   private readonly authSessionService = inject(AuthSessionService);
   private readonly browserWindow = inject(BROWSER_WINDOW);
+  private readonly catalogLabels = inject(CatalogLabelService);
 
   private readonly postId = this.activatedRoute.snapshot.paramMap.get('postId') ?? '';
 
@@ -182,7 +184,10 @@ export class PostDetailPage {
   protected readonly signedInIdentityId = computed(() => this.authState().session?.identity.identityId ?? null);
   protected readonly pageTitle = computed(() => this.post()?.caption.slice(0, 48) || 'Post');
   protected readonly primaryMediaUrl = computed(() => this.post()?.media.find((media) => media.isPrimary)?.url ?? null);
-  protected readonly dishLabel = computed(() => `Dish ${this.post()?.dishId ?? ''}`.trim());
+  protected readonly dishLabel = computed(() => {
+    const dishId = this.post()?.dishId;
+    return dishId ? this.catalogLabels.dishLabel(dishId) : 'Dish details loading';
+  });
   protected readonly mediaAlt = computed(() => `Food photo for ${this.dishLabel()}`);
   protected readonly createdDateLabel = computed(() => {
     const createdAtUtc = this.post()?.createdAtUtc;
@@ -190,6 +195,15 @@ export class PostDetailPage {
   });
 
   constructor() {
+    effect(() => {
+      const currentPost = this.post();
+      if (currentPost) {
+        this.catalogLabels.resolveDish(currentPost.dishId);
+        if (currentPost.placeId) {
+          this.catalogLabels.resolvePlace(currentPost.placeId);
+        }
+      }
+    });
     this.loadPost();
   }
 
@@ -247,10 +261,14 @@ export class PostDetailPage {
     });
   }
 
-  protected sharePost(): void {
+  protected async sharePost(): Promise<void> {
     const url = `${this.browserWindow.location.origin}/posts/${encodeURIComponent(this.postId)}`;
-    void this.browserWindow.navigator.clipboard?.writeText(url);
-    this.showActionSuccess('Post link copied for sharing.');
+    try {
+      await this.browserWindow.navigator.clipboard?.writeText(url);
+      this.showActionSuccess('Post link copied for sharing.');
+    } catch {
+      this.showActionError('Share failed. Copy the URL from the address bar.');
+    }
   }
 
   protected reportPost(): void {

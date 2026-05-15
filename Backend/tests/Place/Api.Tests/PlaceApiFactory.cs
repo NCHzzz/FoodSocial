@@ -71,6 +71,19 @@ internal sealed class PlaceApiFactory : WebApplicationFactory<Program>
         return place.Id;
     }
 
+    internal async Task<Guid> SeedPlaceInTenantAsync(string name, Guid tenantId)
+    {
+        await EnsureDatabaseCreatedAsync();
+
+        using var scope = Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PlaceDbContext>();
+        var place = PlaceRecord.Create(name, null, "2 Foreign Street", "District 1", "Ho Chi Minh City", "Vietnam", null, null, ["Vietnamese"], "$");
+        dbContext.Places.Add(place);
+        dbContext.Entry(place).Property(nameof(PlaceRecord.TenantId)).CurrentValue = tenantId;
+        await dbContext.SaveChangesAsync();
+        return place.Id;
+    }
+
     internal async Task EnsureDatabaseCreatedAsync()
     {
         if (_databaseInitialized)

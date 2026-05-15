@@ -1,4 +1,5 @@
 using FoodSocial.Dish.Domain;
+using FoodSocial.Messaging;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -24,11 +25,14 @@ public sealed class DishDbContext(DbContextOptions<DishDbContext> options) : DbC
     /// Gets the persisted canonical Dishes.
     /// </summary>
     public DbSet<DishRecord> Dishes => Set<DishRecord>();
+    public DbSet<IntegrationOutboxMessage> IntegrationOutboxMessages => Set<IntegrationOutboxMessage>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.HasPostgresExtension("pg_trgm");
+        modelBuilder.ConfigureIntegrationOutbox("dish_outbox_messages");
 
         modelBuilder.Entity<DishRecord>(entity =>
         {
@@ -38,6 +42,8 @@ public sealed class DishDbContext(DbContextOptions<DishDbContext> options) : DbC
 
             entity.Property(dish => dish.Name)
                 .HasMaxLength(160)
+                .IsRequired();
+            entity.Property(dish => dish.TenantId)
                 .IsRequired();
             entity.Property(dish => dish.NormalizedName)
                 .HasMaxLength(160)
@@ -65,11 +71,11 @@ public sealed class DishDbContext(DbContextOptions<DishDbContext> options) : DbC
             entity.Property(dish => dish.UpdatedAtUtc)
                 .IsRequired();
 
-            entity.HasIndex(dish => dish.NormalizedName)
+            entity.HasIndex(dish => new { dish.TenantId, dish.NormalizedName })
                 .IsUnique();
-            entity.HasIndex(dish => dish.Category);
-            entity.HasIndex(dish => dish.CuisineType);
-            entity.HasIndex(dish => dish.Status);
+            entity.HasIndex(dish => new { dish.TenantId, dish.Category });
+            entity.HasIndex(dish => new { dish.TenantId, dish.CuisineType });
+            entity.HasIndex(dish => new { dish.TenantId, dish.Status });
         });
     }
 

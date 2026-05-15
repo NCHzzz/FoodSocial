@@ -16,7 +16,7 @@ discovering dishes and places, and building toward practical AI-assisted food de
 <br />
 
 ![Build](https://img.shields.io/badge/build-CI%20configured-16A34A?style=for-the-badge)
-![Status](https://img.shields.io/badge/status-MVP%20foundation-FFB020?style=for-the-badge)
+![Status](https://img.shields.io/badge/status-product%20baseline-FFB020?style=for-the-badge)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
 ![Angular](https://img.shields.io/badge/Angular-21-DD0031?style=for-the-badge&logo=angular&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-service--owned-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
@@ -70,9 +70,9 @@ FoodSocial narrows the product around a food decision loop:
 Share a food experience → structure dish/place signals → discover better options → decide what to eat
 ```
 
-The MVP direction is a responsive web product where users can publish food posts, discover dishes and places, follow people, save useful content, and progressively receive AI-assisted recommendations. The engineering direction intentionally keeps domain boundaries explicit so FoodSocial can grow without losing the distinction between posts, dishes, places, profiles, search, moderation, and AI-assisted discovery.
+The product direction is a responsive web product where users can publish food posts, discover dishes and places, follow people, save useful content, and progressively receive AI-assisted recommendations. The engineering direction intentionally keeps domain boundaries explicit so FoodSocial can grow without losing the distinction between posts, dishes, places, profiles, search, moderation, and AI-assisted discovery.
 
-> Current stage: **MVP foundation in progress**. Identity, UserProfile, BFF, AppHost orchestration, Angular shell/profile foundations, CI, and starter ops assets are present; Dish and Post remain earlier-stage slices.
+> Current stage: **product baseline in progress**. Identity, UserProfile, Dish, Place, Post, BFF, AppHost orchestration, Angular product surfaces, CI, and starter ops assets are present. Production launch still depends on environment-owned readiness gates.
 
 ---
 
@@ -96,7 +96,7 @@ The MVP direction is a responsive web product where users can publish food posts
     </td>
     <td width="50%">
       <h3>📍 Dish and place search</h3>
-      <p>PostgreSQL-first search by dish, place, area, and structured food metadata for the MVP.</p>
+      <p>PostgreSQL-first search by dish, place, area, and structured food metadata for the product baseline.</p>
     </td>
   </tr>
   <tr>
@@ -106,7 +106,7 @@ The MVP direction is a responsive web product where users can publish food posts
     </td>
     <td width="50%">
       <h3>🛡️ Moderation</h3>
-      <p>Manual-review-first moderation and reporting, preserving safety without over-automating the MVP.</p>
+      <p>Manual-review-first moderation and reporting, preserving safety without premature automation.</p>
     </td>
   </tr>
 </table>
@@ -118,13 +118,13 @@ The MVP direction is a responsive web product where users can publish food posts
 | Area | Status |
 | --- | --- |
 | Backend solution | `Backend/FoodSocial.slnx` with .NET 10 source under `Backend/src/`. |
-| API edge | `FoodSocial.Bff` handles browser auth/session and UserProfile facade routes. |
+| API edge | `FoodSocial.Bff` handles browser auth/session and frontend-facing service facades. |
 | Identity | Production-oriented slice with Keycloak integration, lifecycle state, RBAC, and outbox-backed bootstrap events. |
 | UserProfile | Profile, follow graph, saved-item ownership APIs, persistence, and Identity bootstrap consumer path. |
-| Dish and Post | Earlier-stage service slices compared with Identity/UserProfile. |
+| Dish, Place, and Post | Launch product slices with service-owned persistence, search, lifecycle, media, engagement, and moderation foundations. |
 | Local platform | Aspire AppHost composes PostgreSQL, Redis, RabbitMQ, Keycloak, BFF, and service projects. |
 | Frontend | Angular 21 app with auth-aware shell, lazy route areas, TailwindCSS, and profile UX foundation. |
-| Ops | CI, observability starter assets, and Kubernetes templates exist; production rollout remains future work. |
+| Ops | CI, release/deploy starters, observability assets, Helm, and Kubernetes templates exist; production rollout remains environment-owned. |
 
 Read the live snapshot in [`docs/context/current_build_status.md`](./docs/context/current_build_status.md).
 
@@ -151,7 +151,7 @@ Architecture principles:
 - **Service-owned persistence:** PostgreSQL is the source of truth per service boundary.
 - **Hybrid integration:** REST for synchronous service calls; RabbitMQ for async workflows.
 - **Pragmatic AI:** provider-agnostic integration with graceful deterministic fallback.
-- **MVP restraint:** PostgreSQL-first search, selective caching, lightweight feature controls, manual-review-first moderation.
+- **Product restraint:** PostgreSQL-first search, selective caching, lightweight feature controls, manual-review-first moderation.
 
 ---
 
@@ -170,12 +170,14 @@ flowchart TB
     Bff --> Identity[Identity Service]:::service
     Bff --> UserProfile[UserProfile Service]:::service
     Bff --> Dish[Dish Service]:::service
+    Bff --> Place[Place Service]:::service
     Bff --> Post[Post Service]:::service
 
     Identity --> Keycloak[Keycloak]:::platform
     Identity --> IdentityDb[(Identity PostgreSQL)]:::data
     UserProfile --> UserProfileDb[(UserProfile PostgreSQL)]:::data
     Dish --> DishDb[(Dish PostgreSQL)]:::data
+    Place --> PlaceDb[(Place PostgreSQL)]:::data
     Post --> PostDb[(Post PostgreSQL)]:::data
 
     Identity -- bootstrap events --> RabbitMQ[(RabbitMQ)]:::platform
@@ -186,6 +188,7 @@ flowchart TB
     AppHost -. resources .-> IdentityDb
     AppHost -. resources .-> UserProfileDb
     AppHost -. resources .-> DishDb
+    AppHost -. resources .-> PlaceDb
     AppHost -. resources .-> PostDb
     AppHost -. runs .-> Bff
 ```
@@ -194,10 +197,10 @@ flowchart TB
 <summary><strong>Architecture notes</strong></summary>
 
 - The BFF is the browser-facing contract boundary and owns auth-aware request shaping.
-- Identity and UserProfile currently represent the strongest vertical foundation.
-- RabbitMQ is already exercised by the Identity-to-UserProfile bootstrap path.
-- Redis is provisioned but intentionally not treated as a required source of truth.
-- Kubernetes assets are starter templates, not a completed production platform.
+- Identity, UserProfile, Dish, Place, and Post have launch product foundations.
+- RabbitMQ is the async backbone for current event paths.
+- Redis is a selective cache and is not a source of truth.
+- Kubernetes assets are starters; production infrastructure remains operator-owned.
 
 </details>
 
@@ -219,6 +222,7 @@ FoodSocial/
 │   │   ├── Identity/                    # Identity service layers
 │   │   ├── UserProfile/                 # Profile, graph, saved items
 │   │   ├── Dish/                        # Dish service layers
+│   │   ├── Place/                       # Place service layers
 │   │   └── Post/                        # Post service layers
 │   └── tests/                           # Backend tests
 ├── Frontend/                            # Angular 21 workspace
@@ -309,8 +313,8 @@ dotnet test Backend/tests/FoodSocial.AppHost.Tests/FoodSocial.AppHost.Tests.cspr
 
 | Start here | Why it matters |
 | --- | --- |
-| [`docs/project-discovery/00_project_overview.md`](./docs/project-discovery/00_project_overview.md) | Product goals, MVP direction, launch market, stack snapshot. |
-| [`docs/project-discovery/03_scope_mvp.md`](./docs/project-discovery/03_scope_mvp.md) | In-scope and out-of-scope MVP boundaries. |
+| [`docs/project-discovery/00_project_overview.md`](./docs/project-discovery/00_project_overview.md) | Product goals, launch market, stack snapshot, and staged maturity direction. |
+| [`docs/project-discovery/03_product_scope.md`](./docs/project-discovery/03_product_scope.md) | In-scope and out-of-scope product boundaries. |
 | [`docs/project-discovery/04_functional_requirements.md`](./docs/project-discovery/04_functional_requirements.md) | Product behavior requirements. |
 | [`docs/project-discovery/07_domain_model.md`](./docs/project-discovery/07_domain_model.md) | Core entities and domain relationships. |
 | [`docs/project-discovery/10_architecture.md`](./docs/project-discovery/10_architecture.md) | Architecture decisions, trade-offs, and deferred complexity. |
@@ -322,7 +326,7 @@ dotnet test Backend/tests/FoodSocial.AppHost.Tests/FoodSocial.AppHost.Tests.cspr
 
 ## Contributing
 
-FoodSocial is currently a personal MVP build. Contributions should preserve the project-discovery truth and current architecture direction.
+FoodSocial is currently a personal product build. Contributions should preserve the project-discovery truth and current architecture direction.
 
 Before changing implementation:
 
@@ -336,7 +340,7 @@ Before changing implementation:
 
 <div align="center">
 
-Built with .NET, Angular, PostgreSQL, RabbitMQ, Keycloak, and practical MVP restraint.
+Built with .NET, Angular, PostgreSQL, RabbitMQ, Keycloak, and practical product restraint.
 
 Inspired by [`awesome-readme`](https://github.com/matiassingers/awesome-readme).
 

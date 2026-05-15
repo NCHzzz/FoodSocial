@@ -1,3 +1,5 @@
+using FoodSocial.Contracts.UserProfiles;
+using FoodSocial.Messaging;
 using FoodSocial.UserProfile.Application;
 using FoodSocial.UserProfile.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +19,9 @@ public sealed class UserProfileShellStore(UserProfileDbContext dbContext) : IUse
     {
         ArgumentOutOfRangeException.ThrowIfEqual(identityId, Guid.Empty);
 
-        return _dbContext.UserProfileShells.SingleOrDefaultAsync(shell => shell.IdentityId == identityId, cancellationToken);
+        return _dbContext.UserProfileShells.SingleOrDefaultAsync(
+            shell => shell.TenantId == UserProfileShell.DefaultTenantId && shell.IdentityId == identityId,
+            cancellationToken);
     }
 
     /// <inheritdoc />
@@ -25,13 +29,16 @@ public sealed class UserProfileShellStore(UserProfileDbContext dbContext) : IUse
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
 
-        return _dbContext.UserProfileShells.SingleOrDefaultAsync(shell => shell.Subject == subject, cancellationToken);
+        return _dbContext.UserProfileShells.SingleOrDefaultAsync(
+            shell => shell.TenantId == UserProfileShell.DefaultTenantId && shell.Subject == subject,
+            cancellationToken);
     }
 
     /// <inheritdoc />
     public Task AddAsync(UserProfileShell shell, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(shell);
+        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(shell.IdentityId, "ProfileShellCreated"));
         return _dbContext.UserProfileShells.AddAsync(shell, cancellationToken).AsTask();
     }
 
@@ -74,8 +81,8 @@ public sealed class UserProfileShellStore(UserProfileDbContext dbContext) : IUse
 
         return exception.InnerException is PostgresException postgresException
             && postgresException.SqlState == PostgresErrorCodes.UniqueViolation
-            && (string.Equals(postgresException.ConstraintName, "IX_user_profile_shells_IdentityId", StringComparison.Ordinal)
-                || string.Equals(postgresException.ConstraintName, "IX_user_profile_shells_Subject", StringComparison.Ordinal));
+            && (string.Equals(postgresException.ConstraintName, "IX_user_profile_shells_TenantId_IdentityId", StringComparison.Ordinal)
+                || string.Equals(postgresException.ConstraintName, "IX_user_profile_shells_TenantId_Subject", StringComparison.Ordinal));
     }
 
     private static bool IsSqliteUniqueViolation(Exception? innerException)
@@ -96,4 +103,25 @@ public sealed class UserProfileShellStore(UserProfileDbContext dbContext) : IUse
             .Where(entry => entry.State == EntityState.Added)
             .Select(entry => entry.Entity.IdentityId)
             .SingleOrDefault();
+
+    private static IntegrationOutboxMessage CreateOutboxMessage(Guid identityId, string changeType, Guid? targetId = null, string? targetType = null)
+    {
+        var integrationEvent = UserProfileChangedIntegrationEvent.Create(
+            identityId,
+            UserProfileShell.DefaultTenantId,
+            changeType,
+            targetId,
+            targetType);
+
+        return IntegrationOutboxMessage.Create(
+            integrationEvent,
+            integrationEvent.EventId,
+            integrationEvent.EventVersion,
+            integrationEvent.OccurredAtUtc,
+            integrationEvent.CorrelationId,
+            "userprofile.events",
+            $"userprofile.profile.{changeType.ToLowerInvariant()}.v1",
+            identityId,
+            "UserProfile");
+    }
 }

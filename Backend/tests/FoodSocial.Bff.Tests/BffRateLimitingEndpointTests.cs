@@ -95,7 +95,7 @@ public sealed class BffRateLimitingEndpointTests
             builder.UseSetting("Services:dish-api:https:0", "https://dish-api.example.test");
             builder.UseSetting("Services:place-api:https:0", "https://place-api.example.test");
             builder.UseSetting("Services:post-api:https:0", "https://post-api.example.test");
-            builder.UseSetting("Identity:InternalTrust:SharedSecret", "test-shared-secret");
+            builder.UseSetting("Keycloak:ServiceClientAccessToken", "test-service-token");
             builder.UseSetting("RateLimiting:Enabled", enabled.ToString());
             builder.UseSetting("RateLimiting:Default:PermitLimit", defaultPermitLimit.ToString(System.Globalization.CultureInfo.InvariantCulture));
             builder.UseSetting("RateLimiting:Default:WindowSeconds", "60");

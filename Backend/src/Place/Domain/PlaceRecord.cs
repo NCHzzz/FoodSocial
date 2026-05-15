@@ -8,6 +8,8 @@ namespace FoodSocial.Place.Domain;
 /// </summary>
 public sealed class PlaceRecord
 {
+    public static readonly Guid DefaultTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
     private const decimal MinimumLatitude = -90m;
     private const decimal MaximumLatitude = 90m;
     private const decimal MinimumLongitude = -180m;
@@ -58,6 +60,9 @@ public sealed class PlaceRecord
 
     /// <summary>Gets the stable Place identifier.</summary>
     public Guid Id { get; private set; }
+
+    /// <summary>Gets the tenant isolation identifier.</summary>
+    public Guid TenantId { get; private set; } = DefaultTenantId;
 
     /// <summary>Gets the display name.</summary>
     public string Name { get; private set; } = string.Empty;

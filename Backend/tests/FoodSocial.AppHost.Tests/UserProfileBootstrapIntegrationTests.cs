@@ -27,7 +27,7 @@ public sealed class UserProfileBootstrapIntegrationTests(AppHostFixture fixture)
         using var cts = fixture.CreateDefaultCancellationTokenSource();
         await ResetBootstrapArtifactsAsync(cts.Token);
 
-        using var bffClient = await fixture.Auth.CreateAuthenticatedBffBearerClientAsync(cts.Token);
+        using var bffClient = await fixture.Auth.CreateAuthenticatedGatewayBearerClientAsync(cts.Token);
         using var response = await bffClient.GetAsync("/api/auth/session", cts.Token);
         var payload = await response.Content.ReadFromJsonAsync<CurrentUserResponse>(cts.Token);
 
@@ -241,7 +241,7 @@ public sealed class UserProfileBootstrapIntegrationTests(AppHostFixture fixture)
     private async Task<CurrentUserResponse> EnsureIdentityWithoutResetAsync(CancellationToken cancellationToken)
     {
 
-        using var bffClient = await fixture.Auth.CreateAuthenticatedBffBearerClientAsync(cancellationToken);
+        using var bffClient = await fixture.Auth.CreateAuthenticatedGatewayBearerClientAsync(cancellationToken);
         using var response = await bffClient.GetAsync("/api/auth/session", cancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<CurrentUserResponse>(cancellationToken);
 

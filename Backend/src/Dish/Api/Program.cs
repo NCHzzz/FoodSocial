@@ -2,6 +2,7 @@ using FoodSocial.Dish.Api;
 using FoodSocial.Dish.Application;
 using FoodSocial.Dish.Infrastructure;
 using FoodSocial.Dish.Infrastructure.Persistence;
+using FoodSocial.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -20,7 +21,9 @@ builder.Services.AddScoped<DishManagementAuthorizationFilter>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddCheck<DishPostgresHealthCheck>("dish-postgres");
+    .AddCheck<DishPostgresHealthCheck>("dish-postgres")
+    .AddCheck<RabbitMqHealthCheck>("dish-rabbitmq");
+builder.Services.AddHostedService<IntegrationOutboxPublisherBackgroundService<DishDbContext>>();
 
 var app = builder.Build();
 

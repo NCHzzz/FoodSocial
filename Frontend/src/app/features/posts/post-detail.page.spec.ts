@@ -6,6 +6,7 @@ import { vi } from 'vitest';
 import { AuthSessionState } from '../../core/auth/auth-session.models';
 import { AuthSessionService } from '../../core/auth/auth-session.service';
 import { BROWSER_WINDOW } from '../../core/auth/browser-window.token';
+import { DishApi } from '../../core/dishes/infrastructure/dish.api';
 import { PostApi } from '../../core/posts/infrastructure/post.api';
 import { PostDetailResponse } from '../../core/posts/post.models';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
@@ -46,6 +47,7 @@ describe('PostDetailPage', () => {
 
   it('submits report reason and description from explicit controls', async () => {
     const reportPostMock = vi.fn(() => of({}));
+    const clipboardMock = vi.fn(() => Promise.reject(new Error('denied')));
 
     await TestBed.configureTestingModule({
       imports: [PostDetailPage],
@@ -61,7 +63,7 @@ describe('PostDetailPage', () => {
         },
         {
           provide: BROWSER_WINDOW,
-          useValue: { location: { origin: 'https://example.com' }, navigator: { clipboard: { writeText: vi.fn() } } },
+          useValue: { location: { origin: 'https://example.com' }, navigator: { clipboard: { writeText: clipboardMock } } },
         },
         {
           provide: PostApi,
@@ -77,6 +79,26 @@ describe('PostDetailPage', () => {
           provide: UserProfileApi,
           useValue: { savePost: () => of({}) },
         },
+        {
+          provide: DishApi,
+          useValue: {
+            getDish: () => of({
+              id: 'dish-1',
+              name: 'Phở bò',
+              normalizedName: 'pho bo',
+              description: null,
+              category: null,
+              cuisineType: 'Vietnamese',
+              aliases: [],
+              ingredients: [],
+              dietaryFlags: [],
+              status: 'Active',
+              createdAtUtc: '2026-05-04T00:00:00Z',
+              updatedAtUtc: '2026-05-04T00:00:00Z',
+              deprecatedAtUtc: null,
+            }),
+          },
+        },
       ],
     }).compileComponents();
 
@@ -89,5 +111,12 @@ describe('PostDetailPage', () => {
     fixture.componentInstance['reportPost']();
 
     expect(reportPostMock).toHaveBeenCalledWith('post-1', 'unsafe_or_harmful', 'Unsafe prep method.');
+
+    await fixture.componentInstance['sharePost']();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Share failed');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Phở bò');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Dish dish-1');
   });
 });

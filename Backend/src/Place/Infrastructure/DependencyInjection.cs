@@ -1,5 +1,6 @@
 using FoodSocial.Place.Application;
 using FoodSocial.Place.Infrastructure.Persistence;
+using FoodSocial.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,7 +28,25 @@ public static class DependencyInjection
                 npgsql.MigrationsHistoryTable("__PlaceMigrationsHistory")));
 
         services.AddScoped<IPlaceStore, PlaceStore>();
+        services.AddScoped<IntegrationOutboxDrainWorker<PlaceDbContext>>();
+        AddRabbitMqPublisher(services, configuration, "Place");
 
         return services;
+    }
+
+    private static void AddRabbitMqPublisher(IServiceCollection services, IConfiguration configuration, string serviceName)
+    {
+        var rabbitMqConnectionString = configuration.GetConnectionString("rabbitmq")
+            ?? configuration["ConnectionStrings:rabbitmq"]
+            ?? configuration["RabbitMQ:ConnectionString"];
+
+        if (!string.IsNullOrWhiteSpace(rabbitMqConnectionString))
+        {
+            services.AddSingleton<IIntegrationEventPublisher>(_ => new RabbitMqIntegrationEventPublisher(rabbitMqConnectionString));
+        }
+        else
+        {
+            services.AddSingleton<IIntegrationEventPublisher>(_ => new MissingRabbitMqConfigurationIntegrationEventPublisher(serviceName));
+        }
     }
 }

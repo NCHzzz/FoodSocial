@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\FoodSocial.Post.Application.csproj" />
     <ProjectReference Include="..\Domain\FoodSocial.Post.Domain.csproj" />
+    <ProjectReference Include="..\..\FoodSocial.Messaging\FoodSocial.Messaging.csproj" />
   </ItemGroup>
 
   <ItemGroup>

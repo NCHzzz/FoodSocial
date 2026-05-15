@@ -99,6 +99,7 @@ jobs:
       - name: Test backend unit/API projects
         run: |
           dotnet test Backend/tests/FoodSocial.Bff.Tests/FoodSocial.Bff.Tests.csproj --configuration Release --no-restore
+          dotnet test Backend/tests/FoodSocial.ApiGateway.Tests/FoodSocial.ApiGateway.Tests.csproj --configuration Release --no-restore
           dotnet test Backend/tests/Identity/Domain.Tests/FoodSocial.Identity.Domain.Tests.csproj --configuration Release --no-restore
           dotnet test Backend/tests/Identity/Application.Tests/FoodSocial.Identity.Application.Tests.csproj --configuration Release --no-restore
           dotnet test Backend/tests/Identity/Api.Tests/FoodSocial.Identity.Api.Tests.csproj --configuration Release --no-restore
@@ -146,6 +147,9 @@ jobs:
           - image: foodsocial-bff
             context: Backend
             dockerfile: Backend/src/FoodSocial.Bff/Dockerfile
+          - image: foodsocial-api-gateway
+            context: Backend
+            dockerfile: Backend/src/FoodSocial.ApiGateway/Dockerfile
           - image: foodsocial-identity-api
             context: Backend
             dockerfile: Backend/src/Identity/Api/Dockerfile

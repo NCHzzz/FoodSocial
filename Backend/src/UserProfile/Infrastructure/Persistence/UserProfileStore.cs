@@ -1,3 +1,5 @@
+using FoodSocial.Contracts.UserProfiles;
+using FoodSocial.Messaging;
 using FoodSocial.UserProfile.Application;
 using FoodSocial.UserProfile.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +21,7 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
 
         return _dbContext.UserProfileShells
             .AsNoTracking()
-            .Where(shell => shell.IdentityId == identityId)
+            .Where(shell => shell.TenantId == UserProfileShell.DefaultTenantId && shell.IdentityId == identityId)
             .Select(shell => new UserProfileOwnership(shell.Id, shell.IdentityId, shell.Subject))
             .SingleOrDefaultAsync(cancellationToken);
     }
@@ -31,7 +33,7 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
 
         return _dbContext.UserProfileShells
             .AsNoTracking()
-            .Where(shell => shell.Subject == subject)
+            .Where(shell => shell.TenantId == UserProfileShell.DefaultTenantId && shell.Subject == subject)
             .Select(shell => new UserProfileOwnership(shell.Id, shell.IdentityId, shell.Subject))
             .SingleOrDefaultAsync(cancellationToken);
     }
@@ -73,6 +75,7 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             command.DislikedIngredients,
             command.DietaryRestrictions);
 
+        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(identityId, "ProfileUpdated"));
         await _dbContext.SaveChangesAsync(cancellationToken);
         _dbContext.ChangeTracker.Clear();
 
@@ -219,6 +222,7 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
 
         _dbContext.UserFollows.Add(new UserFollow(follower.ShellId, followed.ShellId));
         _dbContext.UserNotifications.Add(new UserNotification(followed.ShellId, followed.IdentityId, follower.IdentityId, "UserFollowed", "followed you"));
+        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(follower.IdentityId, "Followed", followed.IdentityId, "UserProfile"));
 
         try
         {
@@ -294,6 +298,7 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
         }
 
         _dbContext.UserFollows.Remove(relationship);
+        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(follower.IdentityId, "Unfollowed", followed.IdentityId, "UserProfile"));
         await _dbContext.SaveChangesAsync(cancellationToken);
         return new UserProfileMutationResult(UserProfileOperationStatus.Success, followedIdentityId, false, null);
     }
@@ -371,6 +376,7 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
         }
 
         _dbContext.Add(entityFactory(ownership.ShellId));
+        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(identityId, $"Saved{ToPascalTargetType(targetType)}", targetId, targetType));
 
         try
         {
@@ -412,6 +418,7 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
         if (entity is not null)
         {
             dbSet.Remove(entity);
+            _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(identityId, $"Unsaved{ToPascalTargetType(targetType)}", targetId, targetType));
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
@@ -432,6 +439,36 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
 
     private static UserNotificationSnapshot MapNotification(UserNotification notification) =>
         new(notification.Id, notification.RecipientIdentityId, notification.ActorIdentityId, notification.Type, notification.Message, notification.Status == UserNotificationStatus.Read, notification.CreatedAtUtc, notification.ReadAtUtc);
+
+    private static IntegrationOutboxMessage CreateOutboxMessage(Guid identityId, string changeType, Guid? targetId = null, string? targetType = null)
+    {
+        var integrationEvent = UserProfileChangedIntegrationEvent.Create(
+            identityId,
+            UserProfileShell.DefaultTenantId,
+            changeType,
+            targetId,
+            targetType);
+
+        return IntegrationOutboxMessage.Create(
+            integrationEvent,
+            integrationEvent.EventId,
+            integrationEvent.EventVersion,
+            integrationEvent.OccurredAtUtc,
+            integrationEvent.CorrelationId,
+            "userprofile.events",
+            $"userprofile.profile.{changeType.ToLowerInvariant()}.v1",
+            identityId,
+            "UserProfile");
+    }
+
+    private static string ToPascalTargetType(string targetType) =>
+        string.Equals(targetType, "post", StringComparison.Ordinal)
+            ? "Post"
+            : string.Equals(targetType, "dish", StringComparison.Ordinal)
+                ? "Dish"
+                : string.Equals(targetType, "place", StringComparison.Ordinal)
+                    ? "Place"
+                    : targetType;
 
     private async Task<UserProfileSnapshot> BuildSnapshotAsync(UserProfileShell shell, CancellationToken cancellationToken)
     {

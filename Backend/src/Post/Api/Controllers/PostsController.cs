@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FoodSocial.Post.Api.Controllers;
 
 [ApiController]
-public sealed class PostsController(PostService postService, PostMediaStorage mediaStorage, IConfiguration configuration, ILogger<PostsController> logger) : ControllerBase
+public sealed class PostsController(PostService postService, PostMediaStorage mediaStorage, PostApiMetrics metrics, IConfiguration configuration, ILogger<PostsController> logger) : ControllerBase
 {
     private static readonly IReadOnlyDictionary<string, string> AllowedImageContentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -18,6 +18,7 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
 
     private readonly PostService _postService = postService ?? throw new ArgumentNullException(nameof(postService));
     private readonly PostMediaStorage _mediaStorage = mediaStorage ?? throw new ArgumentNullException(nameof(mediaStorage));
+    private readonly PostApiMetrics _metrics = metrics ?? throw new ArgumentNullException(nameof(metrics));
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     private readonly ILogger<PostsController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -42,12 +43,14 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
     {
         if (file is null)
         {
+            _metrics.RecordMediaUploadRejected("missing_file");
             return Problem(title: "Invalid media upload", detail: "A non-empty media file is required.", statusCode: StatusCodes.Status400BadRequest);
         }
 
         var validation = await ValidateImageUploadAsync(file, cancellationToken);
         if (validation.Error is not null)
         {
+            _metrics.RecordMediaUploadRejected(validation.Reason!);
             return Problem(title: "Invalid media upload", detail: validation.Error, statusCode: StatusCodes.Status400BadRequest);
         }
 
@@ -75,10 +78,13 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
                     response.CleanupDueAtUtc),
                 cancellationToken);
 
+            _metrics.RecordMediaUploadAccepted(response.ContentType);
             return Created(response.Url, response);
         }
-        catch
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
+            _metrics.RecordMediaUploadRejected("storage_or_lifecycle_failure");
+            _logger.LogError(exception, "Post media upload {UploadId} failed after storage or lifecycle write started.", uploadId);
             await _mediaStorage.DeleteUploadAsync(uploadId);
             throw;
         }
@@ -119,12 +125,22 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
     public async Task<ActionResult<MediaCleanupResponse>> CleanupMediaUploads([FromQuery] int? limit, CancellationToken cancellationToken)
     {
         var uploads = await _postService.ClaimMediaUploadsDueForCleanupAsync(DateTimeOffset.UtcNow, limit, cancellationToken);
+        _metrics.RecordMediaCleanupClaimed(uploads.Count);
         var deletedUploadIds = new List<Guid>(uploads.Count);
         foreach (var upload in uploads)
         {
-            await _mediaStorage.DeleteUploadAsync(upload.Id);
-            await _postService.MarkMediaUploadDeletedAsync(upload.Id, cancellationToken);
-            deletedUploadIds.Add(upload.Id);
+            try
+            {
+                await _mediaStorage.DeleteUploadAsync(upload.Id);
+                await _postService.MarkMediaUploadDeletedAsync(upload.Id, cancellationToken);
+                deletedUploadIds.Add(upload.Id);
+                _metrics.RecordMediaCleanupDeleted();
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                _metrics.RecordMediaCleanupFailure();
+                _logger.LogError(exception, "Post media cleanup failed for upload {UploadId}.", upload.Id);
+            }
         }
 
         return Ok(new MediaCleanupResponse(uploads.Count, deletedUploadIds.Count, deletedUploadIds));
@@ -137,19 +153,19 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
     {
         if (file.Length <= 0 || string.IsNullOrWhiteSpace(file.FileName))
         {
-            return ValidatedImageUpload.Invalid("A non-empty media file is required.");
+            return ValidatedImageUpload.Invalid("A non-empty media file is required.", "empty_file");
         }
 
         if (file.Length > 10_000_000)
         {
-            return ValidatedImageUpload.Invalid("Media uploads must be 10 MB or smaller.");
+            return ValidatedImageUpload.Invalid("Media uploads must be 10 MB or smaller.", "file_too_large");
         }
 
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!AllowedImageContentTypes.TryGetValue(extension, out var expectedContentType)
             || !string.Equals(file.ContentType, expectedContentType, StringComparison.OrdinalIgnoreCase))
         {
-            return ValidatedImageUpload.Invalid("Only JPEG, PNG, and WebP image uploads are supported in the MVP media pipeline.");
+            return ValidatedImageUpload.Invalid("Only JPEG, PNG, and WebP image uploads are supported in the MVP media pipeline.", "unsupported_type");
         }
 
         var header = new byte[12];
@@ -157,7 +173,7 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
         var bytesRead = await stream.ReadAsync(header, cancellationToken);
         if (!HasExpectedImageSignature(extension, header.AsSpan(0, bytesRead)))
         {
-            return ValidatedImageUpload.Invalid("Uploaded media bytes do not match the declared image type.");
+            return ValidatedImageUpload.Invalid("Uploaded media bytes do not match the declared image type.", "signature_mismatch");
         }
 
         return ValidatedImageUpload.Valid(extension, expectedContentType);
@@ -188,10 +204,10 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
             _ => false
         };
 
-    private sealed record ValidatedImageUpload(string? Extension, string? ContentType, string? Error)
+    private sealed record ValidatedImageUpload(string? Extension, string? ContentType, string? Error, string? Reason)
     {
-        internal static ValidatedImageUpload Valid(string extension, string contentType) => new(extension, contentType, null);
-        internal static ValidatedImageUpload Invalid(string error) => new(null, null, error);
+        internal static ValidatedImageUpload Valid(string extension, string contentType) => new(extension, contentType, null, null);
+        internal static ValidatedImageUpload Invalid(string error, string reason = "invalid_file") => new(null, null, error, reason);
     }
 
     [HttpGet("api/posts/{postId:guid}")]
@@ -206,9 +222,9 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
 
     [HttpGet("api/posts/search")]
     [ProducesResponseType<PostSearchResponse>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PostSearchResponse>> SearchPosts([FromQuery] Guid? authorId, [FromQuery] Guid? dishId, [FromQuery] Guid? placeId, [FromQuery] string? tag, [FromQuery] string? query, [FromQuery] bool includeHidden, [FromQuery] int? limit, CancellationToken cancellationToken)
+    public async Task<ActionResult<PostSearchResponse>> SearchPosts([FromQuery(Name = "authorId")] Guid[]? authorIds, [FromQuery] Guid? dishId, [FromQuery] Guid? placeId, [FromQuery] string? tag, [FromQuery] string? query, [FromQuery] bool includeHidden, [FromQuery] int? limit, CancellationToken cancellationToken)
     {
-        var response = await _postService.SearchPostsAsync(PostSearchCriteria.Create(authorId, dishId, placeId, tag, query, includeHidden, limit), cancellationToken);
+        var response = await _postService.SearchPostsAsync(PostSearchCriteria.Create(authorIds, dishId, placeId, tag, query, includeHidden, limit), cancellationToken);
         return Ok(response);
     }
 
@@ -289,7 +305,7 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
     public async Task<ActionResult<ContentReportResponse>> ReportPost(Guid postId, [FromBody] CreateContentReportRequest request, CancellationToken cancellationToken)
     {
         var securedRequest = request with { ReporterId = PostInternalAuthorization.GetIdentityId(HttpContext) };
-        return await ReportAsync(() => _postService.ReportPostAsync(postId, securedRequest, cancellationToken));
+        return await ReportAsync("Post", () => _postService.ReportPostAsync(postId, securedRequest, cancellationToken));
     }
 
     [HttpPost("api/comments/{commentId:guid}/report")]
@@ -298,7 +314,7 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
     public async Task<ActionResult<ContentReportResponse>> ReportComment(Guid commentId, [FromBody] CreateContentReportRequest request, CancellationToken cancellationToken)
     {
         var securedRequest = request with { ReporterId = PostInternalAuthorization.GetIdentityId(HttpContext) };
-        return await ReportAsync(() => _postService.ReportCommentAsync(commentId, securedRequest, cancellationToken));
+        return await ReportAsync("Comment", () => _postService.ReportCommentAsync(commentId, securedRequest, cancellationToken));
     }
 
     [HttpGet("api/admin/reports")]
@@ -333,6 +349,11 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
     {
         var securedRequest = request with { ModeratorId = PostInternalAuthorization.GetIdentityId(HttpContext) };
         var result = await _postService.ResolveReportAsync(reportId, securedRequest, cancellationToken);
+        if (result.Status == PostOperationStatus.Resolved)
+        {
+            _metrics.RecordContentReportResolved(securedRequest.Action.Trim().ToLowerInvariant());
+        }
+
         return result.Status switch
         {
             PostOperationStatus.Resolved => Ok(result.Report),
@@ -341,9 +362,14 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
         };
     }
 
-    private async Task<ActionResult<ContentReportResponse>> ReportAsync(Func<Task<ReportMutationResult>> action)
+    private async Task<ActionResult<ContentReportResponse>> ReportAsync(string targetType, Func<Task<ReportMutationResult>> action)
     {
         var result = await action();
+        if (result.Status == PostOperationStatus.Created)
+        {
+            _metrics.RecordContentReportCreated(targetType);
+        }
+
         return result.Status switch
         {
             PostOperationStatus.Created => Created($"/api/admin/reports/{result.Report!.Id}", result.Report),

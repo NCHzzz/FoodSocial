@@ -17,7 +17,7 @@ Write the resulting plan into `docs/delivery/plans/` only when the work needs a 
 2. Identify user outcome, system outcome, and constraints
 3. Break the work into implementation slices
 4. List dependencies and risks
-5. Keep the plan aligned to current MVP boundaries
+5. Keep the plan aligned to current product scope and maturity stage
 6. Store the plan as a curated delivery artifact rather than project-state context, and do not duplicate a live OpenSpec task flow in markdown unless the repo truly needs a durable parallel record
 
 ## Output Shape

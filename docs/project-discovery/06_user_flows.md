@@ -12,7 +12,7 @@ Canonical product behavior, acceptance rules, and business rules live in `04_fun
 
 ### Flow 1: Discover what to eat
 
-Primary MVP flow.
+Primary product flow.
 
 The product should optimize this flow before place-first and recipe-first flows.
 
@@ -38,10 +38,10 @@ Canonical posting requirements and mandatory publish conditions live in `04_func
 
 ### Flow 3: Engage with food content
 
-Recommended MVP engagement actions include:
+Recommended engagement actions include:
 
 - like content
-- comment with nested replies
+- comment on posts
 - save posts, dishes, and places
 - share externally
 - repost or reshare content inside the app with an optional short caption
@@ -50,7 +50,7 @@ Recommended MVP engagement actions include:
 
 The approved direction is advanced discovery search rather than basic text-only search.
 
-#### Recommended MVP interpretation
+#### Recommended interpretation
 
 1. User enters a search query or taps suggested discovery prompts
 2. The system interprets the query in a food-centric way
@@ -61,7 +61,7 @@ Detailed search and AI-assist behavior live in `04_functional_requirements.md`.
 
 ### Flow 5: Follow a user and revisit saved content
 
-Recommended MVP flow:
+Recommended flow:
 
 1. User follows another user or saves a post, dish, or place
 2. The system stores the follow relationship or saved item under the user account
@@ -71,16 +71,16 @@ Recommended MVP flow:
 
 Follow-notification direction:
 
-- follow, like, and comment actions should generate user-visible notifications in MVP
+- follow, like, and comment actions should generate user-visible notifications
 - notifications should be accessible through a dedicated notification center
 - notification design should preserve a path toward later moderation/account notifications
-- repost or reshare actions should also generate user-visible notifications in MVP
+- repost or reshare actions should also generate user-visible notifications
 
 Following as a dedicated retrieval path is canonical product truth in `04_functional_requirements.md`.
 
 ### Flow 6: Report suspicious or low-quality content
 
-Recommended MVP flow:
+Recommended flow:
 
 1. User reports a post, user, or comment
 2. System records report reason and target
@@ -93,6 +93,17 @@ Detailed moderation behavior, report categories, and appeal direction live in `0
 ### Flow 7: Receive AI-based suggestions
 
 Detailed recommendation intent, targets, and explanation behavior live in `04_functional_requirements.md`.
+
+### Flow 8: Block or mute a user
+
+Recommended flow:
+
+1. User opens a profile or content action menu
+2. User blocks or mutes the target user
+3. The system stores the relationship state under the user account
+4. Feed, profile, notification, and interaction surfaces respect the relationship state
+
+Detailed relationship behavior lives in `04_functional_requirements.md`.
 
 ## Alternate Flows
 
@@ -131,5 +142,5 @@ These remain useful as sequence-oriented flow/state references and intentionally
 
 ### Recommendation maturity direction
 
-- MVP recommendation is medium-personalization
+- Initial recommendation is medium-personalization
 - later phases may evolve toward stronger personalization without changing the core user-facing flow model

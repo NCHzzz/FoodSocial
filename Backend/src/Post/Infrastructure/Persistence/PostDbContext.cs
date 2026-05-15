@@ -1,4 +1,5 @@
 using FoodSocial.Post.Domain;
+using FoodSocial.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -19,14 +20,18 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
     public DbSet<ContentReportRecord> ContentReports => Set<ContentReportRecord>();
     public DbSet<PostNotificationRecord> PostNotifications => Set<PostNotificationRecord>();
     public DbSet<PostMediaUploadRecord> PostMediaUploads => Set<PostMediaUploadRecord>();
+    public DbSet<IntegrationOutboxMessage> IntegrationOutboxMessages => Set<IntegrationOutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.HasPostgresExtension("pg_trgm");
+        modelBuilder.ConfigureIntegrationOutbox("post_outbox_messages");
         modelBuilder.Entity<PostRecord>(entity =>
         {
             entity.ToTable("posts");
             entity.HasKey(post => post.Id);
+            entity.Property(post => post.TenantId).IsRequired();
             entity.Property(post => post.Caption).HasMaxLength(2000).IsRequired();
             entity.Property(post => post.PriceRange).HasMaxLength(16);
             entity.Property(post => post.Tags).HasConversion(MultiValueListConverter, MultiValueListComparer);
@@ -37,11 +42,11 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
             entity.HasMany(post => post.Likes).WithOne().HasForeignKey(like => like.PostId).OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(post => post.Comments).WithOne().HasForeignKey(comment => comment.PostId).OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(post => post.Reposts).WithOne().HasForeignKey(repost => repost.PostId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(post => post.AuthorId);
-            entity.HasIndex(post => post.DishId);
-            entity.HasIndex(post => post.PlaceId);
-            entity.HasIndex(post => post.Status);
-            entity.HasIndex(post => post.CreatedAtUtc);
+            entity.HasIndex(post => new { post.TenantId, post.AuthorId, post.CreatedAtUtc });
+            entity.HasIndex(post => new { post.TenantId, post.DishId, post.CreatedAtUtc });
+            entity.HasIndex(post => new { post.TenantId, post.PlaceId, post.CreatedAtUtc });
+            entity.HasIndex(post => new { post.TenantId, post.Status, post.CreatedAtUtc });
+            entity.HasIndex(post => new { post.TenantId, post.CreatedAtUtc });
         });
         modelBuilder.Entity<PostMediaRecord>(entity =>
         {
@@ -86,14 +91,15 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
         {
             entity.ToTable("post_media_uploads");
             entity.HasKey(upload => upload.Id);
+            entity.Property(upload => upload.TenantId).IsRequired();
             entity.Property(upload => upload.Url).HasMaxLength(2048).IsRequired();
             entity.Property(upload => upload.ThumbnailUrl).HasMaxLength(2048).IsRequired();
             entity.Property(upload => upload.ContentType).HasMaxLength(100).IsRequired();
             entity.Property(upload => upload.Status).HasConversion<string>().HasMaxLength(64).IsRequired();
-            entity.HasIndex(upload => upload.OwnerId);
+            entity.HasIndex(upload => new { upload.TenantId, upload.OwnerId });
             entity.HasIndex(upload => upload.Url).IsUnique();
-            entity.HasIndex(upload => upload.Status);
-            entity.HasIndex(upload => upload.CleanupDueAtUtc);
+            entity.HasIndex(upload => new { upload.TenantId, upload.Status });
+            entity.HasIndex(upload => new { upload.TenantId, upload.CleanupDueAtUtc });
             entity.HasOne<PostRecord>().WithMany().HasForeignKey(upload => upload.AttachedPostId).OnDelete(DeleteBehavior.SetNull);
         });
     }

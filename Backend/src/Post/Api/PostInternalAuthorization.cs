@@ -1,5 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
+using FoodSocial.Contracts.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -8,7 +7,6 @@ namespace FoodSocial.Post.Api;
 internal static class PostInternalAuthorization
 {
     internal const string IdentityIdItemName = "FoodSocial.Post.IdentityId";
-    private const string InternalSecretHeaderName = "X-FoodSocial-Internal-Secret";
     private const string IdentityIdHeaderName = "X-FoodSocial-Identity-Id";
     private const string RolesHeaderName = "X-FoodSocial-Identity-Roles";
 
@@ -21,39 +19,53 @@ internal static class PostInternalAuthorization
         identityId = Guid.Empty;
         problem = null;
 
-        var configuredSecret = configuration["Post:InternalTrust:SharedSecret"];
-        if (string.IsNullOrWhiteSpace(configuredSecret))
+        var configuredServiceClientId = configuration["Post:TrustedServiceClients:BffClientId"];
+        if (string.IsNullOrWhiteSpace(configuredServiceClientId))
         {
             logger.LogError(
-                "Post internal trust is not configured. TraceId: {TraceId}",
+                "Post trusted service client configuration is missing. TraceId: {TraceId}",
                 httpContext.TraceIdentifier);
             problem = CreateProblemResult(
                 StatusCodes.Status503ServiceUnavailable,
-                "Post internal trust is not configured",
-                "Post mutation operations are disabled until internal trust is configured.",
-                "https://foodsocial/errors/post/internal-trust-not-configured");
+                "Post trusted service client is not configured",
+                "Post mutation operations are disabled until trusted service authentication is configured.",
+                "https://foodsocial/errors/post/trusted-service-client-not-configured");
             return false;
         }
 
-        var providedSecret = httpContext.Request.Headers[InternalSecretHeaderName].ToString();
-        if (!FixedTimeEquals(providedSecret, configuredSecret))
+        if (httpContext.User.Identity?.IsAuthenticated != true)
         {
             logger.LogWarning(
-                "Post internal trust secret validation failed from {RemoteIpAddress}. TraceId: {TraceId}",
+                "Post trusted service request was unauthenticated from {RemoteIpAddress}. TraceId: {TraceId}",
                 httpContext.Connection.RemoteIpAddress,
                 httpContext.TraceIdentifier);
             problem = CreateProblemResult(
                 StatusCodes.Status401Unauthorized,
-                "Post internal trust required",
-                "A trusted BFF credential is required for this operation.",
-                "https://foodsocial/errors/post/internal-trust-required");
+                "Post trusted service token required",
+                "A trusted BFF service token is required for this operation.",
+                "https://foodsocial/errors/post/trusted-service-token-required");
+            return false;
+        }
+
+        var authorizedParty = IdentityClaimReader.GetAuthorizedParty(httpContext.User);
+        if (!string.Equals(authorizedParty, configuredServiceClientId, StringComparison.Ordinal))
+        {
+            logger.LogWarning(
+                "Post trusted service client validation failed for authorized party {AuthorizedParty}. TraceId: {TraceId}",
+                authorizedParty,
+                httpContext.TraceIdentifier);
+            problem = CreateProblemResult(
+                StatusCodes.Status403Forbidden,
+                "Post trusted service client unauthorized",
+                "The service token is not authorized for Post mutations.",
+                "https://foodsocial/errors/post/trusted-service-client-unauthorized");
             return false;
         }
 
         if (!Guid.TryParse(httpContext.Request.Headers[IdentityIdHeaderName].ToString(), out identityId) || identityId == Guid.Empty)
         {
             logger.LogWarning(
-                "Post internal trust request omitted a valid caller identity. TraceId: {TraceId}",
+                "Post trusted service request omitted a valid caller identity. TraceId: {TraceId}",
                 httpContext.TraceIdentifier);
             problem = CreateProblemResult(
                 StatusCodes.Status401Unauthorized,
@@ -63,7 +75,8 @@ internal static class PostInternalAuthorization
             return false;
         }
 
-        if (requireModerator && !HasModeratorRole(httpContext.Request.Headers[RolesHeaderName].ToString()))
+        var rolesHeader = httpContext.Request.Headers[RolesHeaderName].ToString();
+        if (requireModerator && !HasModeratorRole(rolesHeader))
         {
             logger.LogWarning(
                 "Post moderation trust request for identity {IdentityId} lacked moderator role. TraceId: {TraceId}",
@@ -105,18 +118,6 @@ internal static class PostInternalAuthorization
             ContentTypes = { "application/problem+json" }
         };
 
-    private static bool FixedTimeEquals(string candidate, string expected)
-    {
-        if (string.IsNullOrEmpty(candidate) || string.IsNullOrEmpty(expected))
-        {
-            return false;
-        }
-
-        var candidateBytes = Encoding.UTF8.GetBytes(candidate);
-        var expectedBytes = Encoding.UTF8.GetBytes(expected);
-        return candidateBytes.Length == expectedBytes.Length
-            && CryptographicOperations.FixedTimeEquals(candidateBytes, expectedBytes);
-    }
 }
 
 internal sealed class PostInternalAuthorizationFilter(IConfiguration configuration, ILogger<PostInternalAuthorizationFilter> logger) : IAsyncAuthorizationFilter

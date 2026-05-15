@@ -3,6 +3,7 @@ using FoodSocial.Place.Api.Health;
 using FoodSocial.Place.Application;
 using FoodSocial.Place.Infrastructure;
 using FoodSocial.Place.Infrastructure.Persistence;
+using FoodSocial.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -18,7 +19,9 @@ builder.Services.AddScoped<PlaceManagementAuthorizationFilter>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddCheck<PlacePostgresHealthCheck>("place-postgres");
+    .AddCheck<PlacePostgresHealthCheck>("place-postgres")
+    .AddCheck<RabbitMqHealthCheck>("place-rabbitmq");
+builder.Services.AddHostedService<IntegrationOutboxPublisherBackgroundService<PlaceDbContext>>();
 
 var app = builder.Build();
 

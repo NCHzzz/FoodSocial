@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FoodSocial.ApiGateway\FoodSocial.ApiGateway.csproj" />
     <ProjectReference Include="..\FoodSocial.Bff\FoodSocial.Bff.csproj" />
     <ProjectReference Include="..\Identity\Api\FoodSocial.Identity.Api.csproj" />
     <ProjectReference Include="..\UserProfile\Api\FoodSocial.UserProfile.Api.csproj" />

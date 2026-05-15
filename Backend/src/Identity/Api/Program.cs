@@ -122,8 +122,8 @@ static string ResolveKeycloakAuthority(IConfiguration configuration, string real
         return configuredAuthority;
     }
 
-    var discoveredAuthority = configuration["Services:keycloak:https:0"]
-        ?? configuration["Services:keycloak:http:0"]
+    var discoveredAuthority = configuration["Services:keycloak:http:0"]
+        ?? configuration["Services:keycloak:https:0"]
         ?? throw new InvalidOperationException(
             "Keycloak authority is not configured. Set Keycloak:Authority or provide an Aspire service reference for 'keycloak'.");
 

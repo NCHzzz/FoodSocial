@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/FoodSocial.AppHost/FoodSocial.AppHost.csproj" />
+    <Project Path="src/FoodSocial.ApiGateway/FoodSocial.ApiGateway.csproj" />
     <Project Path="src/FoodSocial.Bff/FoodSocial.Bff.csproj" />
     <Project Path="src/FoodSocial.Contracts/FoodSocial.Contracts.csproj" />
     <Project Path="src/FoodSocial.Messaging/FoodSocial.Messaging.csproj" />
@@ -77,6 +78,9 @@
   </Folder>
   <Folder Name="/tests/FoodSocial.AppHost.Tests/">
     <Project Path="tests/FoodSocial.AppHost.Tests/FoodSocial.AppHost.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/FoodSocial.ApiGateway.Tests/">
+    <Project Path="tests/FoodSocial.ApiGateway.Tests/FoodSocial.ApiGateway.Tests.csproj" />
   </Folder>
   <Folder Name="/src/Post/" />
   <Folder Name="/src/Post/Api/">

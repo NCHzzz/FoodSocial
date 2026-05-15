@@ -1,18 +1,15 @@
-using System.Security.Cryptography;
-using System.Text;
 using FoodSocial.Contracts.Identity;
 using Microsoft.AspNetCore.Authorization;
 
 namespace FoodSocial.Identity.Api.Authorization;
 
 /// <summary>
-/// Evaluates explicit service-to-service trust credentials.
+/// Evaluates service-to-service Keycloak client-credentials JWT callers.
 /// </summary>
-public sealed class TrustedInternalServiceAuthorizationHandler(IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
+public sealed class TrustedInternalServiceAuthorizationHandler(IConfiguration configuration)
     : AuthorizationHandler<TrustedInternalServiceRequirement>
 {
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-    private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
 
     /// <inheritdoc />
     protected override Task HandleRequirementAsync(
@@ -22,53 +19,19 @@ public sealed class TrustedInternalServiceAuthorizationHandler(IConfiguration co
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(requirement);
 
-        var httpContext = _httpContextAccessor.HttpContext;
-
-        if (httpContext is null)
-        {
-            return Task.CompletedTask;
-        }
-
-        var configuredServiceId = _configuration["Identity:InternalTrust:ServiceId"];
-        var configuredSecret = _configuration["Identity:InternalTrust:SharedSecret"];
-
-        if (string.IsNullOrWhiteSpace(configuredServiceId)
-            || string.IsNullOrWhiteSpace(configuredSecret))
-        {
-            return Task.CompletedTask;
-        }
-
-        var callerServiceId = httpContext.Request.Headers["X-Internal-Service-Id"].ToString();
-        var callerSecret = httpContext.Request.Headers["X-Internal-Service-Secret"].ToString();
-
         if (context.User.Identity?.IsAuthenticated != true)
         {
             return Task.CompletedTask;
         }
 
+        var allowedClientId = _configuration["Identity:TrustedServiceClients:BffClientId"]
+            ?? throw new InvalidOperationException("Identity trusted BFF service client id is not configured.");
         var authorizedParty = IdentityClaimReader.GetAuthorizedParty(context.User);
-
-        if (IsExactSecretMatch(callerServiceId, configuredServiceId)
-            && IsExactSecretMatch(callerSecret, configuredSecret)
-            && string.Equals(authorizedParty, configuredServiceId, StringComparison.Ordinal))
+        if (string.Equals(authorizedParty, allowedClientId, StringComparison.Ordinal))
         {
             context.Succeed(requirement);
         }
 
         return Task.CompletedTask;
-    }
-
-    private static bool IsExactSecretMatch(string candidate, string expected)
-    {
-        if (string.IsNullOrEmpty(candidate) || string.IsNullOrEmpty(expected))
-        {
-            return false;
-        }
-
-        var candidateBytes = Encoding.UTF8.GetBytes(candidate);
-        var expectedBytes = Encoding.UTF8.GetBytes(expected);
-
-        return candidateBytes.Length == expectedBytes.Length
-            && CryptographicOperations.FixedTimeEquals(candidateBytes, expectedBytes);
     }
 }

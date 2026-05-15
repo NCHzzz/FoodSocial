@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FoodSocial.ServiceDefaults\FoodSocial.ServiceDefaults.csproj" />
     <ProjectReference Include="..\FoodSocial.Contracts\FoodSocial.Contracts.csproj" />
+    <ProjectReference Include="..\FoodSocial.ServiceDefaults\FoodSocial.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

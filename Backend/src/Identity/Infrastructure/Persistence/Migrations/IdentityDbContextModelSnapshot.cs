@@ -41,9 +41,12 @@ namespace FoodSocial.Identity.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Subject", "Role")
+                    b.HasIndex("TenantId", "Subject", "Role")
                         .IsUnique();
 
                     b.ToTable("identity_role_assignments", (string)null);
@@ -76,9 +79,12 @@ namespace FoodSocial.Identity.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Subject")
+                    b.HasIndex("TenantId", "Subject")
                         .IsUnique();
 
                     b.ToTable("identity_users", (string)null);

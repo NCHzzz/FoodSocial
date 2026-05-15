@@ -52,6 +52,12 @@ jobs:
             --set ingress.hosts[0].host=foodsocial.example.com \
             --set ingress.hosts[0].paths[0].path=/ \
             --set ingress.hosts[0].paths[0].serviceName=foodsocial-web \
+            --set ingress.hosts[0].paths[1].path=/api \
+            --set ingress.hosts[0].paths[1].serviceName=foodsocial-api-gateway \
+            --set ingress.hosts[0].paths[2].path=/signin-oidc \
+            --set ingress.hosts[0].paths[2].serviceName=foodsocial-api-gateway \
+            --set ingress.hosts[0].paths[3].path=/signout-callback-oidc \
+            --set ingress.hosts[0].paths[3].serviceName=foodsocial-api-gateway \
             --set ingress.tls[0].hosts[0]=foodsocial.example.com \
             --set ingress.tls[0].secretName=foodsocial-tls >/dev/null
 
@@ -78,6 +84,7 @@ jobs:
       - name: Verify rollout
         shell: bash
         run: |
+          kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-api-gateway --timeout=5m
           kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-bff --timeout=5m
           kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-identity-api --timeout=5m
           kubectl -n "${{ inputs.namespace }}" rollout status deployment/foodsocial-userprofile-api --timeout=5m

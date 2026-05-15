@@ -65,7 +65,7 @@ public sealed class EnsureIdentityEndpointTests
     }
 
     [Fact]
-    public async Task InternalTrustRoute_MissingTrustCredential_IsRejected()
+    public async Task ServiceTrustRoute_MissingServiceClientToken_IsRejected()
     {
         await using var factory = new IdentityApiFactory();
         using var client = factory.CreateClient();
@@ -248,7 +248,7 @@ public sealed class EnsureIdentityEndpointTests
     }
 
     [Fact]
-    public async Task EnsureIdentity_InternalRoute_BearerCallerWithoutTrustedServiceHeaders_IsForbidden()
+    public async Task EnsureIdentity_InternalRoute_BearerCallerWithoutTrustedServiceClient_IsForbidden()
     {
         await using var factory = new IdentityApiFactory();
         using var client = factory.CreateClient();
@@ -270,77 +270,77 @@ public sealed class EnsureIdentityEndpointTests
     }
 
     [Fact]
-    public async Task EnsureIdentity_InternalRoute_TrustedCaller_SucceedsForAuthenticatedUser()
+    public async Task EnsureIdentity_InternalRoute_TrustedServiceClient_SucceedsForBrowserUserClaims()
     {
         await using var factory = new IdentityApiFactory();
         using var client = factory.CreateClient();
 
-        client.DefaultRequestHeaders.Add("X-Test-Sub", "trusted-bff-subject");
-        client.DefaultRequestHeaders.Add("X-Test-PreferredUsername", "trusted-bff-user");
-        client.DefaultRequestHeaders.Add("X-Test-Email", "trusted-bff@example.com");
-        client.DefaultRequestHeaders.Add("X-Test-Azp", "foodsocial-bff");
-        client.DefaultRequestHeaders.Add("X-Internal-Service-Id", "foodsocial-bff");
-        client.DefaultRequestHeaders.Add("X-Internal-Service-Secret", "foodsocial-bff-test-shared-secret");
-
-        using var response = await client.PostAsJsonAsync("/identity/current-user/internal/ensure", new { });
-        var responseBody = await response.Content.ReadAsStringAsync();
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK, responseBody);
-
-        var payload = JsonNode.Parse(responseBody) as JsonObject;
-        payload.Should().NotBeNull();
-        payload!["subject"]!.GetValue<string>().Should().Be("trusted-bff-subject");
-        payload["preferredUsername"]!.GetValue<string>().Should().Be("trusted-bff-user");
-        payload["email"]!.GetValue<string>().Should().Be("trusted-bff@example.com");
-    }
-
-    [Fact]
-    public async Task EnsureIdentity_InternalRoute_TrustedCaller_CannotTamperSubjectOrProfileClaims()
-    {
-        await using var factory = new IdentityApiFactory();
-        using var client = factory.CreateClient();
-
-        client.DefaultRequestHeaders.Add("X-Test-Sub", "authenticated-bff-subject");
-        client.DefaultRequestHeaders.Add("X-Test-PreferredUsername", "authenticated-bff-user");
-        client.DefaultRequestHeaders.Add("X-Test-Email", "authenticated-bff@example.com");
-        client.DefaultRequestHeaders.Add("X-Test-Azp", "foodsocial-bff");
-        client.DefaultRequestHeaders.Add("X-Internal-Service-Id", "foodsocial-bff");
-        client.DefaultRequestHeaders.Add("X-Internal-Service-Secret", "foodsocial-bff-test-shared-secret");
+        client.DefaultRequestHeaders.Add("X-Test-Sub", IdentityApiFactory.TestBffServiceClientId);
+        client.DefaultRequestHeaders.Add("X-Test-Azp", IdentityApiFactory.TestBffServiceClientId);
 
         using var response = await client.PostAsJsonAsync(
             "/identity/current-user/internal/ensure",
             new
             {
-                subject = "tampered-subject",
-                preferredUsername = "tampered-user",
-                email = "tampered@example.com"
+                subject = "browser-user-subject",
+                preferredUsername = "browser-user",
+                email = "browser@example.com"
             });
-
         var responseBody = await response.Content.ReadAsStringAsync();
 
         response.StatusCode.Should().Be(HttpStatusCode.OK, responseBody);
 
         var payload = JsonNode.Parse(responseBody) as JsonObject;
         payload.Should().NotBeNull();
-        payload!["subject"]!.GetValue<string>().Should().Be("authenticated-bff-subject");
-        payload["preferredUsername"]!.GetValue<string>().Should().Be("authenticated-bff-user");
-        payload["email"]!.GetValue<string>().Should().Be("authenticated-bff@example.com");
+        payload!["subject"]!.GetValue<string>().Should().Be("browser-user-subject");
+        payload["preferredUsername"]!.GetValue<string>().Should().Be("browser-user");
+        payload["email"]!.GetValue<string>().Should().Be("browser@example.com");
     }
 
     [Fact]
-    public async Task EnsureIdentity_InternalRoute_TrustedHeadersWithoutMatchingAuthorizedParty_AreForbidden()
+    public async Task EnsureIdentity_InternalRoute_TrustedServiceClientMissingBrowserSubject_ReturnsBadRequest()
     {
         await using var factory = new IdentityApiFactory();
         using var client = factory.CreateClient();
 
-        client.DefaultRequestHeaders.Add("X-Test-Sub", "trusted-bff-subject");
-        client.DefaultRequestHeaders.Add("X-Test-PreferredUsername", "trusted-bff-user");
-        client.DefaultRequestHeaders.Add("X-Test-Email", "trusted-bff@example.com");
-        client.DefaultRequestHeaders.Add("X-Test-Azp", "foodsocial-cli");
-        client.DefaultRequestHeaders.Add("X-Internal-Service-Id", "foodsocial-bff");
-        client.DefaultRequestHeaders.Add("X-Internal-Service-Secret", "foodsocial-bff-test-shared-secret");
+        client.DefaultRequestHeaders.Add("X-Test-Sub", IdentityApiFactory.TestBffServiceClientId);
+        client.DefaultRequestHeaders.Add("X-Test-Azp", IdentityApiFactory.TestBffServiceClientId);
 
-        using var response = await client.PostAsJsonAsync("/identity/current-user/internal/ensure", new { });
+        using var response = await client.PostAsJsonAsync(
+            "/identity/current-user/internal/ensure",
+            new
+            {
+                subject = "   ",
+                preferredUsername = "browser-user",
+                email = "browser@example.com"
+            });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        var payload = await response.Content.ReadFromJsonAsync<JsonObject>();
+        payload.Should().NotBeNull();
+        payload!["title"]!.GetValue<string>().Should().Be("Missing subject claim");
+        payload["status"]!.GetValue<int>().Should().Be(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task EnsureIdentity_InternalRoute_ServiceClientWithoutMatchingAuthorizedParty_IsForbidden()
+    {
+        await using var factory = new IdentityApiFactory();
+        using var client = factory.CreateClient();
+
+        client.DefaultRequestHeaders.Add("X-Test-Sub", "foodsocial-cli");
+        client.DefaultRequestHeaders.Add("X-Test-Azp", "foodsocial-cli");
+
+        using var response = await client.PostAsJsonAsync(
+            "/identity/current-user/internal/ensure",
+            new
+            {
+                subject = "browser-user-subject",
+                preferredUsername = "browser-user",
+                email = "browser@example.com"
+            });
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }

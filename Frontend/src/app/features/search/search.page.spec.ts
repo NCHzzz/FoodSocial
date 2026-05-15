@@ -89,8 +89,8 @@ describe('SearchPage', () => {
     limit: 12,
   };
 
-  let dishApiMock: { searchDishes: ReturnType<typeof vi.fn> };
-  let placeApiMock: { searchPlaces: ReturnType<typeof vi.fn> };
+  let dishApiMock: { searchDishes: ReturnType<typeof vi.fn>; getDish: ReturnType<typeof vi.fn> };
+  let placeApiMock: { searchPlaces: ReturnType<typeof vi.fn>; getPlace: ReturnType<typeof vi.fn> };
   let postApiMock: { searchPosts: ReturnType<typeof vi.fn>; likePost: ReturnType<typeof vi.fn> };
   let userProfileApiMock: { savePost: ReturnType<typeof vi.fn>; saveDish: ReturnType<typeof vi.fn>; savePlace: ReturnType<typeof vi.fn> };
   let searchAssistApiMock: { assist: ReturnType<typeof vi.fn> };
@@ -98,9 +98,28 @@ describe('SearchPage', () => {
   beforeEach(async () => {
     dishApiMock = {
       searchDishes: vi.fn((_request: DishSearchRequest) => of(dishSearchResponse)),
+      getDish: vi.fn((_dishId: string) => of({
+        ...dishItem,
+        normalizedName: 'pho bo',
+        description: null,
+        ingredients: [],
+        dietaryFlags: [],
+        createdAtUtc: '2026-05-04T00:00:00Z',
+        updatedAtUtc: '2026-05-04T00:00:00Z',
+        deprecatedAtUtc: null,
+      })),
     };
     placeApiMock = {
       searchPlaces: vi.fn((_request: PlaceSearchRequest) => of(placeSearchResponse)),
+      getPlace: vi.fn((_placeId: string) => of({
+        ...placeItem,
+        normalizedName: 'quan an ngon',
+        description: null,
+        latitude: null,
+        longitude: null,
+        createdAtUtc: '2026-05-04T00:00:00Z',
+        updatedAtUtc: '2026-05-04T00:00:00Z',
+      })),
     };
     postApiMock = {
       searchPosts: vi.fn((_request: PostSearchRequest) => of(postSearchResponse)),

@@ -1,5 +1,6 @@
 using FoodSocial.Post.Application;
 using FoodSocial.Post.Infrastructure.Persistence;
+using FoodSocial.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,8 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("postdb") ?? throw new InvalidOperationException("Connection string 'postdb' is not configured.");
         services.AddDbContext<PostDbContext>(options => options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable("__PostMigrationsHistory")));
         services.AddScoped<IPostStore, PostStore>();
+        services.AddScoped<IntegrationOutboxDrainWorker<PostDbContext>>();
+        AddRabbitMqPublisher(services, configuration, "Post");
         services.AddScoped<IPostCatalogReferenceValidator, HttpPostCatalogReferenceValidator>();
         services.AddHttpClient<DishCatalogHttpClient>((serviceProvider, client) =>
         {
@@ -42,6 +45,22 @@ public static class DependencyInjection
                 : new HttpClientHandler();
         });
         return services;
+    }
+
+    private static void AddRabbitMqPublisher(IServiceCollection services, IConfiguration configuration, string serviceName)
+    {
+        var rabbitMqConnectionString = configuration.GetConnectionString("rabbitmq")
+            ?? configuration["ConnectionStrings:rabbitmq"]
+            ?? configuration["RabbitMQ:ConnectionString"];
+
+        if (!string.IsNullOrWhiteSpace(rabbitMqConnectionString))
+        {
+            services.AddSingleton<IIntegrationEventPublisher>(_ => new RabbitMqIntegrationEventPublisher(rabbitMqConnectionString));
+        }
+        else
+        {
+            services.AddSingleton<IIntegrationEventPublisher>(_ => new MissingRabbitMqConfigurationIntegrationEventPublisher(serviceName));
+        }
     }
 
     private static bool ShouldAllowInsecureLocalBackchannel(Uri serviceBaseAddress) =>

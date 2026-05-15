@@ -36,6 +36,12 @@ export class PostApi {
     });
   }
 
+  getFollowingFeed(limit: number | null = null): Observable<DiscoverFeedResponse> {
+    return this.httpClient.get<DiscoverFeedResponse>('/api/feed/following', {
+      params: this.buildLimitParams(limit),
+    });
+  }
+
   searchPosts(request: PostSearchRequest): Observable<PostSearchResponse> {
     return this.httpClient.get<PostSearchResponse>(`${PostApi.postsEndpoint}/search`, {
       params: this.buildSearchParams(request),

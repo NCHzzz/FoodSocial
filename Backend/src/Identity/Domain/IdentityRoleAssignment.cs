@@ -5,10 +5,17 @@ namespace FoodSocial.Identity.Domain;
 /// </summary>
 public sealed class IdentityRoleAssignment
 {
+    public static readonly Guid DefaultTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
     /// <summary>
     /// Gets the assignment identifier.
     /// </summary>
     public Guid Id { get; private set; } = Guid.NewGuid();
+
+    /// <summary>
+    /// Gets the tenant isolation identifier.
+    /// </summary>
+    public Guid TenantId { get; private set; } = DefaultTenantId;
 
     /// <summary>
     /// Gets the subject that owns this role assignment.

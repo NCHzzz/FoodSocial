@@ -24,4 +24,4 @@ description: Use this skill when the task is unclear, touches multiple areas, or
 
 - minimal ambiguity
 - fewer incorrect assumptions
-- better alignment to the approved MVP shape
+- better alignment to the approved launch shape

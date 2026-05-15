@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { forkJoin, map, switchMap } from 'rxjs';
 
 import { AuthSessionService } from '../../core/auth/auth-session.service';
 import { BROWSER_WINDOW } from '../../core/auth/browser-window.token';
@@ -10,7 +9,7 @@ import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-pro
 import { UiButtonDirective } from '../../shared/ui/button/ui-button.directive';
 import { UiPageScaffoldComponent } from '../../shared/ui/page-scaffold/ui-page-scaffold.component';
 import { UiSurfaceDirective } from '../../shared/ui/surface/ui-surface.directive';
-import { PostCardComponent } from '../posts/post-card.component';
+import { PostCardComponent, PostReportSubmission } from '../posts/post-card.component';
 
 type FollowingFeedStatus = 'loading' | 'loaded' | 'empty' | 'error';
 type FollowingActionStatus = 'idle' | 'pending' | 'success' | 'error';
@@ -19,10 +18,10 @@ type FollowingActionStatus = 'idle' | 'pending' | 'success' | 'error';
   selector: 'app-following-page',
   imports: [RouterLink, UiButtonDirective, UiPageScaffoldComponent, UiSurfaceDirective, PostCardComponent],
   template: `
-    <app-ui-page-scaffold
-      eyebrow="Authenticated trusted feed"
-      title="Following"
-      description="Keep up with people you trust. This feed derives from the current follow graph and Post search until a dedicated Feed service is justified."
+      <app-ui-page-scaffold
+        eyebrow="Authenticated trusted feed"
+        title="Following"
+        description="Keep up with people you trust. This feed now uses the BFF-composed following feed until a dedicated Feed service is justified."
     >
       <section class="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div appUiSurface="soft" appUiSurfacePadding="comfortable">
@@ -40,9 +39,9 @@ type FollowingActionStatus = 'idle' | 'pending' | 'success' | 'error';
         <aside appUiSurface="default" appUiSurfacePadding="comfortable">
           <p class="text-sm font-semibold text-[#141413]">Feed source</p>
           <ul class="mt-3 space-y-3 text-sm leading-6 text-[#5e5d59]">
-            <li>Reads your following list from UserProfile.</li>
-            <li>Loads bounded public posts for followed authors.</li>
-            <li>Sorts client-side by newest post while a dedicated Feed service is deferred.</li>
+            <li>Reads the BFF-composed following feed.</li>
+            <li>Keeps follow-graph fan-out behind the edge boundary.</li>
+            <li>Uses a bounded response while a dedicated Feed service is deferred.</li>
           </ul>
         </aside>
       </section>
@@ -65,7 +64,7 @@ type FollowingActionStatus = 'idle' | 'pending' | 'success' | 'error';
         @if (status() === 'error') {
           <div appUiSurface="soft" appUiSurfacePadding="comfortable">
             <p class="text-sm font-semibold text-[#141413]">Following feed could not load</p>
-            <p class="mt-2 text-sm text-[#5e5d59]">Your session, follow graph, or Post search path is temporarily unavailable.</p>
+            <p class="mt-2 text-sm text-[#5e5d59]">Your session or BFF following feed path is temporarily unavailable.</p>
             <button class="mt-4" type="button" appUiButton="secondary" (click)="loadFollowingFeed()">Retry</button>
           </div>
         }
@@ -123,18 +122,10 @@ export class FollowingPage {
     }
 
     this.status.set('loading');
-    this.userProfileApi.getFollowing(identityId).pipe(
-      switchMap((following) => {
-        if (following.items.length === 0) return [[]];
-        return forkJoin(following.items.map((profile) => this.postApi.searchPosts({ authorId: profile.identityId, limit: 12 }))).pipe(
-          map((responses) => responses.flatMap((response) => response.items)),
-        );
-      }),
-      map((posts) => posts.sort((left, right) => Date.parse(right.createdAtUtc) - Date.parse(left.createdAtUtc)).slice(0, 24)),
-    ).subscribe({
-      next: (posts) => {
-        this.posts.set(posts);
-        this.status.set(posts.length > 0 ? 'loaded' : 'empty');
+    this.postApi.getFollowingFeed(24).subscribe({
+      next: (response) => {
+        this.posts.set(response.items);
+        this.status.set(response.items.length > 0 ? 'loaded' : 'empty');
       },
       error: () => {
         this.posts.set([]);
@@ -185,15 +176,19 @@ export class FollowingPage {
     });
   }
 
-  protected sharePost(postId: string): void {
+  protected async sharePost(postId: string): Promise<void> {
     const url = `${this.browserWindow.location.origin}/posts/${encodeURIComponent(postId)}`;
-    void this.browserWindow.navigator.clipboard?.writeText(url);
-    this.showActionSuccess('Post link copied.');
+    try {
+      await this.browserWindow.navigator.clipboard?.writeText(url);
+      this.showActionSuccess('Post link copied.');
+    } catch {
+      this.showActionError('Share failed. Copy the URL from the address bar.');
+    }
   }
 
-  protected reportPost(postId: string): void {
+  protected reportPost(report: PostReportSubmission): void {
     this.actionStatus.set('pending');
-    this.postApi.reportPost(postId, 'spam_or_low_quality', 'Reported from Following feed.').subscribe({
+    this.postApi.reportPost(report.postId, report.reason, report.description).subscribe({
       next: () => this.showActionSuccess('Report submitted for manual review.'),
       error: () => this.showActionError('Report failed. Retry when moderation intake is available.'),
     });

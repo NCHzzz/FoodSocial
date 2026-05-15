@@ -6,11 +6,11 @@
 
 ## Risks
 
-### R-01 MVP scope is broad
+### R-01 Product scope is broad
 
-The current MVP includes social posting, feed, search, social graph, AI recommendation, and moderation, which may create delivery risk.
+The product includes social posting, feed, search, social graph, AI recommendation, moderation, media lifecycle, and operations, which may create delivery risk.
 
-This risk is amplified because the current plan is a solo build with a 2-month target timeline.
+This risk is amplified because the current plan is a solo build. Maturity staging in `16_maturity_roadmap.md` should prevent all mature-social capabilities from being treated as same-phase work.
 
 ### R-02 Product differentiation may be too abstract if trust/authenticity is not operationalized
 
@@ -24,20 +24,20 @@ This risk is partially reduced by the clarified content strategy: hybrid model, 
 
 ### R-04 AI recommendation may be underdefined
 
-Recommendation depth, data inputs, and MVP expectations are not yet fully defined.
+Recommendation depth, data inputs, and launch expectations are not yet fully defined.
 
-### R-05 Feed ranking can become overcomplicated for a solo MVP
+### R-05 Feed ranking can become overcomplicated too early
 
-The chosen direction includes a separate Discover feed with hybrid ranking. This is good for product quality, but the MVP implementation should stay lightweight.
+The chosen direction includes separate Following and Discover feeds with hybrid ranking. This is good for product quality, but implementation should evolve through query composition, read models, then dedicated timeline infrastructure only when justified.
 
-### R-06 AI-native ambition may exceed solo MVP capacity if interpreted too literally
+### R-06 AI-native ambition may exceed solo capacity if interpreted too literally
 
 There is a material difference between:
 
 - an AI-native user experience, and
-- a deeply AI-heavy infrastructure from day one
+- deeply AI-heavy infrastructure before the product has enough usage signals
 
-This distinction must be made explicit to keep the 2-month plan realistic.
+This distinction must be made explicit to keep staged delivery realistic.
 
 ### R-07 "AI agents should work well with it" is still ambiguous
 
@@ -52,20 +52,20 @@ These options have very different architectural costs.
 
 This has now been partially clarified:
 
-- MVP priority: A + B
+- Launch priority: A + B
 - Later phase: C
 
-### R-08 First-class place modeling increases MVP delivery complexity
+### R-08 First-class place modeling increases launch delivery complexity
 
-Making `Place` a canonical entity in MVP improves long-term discovery and agent compatibility, but it increases implementation scope for post creation, search, and data quality handling.
+Making `Place` a canonical entity at launch improves long-term discovery and agent compatibility, but it increases implementation scope for post creation, search, and data quality handling.
 
-### R-09 First-class dish modeling further increases MVP delivery complexity
+### R-09 First-class dish modeling further increases launch delivery complexity
 
-Making `Dish` a canonical entity in MVP strongly supports the Food-first AI-native direction, but it adds complexity in canonical naming, duplicate handling, matching, and post creation UX.
+Making `Dish` a canonical entity at launch strongly supports the Food-first AI-native direction, but it adds complexity in canonical naming, duplicate handling, matching, and post creation UX.
 
 ### R-10 Microservices plus PostgreSQL-per-service increases integration overhead
 
-Service-owned databases improve boundary clarity, but they make feed assembly, reporting, search projection, and consistency management harder for a solo builder.
+Service-owned databases improve boundary clarity, but they make feed assembly, reporting, search projection, moderation views, notification creation, and consistency management harder for a solo builder.
 
 ### R-11 Multiple AI providers increase behavior and cost complexity
 
@@ -75,7 +75,7 @@ Provider flexibility improves resilience and future routing options, but it intr
 
 Using Python for AI-oriented services is a strong technical fit, but it adds another runtime, packaging flow, observability path, and contract boundary to the platform.
 
-### R-12 Self-hosted Keycloak increases operational burden for MVP
+### R-12 Self-hosted Keycloak increases launch operational burden
 
 Choosing self-hosted Keycloak improves control and reduces vendor dependency, but it adds deployment, upgrade, backup, and operational complexity for a solo builder.
 
@@ -83,13 +83,13 @@ Choosing self-hosted Keycloak improves control and reduces vendor dependency, bu
 
 The gateway/BFF adds another deployable component, but it is justified because it reduces Angular coupling to microservice topology and centralizes aggregation and auth-aware edge behavior.
 
-### R-14 Kubernetes deployment adds significant operational complexity for MVP
+### R-14 Kubernetes deployment adds significant launch operational complexity
 
 Kubernetes fits a microservices direction structurally, but it increases infrastructure, deployment, observability, and troubleshooting overhead for a solo builder on a 2-month timeline.
 
 ### R-15 Multi-tenant architecture increases isolation and operational complexity
 
-Choosing multi-tenant architecture adds complexity to identity, authorization, data partitioning, moderation, analytics, and service contracts for MVP.
+Choosing multi-tenant architecture adds complexity to identity, authorization, data partitioning, moderation, analytics, and service contracts for launch.
 
 ### R-16 Broad external agent actions increase security and audit complexity
 
@@ -101,38 +101,44 @@ Media-heavy user-generated products require more than upload support. Storage cl
 
 ### R-18 Async messaging correctness can fail silently without explicit reliability rules
 
-RabbitMQ is a practical MVP choice, but event publication, retries, dead-letter behavior, and replay expectations must stay explicit or the architecture may look simpler on paper than it is in production.
+RabbitMQ is a practical launch choice, but event publication, retries, dead-letter behavior, and replay expectations must stay explicit or the architecture may look simpler on paper than it is in production.
 
-Current state note:
-
-- local RabbitMQ bootstrap is now in place through Aspire AppHost
-- reliability conventions are still documentation-level and remain an active implementation risk until producer/consumer workflows exist
+Current implementation state for RabbitMQ and outbox-backed publishing belongs in `docs/context/current_build_status.md`.
 
 ### R-19 Geo-discovery expectations may exceed the current search definition
 
-The product promise includes dish, place, and location-aware discovery. If nearby relevance is important, the MVP search model must still define practical geo-query behavior even without a dedicated geo/search platform.
+The product promise includes dish, place, and location-aware discovery. If nearby relevance is important, the launch search model must still define practical geo-query behavior even without a dedicated geo/search platform.
 
-### R-20 Beta operations may remain underdefined
+### R-20 Product operations may remain underdefined
 
-The current docs acknowledge monitoring, backups, and graceful degradation, but a limited beta still needs a clearer minimum operator model for outages, queue backlog, degraded AI behavior, and restore confidence.
+The current docs acknowledge monitoring, backups, and graceful degradation, but the product still needs a clear operator model for outages, queue backlog, degraded AI behavior, moderation backlog, media failure, restore confidence, and public-launch promotion.
+
+### R-21 Social safety controls can be inconsistently enforced
+
+Block, mute, visibility, hidden content, notifications, and feed ranking affect multiple surfaces. If these controls are implemented as isolated endpoint behavior, users may still see unsafe or unwanted interactions.
+
+### R-22 Analytics can become invasive or unreliable
+
+FoodSocial needs product events for activation, retention, search, recommendation, moderation, and media learning. If event capture blocks user paths, leaks unnecessary PII, or lacks stable ownership, reporting will either hurt reliability or become untrustworthy.
 
 ## Unknowns
 
-- timeline
 - budget
-- exact meaning of "AI-native" in MVP scope
-- exact production hardening plan after limited beta stage
+- public-launch user cap and operating model
+- exact meaning of "AI-native" in product scope
+- exact production hardening plan after constrained beta
 - exact threshold for introducing dedicated cache, vector, or heavier search infrastructure
 
 ## Current Clarifications
 
 - dish identity requirement is canonical in `04_functional_requirements.md`
 - saved-content scope is canonical in `04_functional_requirements.md`
-- MVP agent-facing exposure direction is canonical in `10_architecture.md`
+- launch agent-facing exposure direction is canonical in `10_architecture.md`
+- maturity staging is canonical in `16_maturity_roadmap.md`
 
 ## Release Readiness Direction
 
-- moving from limited beta to broader public release should be a multi-factor decision
+- moving from constrained beta to broader public release should be a multi-factor decision
 - the most important factors are active/retained real users and technical stability
 
 ## Agent Capability Direction
@@ -149,10 +155,7 @@ Keep this section focused on unresolved assumptions only.
 
 Canonical approved directions for architecture, moderation, search, launch market, and feed behavior already live in discovery source-of-truth docs and should not be restated here in full.
 
-Current state note:
-
-- local Redis bootstrap is now in place through Aspire AppHost
-- Redis is still intentionally unused in product code until a measured cache or short-lived-state requirement appears
+Current implementation state for Redis belongs in `docs/context/current_build_status.md`.
 
 ## Decision Log Candidates
 
@@ -165,4 +168,6 @@ Current state note:
 - media storage and delivery strategy
 - event reliability strategy
 - deletion and retention strategy
-- AI-native implementation depth for MVP
+- AI-native implementation depth
+- block/mute and visibility policy
+- service extraction criteria for feed, search/recommendation, notification, moderation, media, and analytics

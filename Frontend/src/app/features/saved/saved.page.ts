@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { AuthSessionService } from '../../core/auth/auth-session.service';
+import { CatalogLabelService } from '../../core/catalog/catalog-label.service';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
 import { UserSavedItemsResponse } from '../../core/user-profiles/user-profile.models';
 import { UiButtonDirective } from '../../shared/ui/button/ui-button.directive';
@@ -15,6 +16,7 @@ interface SavedItemView {
   readonly label: string;
   readonly savedAtUtc: string;
   readonly route: readonly unknown[] | null;
+  readonly queryParams: Record<string, string> | null;
 }
 
 @Component({
@@ -93,7 +95,7 @@ interface SavedItemView {
                     <p class="break-all text-sm font-semibold text-[#141413]" [textContent]="post.label"></p>
                     <p class="mt-1 text-xs font-medium text-[#87867f]">Saved {{ formatDate(post.savedAtUtc) }}</p>
                     @if (post.route) {
-                      <a class="mt-3 inline-flex text-sm font-semibold text-[#c96442] hover:text-[#4d4c48]" [routerLink]="post.route">Open post</a>
+                      <a class="mt-3 inline-flex text-sm font-semibold text-[#c96442] hover:text-[#4d4c48]" [routerLink]="post.route" [queryParams]="post.queryParams">Open post</a>
                     }
                   </article>
                 }
@@ -108,7 +110,7 @@ interface SavedItemView {
                   <article class="rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3">
                     <p class="break-all text-sm font-semibold text-[#141413]" [textContent]="dish.label"></p>
                     <p class="mt-1 text-xs font-medium text-[#87867f]">Saved {{ formatDate(dish.savedAtUtc) }}</p>
-                    <a class="mt-3 inline-flex text-sm font-semibold text-[#c96442] hover:text-[#4d4c48]" [routerLink]="['/search']" [queryParams]="{ dishId: dish.id }">Find posts for this dish</a>
+                    <a class="mt-3 inline-flex text-sm font-semibold text-[#c96442] hover:text-[#4d4c48]" [routerLink]="dish.route" [queryParams]="dish.queryParams">Find posts for this dish</a>
                   </article>
                 }
               </div>
@@ -122,7 +124,7 @@ interface SavedItemView {
                   <article class="rounded-2xl border border-[#e8e6dc] bg-[#faf9f5] px-4 py-3">
                     <p class="break-all text-sm font-semibold text-[#141413]" [textContent]="place.label"></p>
                     <p class="mt-1 text-xs font-medium text-[#87867f]">Saved {{ formatDate(place.savedAtUtc) }}</p>
-                    <a class="mt-3 inline-flex text-sm font-semibold text-[#c96442] hover:text-[#4d4c48]" [routerLink]="['/search']" [queryParams]="{ placeId: place.id }">Find posts for this place</a>
+                    <a class="mt-3 inline-flex text-sm font-semibold text-[#c96442] hover:text-[#4d4c48]" [routerLink]="place.route" [queryParams]="place.queryParams">Find posts for this place</a>
                   </article>
                 }
               </div>
@@ -137,6 +139,7 @@ interface SavedItemView {
 export class SavedPage {
   private readonly authSessionService = inject(AuthSessionService);
   private readonly userProfileApi = inject(UserProfileApi);
+  private readonly catalogLabels = inject(CatalogLabelService);
 
   protected readonly status = signal<SavedPageStatus>('loading');
   private readonly savedItems = signal<UserSavedItemsResponse | null>(null);
@@ -148,26 +151,43 @@ export class SavedPage {
       label: `Post ${item.postId}`,
       savedAtUtc: item.savedAtUtc,
       route: ['/posts', item.postId],
+      queryParams: null,
     })),
   );
   protected readonly savedDishes = computed<SavedItemView[]>(() =>
     (this.savedItems()?.dishes ?? []).map((item) => ({
       id: item.dishId,
-      label: `Dish ${item.dishId}`,
+      label: this.catalogLabels.dishLabel(item.dishId),
       savedAtUtc: item.savedAtUtc,
-      route: null,
+      route: ['/search'],
+      queryParams: { query: this.catalogLabels.dishLabel(item.dishId) },
     })),
   );
   protected readonly savedPlaces = computed<SavedItemView[]>(() =>
     (this.savedItems()?.places ?? []).map((item) => ({
       id: item.placeId,
-      label: `Place ${item.placeId}`,
+      label: this.catalogLabels.placeLabel(item.placeId),
       savedAtUtc: item.savedAtUtc,
-      route: null,
+      route: ['/search'],
+      queryParams: { query: this.catalogLabels.placeLabel(item.placeId) },
     })),
   );
 
   constructor() {
+    effect(() => {
+      const currentSavedItems = this.savedItems();
+      if (!currentSavedItems) {
+        return;
+      }
+
+      for (const item of currentSavedItems.dishes) {
+        this.catalogLabels.resolveDish(item.dishId);
+      }
+
+      for (const item of currentSavedItems.places) {
+        this.catalogLabels.resolvePlace(item.placeId);
+      }
+    });
     this.loadSavedItems();
   }
 

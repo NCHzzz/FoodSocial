@@ -231,8 +231,8 @@ public sealed class BffAuthEndpointTests
             builder.UseSetting("Keycloak:Authority", "https://identity.example.test/realms/foodsocial");
             builder.UseSetting("Keycloak:BffClientId", "foodsocial-bff");
             builder.UseSetting("Keycloak:BffClientSecret", "test-client-secret");
+            builder.UseSetting("Keycloak:ServiceClientAccessToken", "test-service-token");
             builder.UseSetting("Services:identity-api:https:0", "https://identity-api.example.test");
-            builder.UseSetting("Identity:InternalTrust:SharedSecret", "test-shared-secret");
 
             builder.ConfigureTestServices(services =>
             {

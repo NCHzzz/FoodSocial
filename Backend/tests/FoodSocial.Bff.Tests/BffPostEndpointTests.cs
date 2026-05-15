@@ -104,8 +104,7 @@ public sealed class BffPostEndpointTests
         forwardedBody.Should().NotBeNull();
         forwardedBody!.AuthorId.Should().Be(expectedSessionIdentityId);
         forwardedBody.AuthorId.Should().NotBe(spoofedAuthorId);
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Internal-Secret").Should().ContainSingle().Which.Should().Be("test-post-shared-secret");
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be(expectedSessionIdentityId.ToString());
+        AssertTrustedPostHeaders(forwardedRequest, expectedSessionIdentityId);
     }
 
     [Fact]
@@ -126,8 +125,7 @@ public sealed class BffPostEndpointTests
         var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
         forwardedRequest.Method.Should().Be(HttpMethod.Post);
         forwardedRequest.RequestUri!.PathAndQuery.Should().Be("/api/media/uploads");
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Internal-Secret").Should().ContainSingle().Which.Should().Be("test-post-shared-secret");
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be("11111111-1111-1111-1111-111111111111");
+        AssertTrustedPostHeaders(forwardedRequest, Guid.Parse("11111111-1111-1111-1111-111111111111"));
         forwardedRequest.Content!.Headers.ContentType!.MediaType.Should().Be("multipart/form-data");
     }
 
@@ -148,8 +146,7 @@ public sealed class BffPostEndpointTests
         var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
         forwardedRequest.Method.Should().Be(HttpMethod.Get);
         forwardedRequest.RequestUri!.PathAndQuery.Should().Be($"/api/media/uploads/{uploadId}/original");
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Internal-Secret").Should().ContainSingle().Which.Should().Be("test-post-shared-secret");
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be("11111111-1111-1111-1111-111111111111");
+        AssertTrustedPostHeaders(forwardedRequest, Guid.Parse("11111111-1111-1111-1111-111111111111"));
     }
 
     [Fact]
@@ -168,8 +165,10 @@ public sealed class BffPostEndpointTests
         var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
         forwardedRequest.Method.Should().Be(HttpMethod.Get);
         forwardedRequest.RequestUri!.PathAndQuery.Should().Be($"/api/media/uploads/{uploadId}/original");
-        forwardedRequest.Headers.Contains("X-FoodSocial-Internal-Secret").Should().BeFalse();
+        forwardedRequest.Headers.Contains("X-FoodSocial-Internal-Service-Id").Should().BeFalse();
         forwardedRequest.Headers.Contains("X-FoodSocial-Identity-Id").Should().BeFalse();
+        forwardedRequest.Headers.Contains("X-FoodSocial-Internal-Timestamp").Should().BeFalse();
+        forwardedRequest.Headers.Contains("X-FoodSocial-Internal-Signature").Should().BeFalse();
     }
 
     [Fact]
@@ -220,7 +219,7 @@ public sealed class BffPostEndpointTests
     }
 
     [Fact]
-    public async Task FollowingFeed_WithFollowGraph_ComposesBoundedPostsFromFollowedAuthors()
+    public async Task FollowingFeed_WithFollowGraph_UsesSingleBatchedPostSearch()
     {
         var firstAuthorId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         var secondAuthorId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
@@ -229,15 +228,7 @@ public sealed class BffPostEndpointTests
         var middlePost = CreatePostSummary(Guid.Parse("30000000-0000-0000-0000-000000000000"), secondAuthorId, DateTimeOffset.Parse("2026-05-02T00:00:00Z"));
 
         await using var factory = new BffPostTestApplicationFactory(
-            request =>
-            {
-                var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(request.RequestUri!.Query);
-                var authorId = Guid.Parse(query["authorId"].ToString());
-                var items = authorId == firstAuthorId
-                    ? new[] { olderPost, newestPost }
-                    : [middlePost];
-                return JsonResponse(HttpStatusCode.OK, new PostSearchResponse(items, 2));
-            },
+            _ => JsonResponse(HttpStatusCode.OK, new PostSearchResponse([olderPost, newestPost, middlePost], 2)),
             userProfileResponseFactory: _ => JsonResponse(
                 HttpStatusCode.OK,
                 new UserProfileListResponse(
@@ -257,11 +248,12 @@ public sealed class BffPostEndpointTests
         payload!.Limit.Should().Be(2);
         payload.Items.Select(item => item.Id).Should().Equal(newestPost.Id, middlePost.Id);
         factory.UserProfileHandler.Requests.Should().ContainSingle();
-        factory.PostHandler.Requests.Select(request => request.RequestUri!.PathAndQuery)
-            .Should()
-            .Equal(
-                $"/api/posts/search?authorId={firstAuthorId}&limit=2&includeHidden=False",
-                $"/api/posts/search?authorId={secondAuthorId}&limit=2&includeHidden=False");
+        var postRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(postRequest.RequestUri!.Query);
+        postRequest.RequestUri!.AbsolutePath.Should().Be("/api/posts/search");
+        query["authorId"].Should().BeEquivalentTo(firstAuthorId.ToString(), secondAuthorId.ToString());
+        query["limit"].Should().ContainSingle().Which.Should().Be("2");
+        query["includeHidden"].Should().ContainSingle().Which.Should().Be(bool.FalseString);
     }
 
     [Fact]
@@ -355,8 +347,7 @@ public sealed class BffPostEndpointTests
         var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
         forwardedRequest.Method.Should().Be(HttpMethod.Get);
         forwardedRequest.RequestUri!.PathAndQuery.Should().Be("/api/notifications?limit=10");
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Internal-Secret").Should().ContainSingle().Which.Should().Be("test-post-shared-secret");
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be("11111111-1111-1111-1111-111111111111");
+        AssertTrustedPostHeaders(forwardedRequest, Guid.Parse("11111111-1111-1111-1111-111111111111"));
     }
 
     [Fact]
@@ -387,9 +378,7 @@ public sealed class BffPostEndpointTests
         var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
         forwardedRequest.Method.Should().Be(HttpMethod.Get);
         forwardedRequest.RequestUri!.PathAndQuery.Should().Be("/api/admin/reports?limit=10");
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Internal-Secret").Should().ContainSingle().Which.Should().Be("test-post-shared-secret");
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be("11111111-1111-1111-1111-111111111111");
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Roles").Should().ContainSingle().Which.Should().Be("moderator,user");
+        AssertTrustedPostHeaders(forwardedRequest, Guid.Parse("11111111-1111-1111-1111-111111111111"), "moderator,user");
     }
 
     [Fact]
@@ -420,7 +409,7 @@ public sealed class BffPostEndpointTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var forwardedRequest = factory.PostHandler.Requests.Should().ContainSingle().Subject;
-        forwardedRequest.Headers.GetValues("X-FoodSocial-Identity-Roles").Should().ContainSingle().Which.Should().Be("admin");
+        AssertTrustedPostHeaders(forwardedRequest, Guid.Parse("11111111-1111-1111-1111-111111111111"), "admin");
         var forwardedBody = await forwardedRequest.Content!.ReadFromJsonAsync<ResolveContentReportRequest>();
         forwardedBody.Should().NotBeNull();
         forwardedBody!.ModeratorId.Should().Be(expectedSessionIdentityId);
@@ -453,6 +442,22 @@ public sealed class BffPostEndpointTests
             RepostCount: 0,
             CommentCount: 0,
             createdAtUtc);
+
+    private static void AssertTrustedPostHeaders(HttpRequestMessage request, Guid identityId, string? rolesHeader = null)
+    {
+        request.Headers.Contains("X-FoodSocial-Internal-Secret").Should().BeFalse();
+        request.Headers.Authorization.Should().NotBeNull();
+        request.Headers.Authorization!.Scheme.Should().Be("Bearer");
+        request.Headers.Authorization.Parameter.Should().Be("test-service-token");
+        request.Headers.Contains("X-FoodSocial-Internal-Service-Id").Should().BeFalse();
+        request.Headers.GetValues("X-FoodSocial-Identity-Id").Should().ContainSingle().Which.Should().Be(identityId.ToString());
+        request.Headers.Contains("X-FoodSocial-Internal-Timestamp").Should().BeFalse();
+        request.Headers.Contains("X-FoodSocial-Internal-Signature").Should().BeFalse();
+        if (rolesHeader is not null)
+        {
+            request.Headers.GetValues("X-FoodSocial-Identity-Roles").Should().ContainSingle().Which.Should().Be(rolesHeader);
+        }
+    }
 
     private static HttpResponseMessage JsonResponse<TValue>(HttpStatusCode statusCode, TValue value) =>
         new(statusCode)
@@ -490,11 +495,10 @@ public sealed class BffPostEndpointTests
             builder.UseSetting("Keycloak:Authority", "https://identity.example.test/realms/foodsocial");
             builder.UseSetting("Keycloak:BffClientId", "foodsocial-bff");
             builder.UseSetting("Keycloak:BffClientSecret", "test-client-secret");
+            builder.UseSetting("Keycloak:ServiceClientAccessToken", "test-service-token");
             builder.UseSetting("Services:identity-api:https:0", "https://identity-api.example.test");
             builder.UseSetting("Services:post-api:https:0", "https://post-api.example.test");
             builder.UseSetting("Services:userprofile-api:https:0", "https://userprofile-api.example.test");
-            builder.UseSetting("Identity:InternalTrust:SharedSecret", "test-shared-secret");
-            builder.UseSetting("Post:InternalTrust:SharedSecret", "test-post-shared-secret");
 
             builder.ConfigureTestServices(services =>
             {

@@ -1,6 +1,7 @@
 # Local external source checkouts
 /elasticsearch-src/
 /pgvector-src/
+/.tools/
 
 # IDE and editor files
 /.vs/

@@ -64,6 +64,19 @@ internal sealed class DishApiFactory : WebApplicationFactory<Program>
         return dish.Id;
     }
 
+    internal async Task<Guid> SeedDishInTenantAsync(string name, Guid tenantId)
+    {
+        await EnsureDatabaseCreatedAsync();
+
+        using var scope = Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<DishDbContext>();
+        var dish = DishRecord.Create(name, null, "Noodles", "Vietnamese", [], [], []);
+        dbContext.Dishes.Add(dish);
+        dbContext.Entry(dish).Property(nameof(DishRecord.TenantId)).CurrentValue = tenantId;
+        await dbContext.SaveChangesAsync();
+        return dish.Id;
+    }
+
     internal async Task EnsureDatabaseCreatedAsync()
     {
         if (_databaseInitialized)

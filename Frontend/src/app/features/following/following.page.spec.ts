@@ -2,10 +2,13 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
 
 import { AuthSessionState } from '../../core/auth/auth-session.models';
 import { AuthSessionService } from '../../core/auth/auth-session.service';
 import { BROWSER_WINDOW } from '../../core/auth/browser-window.token';
+import { DishApi } from '../../core/dishes/infrastructure/dish.api';
+import { PlaceApi } from '../../core/places/infrastructure/place.api';
 import { PostApi } from '../../core/posts/infrastructure/post.api';
 import { PostSearchRequest, PostSearchResponse } from '../../core/posts/post.models';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
@@ -57,8 +60,11 @@ describe('FollowingPage', () => {
   };
   const authState = signal(authenticatedState);
   const clipboard = { writeText: (_value: string) => Promise.resolve() };
+  let getFollowingFeedMock: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
+    getFollowingFeedMock = vi.fn((_limit: number) => of(postSearchResponse));
+
     await TestBed.configureTestingModule({
       imports: [FollowingPage],
       providers: [
@@ -70,15 +76,46 @@ describe('FollowingPage', () => {
         {
           provide: UserProfileApi,
           useValue: {
-            getFollowing: (_identityId: string) => of({ items: [{ identityId: followedIdentityId, displayName: 'Food friend', avatarUrl: null }], totalCount: 1 }),
+            getFollowing: () => {
+              throw new Error('Following page should use the BFF following feed instead of client fan-out.');
+            },
             savePost: (_identityId: string, postId: string) => of({ userIdentityId: identityId, targetId: postId, targetType: 'Post', saved: true }),
           },
         },
         {
           provide: PostApi,
           useValue: {
+            getFollowingFeed: getFollowingFeedMock,
             searchPosts: (_request: PostSearchRequest) => of(postSearchResponse),
             likePost: (postId: string) => of({ postId, actorId: identityId, liked: true, likeCount: 5 }),
+          },
+        },
+        {
+          provide: DishApi,
+          useValue: {
+            getDish: (dishId: string) => of({
+              id: dishId,
+              name: 'Bún bò Huế',
+              normalizedName: 'bun bo hue',
+              description: null,
+              category: 'Noodles',
+              cuisineType: 'Vietnamese',
+              aliases: [],
+              ingredients: [],
+              dietaryFlags: [],
+              status: 'Active',
+              createdAtUtc: '2026-05-04T00:00:00Z',
+              updatedAtUtc: '2026-05-04T00:00:00Z',
+              deprecatedAtUtc: null,
+            }),
+          },
+        },
+        {
+          provide: PlaceApi,
+          useValue: {
+            getPlace: () => {
+              throw new Error('Following page fixture does not include place labels.');
+            },
           },
         },
         {
@@ -105,6 +142,7 @@ describe('FollowingPage', () => {
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
 
+    expect(getFollowingFeedMock).toHaveBeenCalledWith(24);
     expect(text).toContain('Follow graph first');
     expect(text).toContain('Followed author posted bún bò Huế.');
     expect(text).toContain('4 likes');
