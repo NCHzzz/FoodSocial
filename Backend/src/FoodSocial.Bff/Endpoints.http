@@ -1,10 +1,10 @@
-@BffHttpBase = http://localhost:5276
+@ApiGatewayHttpBase = http://localhost:5280
 
 ### Start browser login flow
-GET {{BffHttpBase}}/api/auth/login
+GET {{ApiGatewayHttpBase}}/api/auth/login
 
-### Read current BFF session after login
-GET {{BffHttpBase}}/api/auth/session
+### Read current browser session through the API Gateway
+GET {{ApiGatewayHttpBase}}/api/auth/session
 
-### Logout current BFF session
-POST {{BffHttpBase}}/api/auth/logout
+### Logout current browser session through the API Gateway
+POST {{ApiGatewayHttpBase}}/api/auth/logout

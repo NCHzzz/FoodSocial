@@ -1,4 +1,5 @@
 using FoodSocial.UserProfile.Domain;
+using FoodSocial.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -51,11 +52,13 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
     public DbSet<SavedPlace> SavedPlaces => Set<SavedPlace>();
 
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+    public DbSet<IntegrationOutboxMessage> IntegrationOutboxMessages => Set<IntegrationOutboxMessage>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.ConfigureIntegrationOutbox("userprofile_outbox_messages");
 
         modelBuilder.Entity<UserProfileShell>(entity =>
         {
@@ -66,6 +69,9 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
             entity.Property(shell => shell.IdentityId)
                 .IsRequired();
 
+            entity.Property(shell => shell.TenantId)
+                .IsRequired();
+
             entity.Property(shell => shell.Subject)
                 .HasMaxLength(200)
                 .IsRequired();
@@ -73,10 +79,10 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
             entity.Property(shell => shell.CreatedAtUtc)
                 .IsRequired();
 
-            entity.HasIndex(shell => shell.IdentityId)
+            entity.HasIndex(shell => new { shell.TenantId, shell.IdentityId })
                 .IsUnique();
 
-            entity.HasIndex(shell => shell.Subject)
+            entity.HasIndex(shell => new { shell.TenantId, shell.Subject })
                 .IsUnique();
 
             entity.HasOne(shell => shell.Detail)

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using FoodSocial.Contracts.Posts;
+using FoodSocial.Messaging;
 using FoodSocial.Post.Domain;
 using FoodSocial.Post.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,28 @@ public sealed class PostEndpointTests
         using var read = await client.GetAsync($"/api/posts/{created.Id}");
         var detail = (await read.Content.ReadFromJsonAsync<PostDetailResponse>())!;
         detail.AuthorId.Should().Be(PostApiFactory.TestCallerIdentityId); detail.DishId.Should().Be(dishId); detail.Media.Should().ContainSingle(m => m.IsPrimary); detail.Caption.Should().Be("Best phở");
+    }
+
+    [Fact]
+    public async Task CreatePost_WithoutTrustedServiceToken_ReturnsUnauthorized()
+    {
+        await using var factory = new PostApiFactory();
+        await factory.EnsureDatabaseCreatedAsync();
+        using var client = factory.CreateClient();
+        var dishId = Guid.NewGuid();
+        factory.RegisterActiveDish(dishId);
+        client.DefaultRequestHeaders.Add("X-FoodSocial-Identity-Id", PostApiFactory.TestCallerIdentityId.ToString());
+
+        using var create = await client.PostAsJsonAsync(
+            "/api/posts",
+            new CreatePostRequest(
+                Guid.NewGuid(),
+                dishId,
+                "Unsigned trust should not mutate.",
+                [new PostMediaRequest("https://cdn.example/pho.jpg", IsPrimary: true)]));
+
+        create.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        create.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
     }
 
     [Fact]
@@ -587,6 +610,72 @@ public sealed class PostEndpointTests
     }
 
     [Fact]
+    public async Task SearchPosts_WithRepeatedAuthorId_ReturnsPostsForAllRequestedAuthors()
+    {
+        await using var factory = new PostApiFactory();
+        var firstAuthorId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var secondAuthorId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        var excludedAuthorId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        using var client = factory.CreateTrustedClient();
+        using var firstAuthorClient = factory.CreateTrustedClient(firstAuthorId);
+        using var secondAuthorClient = factory.CreateTrustedClient(secondAuthorId);
+        using var excludedAuthorClient = factory.CreateTrustedClient(excludedAuthorId);
+        var first = await factory.CreatePostAsync(firstAuthorClient, authorId: firstAuthorId, caption: "First author");
+        var second = await factory.CreatePostAsync(secondAuthorClient, authorId: secondAuthorId, caption: "Second author");
+        _ = await factory.CreatePostAsync(excludedAuthorClient, authorId: excludedAuthorId, caption: "Excluded author");
+
+        using var search = await client.GetAsync($"/api/posts/search?authorId={firstAuthorId}&authorId={secondAuthorId}&limit=10");
+
+        search.StatusCode.Should().Be(HttpStatusCode.OK);
+        var searchBody = (await search.Content.ReadFromJsonAsync<PostSearchResponse>())!;
+        searchBody.Items.Select(item => item.Id).Should().BeEquivalentTo([first, second]);
+    }
+
+    [Fact]
+    public async Task ReadSearchAndDiscover_ExcludeForeignTenantPosts()
+    {
+        await using var factory = new PostApiFactory();
+        using var client = factory.CreateTrustedClient();
+        var defaultTenantPostId = await factory.CreatePostAsync(client, caption: "Default tenant bowl", tag: "tenant");
+        var foreignTenantPostId = await factory.CreatePostAsync(client, caption: "Foreign tenant bowl", tag: "tenant");
+        await factory.MovePostToTenantAsync(foreignTenantPostId, Guid.Parse("00000000-0000-0000-0000-000000000002"));
+
+        using var read = await client.GetAsync($"/api/posts/{foreignTenantPostId}");
+        using var search = await client.GetAsync("/api/posts/search?query=tenant&limit=10");
+        using var discover = await client.GetAsync("/api/feed/discover?limit=10");
+
+        read.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var searchBody = (await search.Content.ReadFromJsonAsync<PostSearchResponse>())!;
+        searchBody.Items.Select(item => item.Id).Should().Contain(defaultTenantPostId);
+        searchBody.Items.Select(item => item.Id).Should().NotContain(foreignTenantPostId);
+        var discoverBody = (await discover.Content.ReadFromJsonAsync<DiscoverFeedResponse>())!;
+        discoverBody.Items.Select(item => item.Id).Should().Contain(defaultTenantPostId);
+        discoverBody.Items.Select(item => item.Id).Should().NotContain(foreignTenantPostId);
+    }
+
+    [Fact]
+    public async Task GetUploadedMedia_ExcludesForeignTenantUploadEvenForSameOwner()
+    {
+        await using var factory = new PostApiFactory();
+        await factory.EnsureDatabaseCreatedAsync();
+        using var ownerClient = factory.CreateTrustedClient();
+        using var form = new MultipartFormDataContent();
+        byte[] jpegBytes = [0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4];
+        using var file = new ByteArrayContent(jpegBytes);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        form.Add(file, "file", "pho.jpg");
+        using var upload = await ownerClient.PostAsync("/api/media/uploads", form);
+        upload.StatusCode.Should().Be(HttpStatusCode.Created);
+        var media = (await upload.Content.ReadFromJsonAsync<MediaUploadResponse>())!;
+        await factory.MoveUploadToTenantAsync(media.UploadId, Guid.Parse("00000000-0000-0000-0000-000000000002"));
+
+        using var read = await ownerClient.GetAsync(media.Url);
+
+        read.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        read.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+    }
+
+    [Fact]
     public async Task Likes_AreIdempotent()
     {
         await using var factory = new PostApiFactory(); using var client = factory.CreateTrustedClient(); var postId = await factory.CreatePostAsync(client); var actorId = Guid.NewGuid();
@@ -709,6 +798,10 @@ public sealed class PostEndpointTests
         await using var factory = new PostApiFactory(); using var client = factory.CreateTrustedClient(); var postId = await factory.CreatePostAsync(client);
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<PostDbContext>();
+        var outbox = await dbContext.IntegrationOutboxMessages.SingleAsync();
+        outbox.EventType.Should().Be(nameof(PostContentChangedIntegrationEvent));
+        outbox.DeliveryState.Should().BeOneOf(IntegrationOutboxDeliveryState.Pending, IntegrationOutboxDeliveryState.FailedRetryable);
+        outbox.RoutingKey.Should().Be("post.content.created.v1");
         (await dbContext.Posts.FindAsync(postId)).Should().NotBeNull();
     }
 }

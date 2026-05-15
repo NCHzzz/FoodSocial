@@ -191,7 +191,7 @@ public sealed class BffPlaceEndpointTests
             builder.UseSetting("Services:userprofile-api:https:0", "https://userprofile-api.example.test");
             builder.UseSetting("Services:dish-api:https:0", "https://dish-api.example.test");
             builder.UseSetting("Services:place-api:https:0", "https://place-api.example.test");
-            builder.UseSetting("Identity:InternalTrust:SharedSecret", "test-shared-secret");
+            builder.UseSetting("Keycloak:ServiceClientAccessToken", "test-service-token");
 
             builder.ConfigureTestServices(services =>
             {

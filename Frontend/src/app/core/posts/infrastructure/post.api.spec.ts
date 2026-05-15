@@ -91,6 +91,18 @@ describe('PostApi', () => {
     request.flush(feedResponse);
   });
 
+  it('loads Following feed through the BFF with browser credentials', () => {
+    api.getFollowingFeed(24).subscribe((response) => {
+      expect(response).toEqual(feedResponse);
+    });
+
+    const request = httpTestingController.expectOne('/api/feed/following?limit=24');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.withCredentials).toBe(true);
+
+    request.flush(feedResponse);
+  });
+
   it('searches posts with trimmed bounded query parameters', () => {
     const response: PostSearchResponse = { items: feedResponse.items, limit: 24 };
 

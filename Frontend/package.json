@@ -43,9 +43,9 @@
     "@tailwindcss/postcss": "^4.2.2",
     "eslint": "^9.0.0",
     "tailwindcss": "^4.2.2",
-    "typescript-eslint": "^8.0.0",
     "typescript": "~5.9.2",
+    "typescript-eslint": "^8.0.0",
     "vitest": "^4.0.8",
-    "happy-dom": "^18.0.0"
+    "happy-dom": "^20.9.0"
   }
 }

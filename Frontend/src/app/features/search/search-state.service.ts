@@ -14,6 +14,7 @@ import { PostSummaryResponse } from '../../core/posts/post.models';
 import { SearchAssistApi } from '../../core/search/infrastructure/search-assist.api';
 import { SearchAssistResponse } from '../../core/search/search-assist.models';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
+import { PostReportSubmission } from '../posts/post-card.component';
 
 type SearchStatus = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
 type SearchActionStatus = 'idle' | 'pending' | 'success' | 'error' | 'gated';
@@ -142,16 +143,20 @@ export class SearchStateService {
     });
   }
 
-  sharePost(postId: string): void {
+  async sharePost(postId: string): Promise<void> {
     const url = `${this.browserWindow.location.origin}/posts/${encodeURIComponent(postId)}`;
-    void this.browserWindow.navigator.clipboard?.writeText(url);
-    this.showActionSuccess('Post link copied.');
+    try {
+      await this.browserWindow.navigator.clipboard?.writeText(url);
+      this.showActionSuccess('Post link copied.');
+    } catch {
+      this.showActionError('Share failed. Copy the URL from the address bar.');
+    }
   }
 
-  reportPost(postId: string): void {
+  reportPost(report: PostReportSubmission): void {
     if (!this.requireAuthenticatedAction('Sign in to report search-result posts.')) return;
     this.actionStatusState.set('pending');
-    this.postApi.reportPost(postId, 'spam_or_low_quality', 'Reported from search results.').subscribe({
+    this.postApi.reportPost(report.postId, report.reason, report.description).subscribe({
       next: () => this.showActionSuccess('Report submitted for manual review.'),
       error: () => this.showActionError('Report failed. Retry when moderation intake is available.'),
     });

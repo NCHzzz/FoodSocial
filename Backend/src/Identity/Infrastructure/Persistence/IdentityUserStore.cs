@@ -18,7 +18,9 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
 
-        return _dbContext.IdentityUsers.SingleOrDefaultAsync(user => user.Subject == subject, cancellationToken);
+        return _dbContext.IdentityUsers.SingleOrDefaultAsync(
+            user => user.TenantId == IdentityUser.DefaultTenantId && user.Subject == subject,
+            cancellationToken);
     }
 
     /// <inheritdoc />
@@ -26,7 +28,9 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
     {
         ArgumentOutOfRangeException.ThrowIfEqual(identityId, Guid.Empty);
 
-        return _dbContext.IdentityUsers.SingleOrDefaultAsync(user => user.Id == identityId, cancellationToken);
+        return _dbContext.IdentityUsers.SingleOrDefaultAsync(
+            user => user.TenantId == IdentityUser.DefaultTenantId && user.Id == identityId,
+            cancellationToken);
     }
 
     /// <inheritdoc />
@@ -57,7 +61,7 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
 
         var assignedRoles = await _dbContext.IdentityRoleAssignments
-            .Where(assignment => assignment.Subject == subject)
+            .Where(assignment => assignment.TenantId == IdentityRoleAssignment.DefaultTenantId && assignment.Subject == subject)
             .Select(assignment => assignment.Role)
             .ToListAsync(cancellationToken);
 
@@ -82,7 +86,7 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
 
         var existingAssignment = await _dbContext.IdentityRoleAssignments
             .SingleOrDefaultAsync(
-                assignment => assignment.Subject == subject && assignment.Role == normalizedRole,
+                assignment => assignment.TenantId == IdentityRoleAssignment.DefaultTenantId && assignment.Subject == subject && assignment.Role == normalizedRole,
                 cancellationToken);
 
         if (existingAssignment is not null)
@@ -135,7 +139,7 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
 
         return exception.InnerException is PostgresException postgresException
             && postgresException.SqlState == PostgresErrorCodes.UniqueViolation
-            && string.Equals(postgresException.ConstraintName, "IX_identity_users_Subject", StringComparison.Ordinal);
+            && string.Equals(postgresException.ConstraintName, "IX_identity_users_TenantId_Subject", StringComparison.Ordinal);
     }
 
     private static bool IsDuplicateRoleAssignmentViolation(Exception? innerException) =>
@@ -143,7 +147,7 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
         && postgresException.SqlState == PostgresErrorCodes.UniqueViolation
         && string.Equals(
             postgresException.ConstraintName,
-            "IX_identity_role_assignments_Subject_Role",
+            "IX_identity_role_assignments_TenantId_Subject_Role",
             StringComparison.Ordinal);
 
     private static bool IsSqliteUniqueViolation(Exception? innerException)

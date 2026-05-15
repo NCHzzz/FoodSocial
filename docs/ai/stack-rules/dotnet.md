@@ -176,7 +176,7 @@ Examples that belong in this layer:
 - Database, broker, and service credentials **SHOULD** follow least-privilege principles
 - Service-to-service and admin operations **MUST** have explicit trust/authorization boundaries
 - Public-facing APIs **SHOULD** define abuse-aware protections such as rate limiting, bot friction, or equivalent controls where relevant
-- Moderation-sensitive workflows **SHOULD** preserve auditability and evidence retention, and **MUST NOT** silently introduce future-phase automation such as auto-hide behavior into MVP paths
+- Moderation-sensitive workflows **SHOULD** preserve auditability and evidence retention, and **MUST NOT** silently introduce future-phase automation such as auto-hide behavior into launch paths
 
 ## Performance Rules
 

@@ -10,6 +10,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-XSRF-TOKEN");
 builder.Services.AddOpenApi();
 builder.Services.AddAuthorization();
+builder.Services.AddInternalServiceTokenProvider();
 builder.Services.AddBffIdentityOrchestrationClient();
 builder.Services.AddBffUserProfileClient();
 builder.Services.AddBffDishClient();

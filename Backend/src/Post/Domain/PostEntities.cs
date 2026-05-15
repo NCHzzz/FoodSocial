@@ -9,8 +9,11 @@ public enum PostMediaUploadStatus { StoredPendingAttachment, Attached, CleanupDu
 
 public sealed class PostRecord
 {
+    public static readonly Guid DefaultTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
     private PostRecord() { }
     public Guid Id { get; private set; } = Guid.NewGuid();
+    public Guid TenantId { get; private set; } = DefaultTenantId;
     public Guid AuthorId { get; private set; }
     public Guid DishId { get; private set; }
     public Guid? PlaceId { get; private set; }
@@ -82,6 +85,7 @@ public sealed class PostMediaRecord
 public sealed class PostMediaUploadRecord
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; } = PostRecord.DefaultTenantId;
     public Guid OwnerId { get; set; }
     public Guid? AttachedPostId { get; set; }
     public string Url { get; set; } = string.Empty;

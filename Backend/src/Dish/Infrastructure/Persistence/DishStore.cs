@@ -1,5 +1,7 @@
+using FoodSocial.Contracts.Dishes;
 using FoodSocial.Dish.Application;
 using FoodSocial.Dish.Domain;
+using FoodSocial.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -24,6 +26,7 @@ public sealed class DishStore(DishDbContext dbContext) : IDishStore
         }
 
         _dbContext.Dishes.Add(dish);
+        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(dish, "Created"));
 
         try
         {
@@ -52,7 +55,7 @@ public sealed class DishStore(DishDbContext dbContext) : IDishStore
     {
         ArgumentOutOfRangeException.ThrowIfEqual(dishId, Guid.Empty);
 
-        return _dbContext.Dishes
+        return CurrentTenantDishes()
             .AsNoTracking()
             .SingleOrDefaultAsync(dish => dish.Id == dishId, cancellationToken);
     }
@@ -62,25 +65,14 @@ public sealed class DishStore(DishDbContext dbContext) : IDishStore
     {
         ArgumentNullException.ThrowIfNull(criteria);
 
-        var query = ApplyStructuredFilters(_dbContext.Dishes.AsNoTracking(), criteria);
+        var query = ApplyStructuredFilters(CurrentTenantDishes().AsNoTracking(), criteria);
 
         var normalizedQuery = criteria.NormalizedQuery;
         if (normalizedQuery is not null)
         {
-            var aliasToken = $"%|{normalizedQuery}%";
-            query = query.Where(dish =>
-                dish.NormalizedName.Contains(normalizedQuery)
-                || EF.Functions.Like(dish.AliasesSearchText, aliasToken));
-        }
-
-        if (criteria.Category is not null)
-        {
-            query = query.Where(dish => dish.Category != null && dish.Category.ToLower() == criteria.Category.ToLower());
-        }
-
-        if (criteria.CuisineType is not null)
-        {
-            query = query.Where(dish => dish.CuisineType != null && dish.CuisineType.ToLower() == criteria.CuisineType.ToLower());
+            query = IsNpgsqlProvider()
+                ? ApplyPostgresTextSearch(query, normalizedQuery)
+                : ApplySqliteTextSearch(query, normalizedQuery);
         }
 
         return await query
@@ -115,13 +107,19 @@ public sealed class DishStore(DishDbContext dbContext) : IDishStore
     {
         ArgumentOutOfRangeException.ThrowIfEqual(dishId, Guid.Empty);
 
-        var dish = await _dbContext.Dishes.SingleOrDefaultAsync(candidate => candidate.Id == dishId, cancellationToken);
+        var dish = await CurrentTenantDishes().SingleOrDefaultAsync(candidate => candidate.Id == dishId, cancellationToken);
         if (dish is null)
         {
             return null;
         }
 
+        var previousStatus = dish.Status;
         dish.Deprecate();
+        if (previousStatus != dish.Status)
+        {
+            _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(dish, "Deprecated"));
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
         _dbContext.ChangeTracker.Clear();
 
@@ -129,9 +127,61 @@ public sealed class DishStore(DishDbContext dbContext) : IDishStore
     }
 
     private Task<DishRecord?> FindByNormalizedNameAsync(string normalizedName, CancellationToken cancellationToken) =>
-        _dbContext.Dishes
+        CurrentTenantDishes()
             .AsNoTracking()
             .SingleOrDefaultAsync(dish => dish.NormalizedName == normalizedName, cancellationToken);
+
+    private IQueryable<DishRecord> CurrentTenantDishes() =>
+        _dbContext.Dishes.Where(dish => dish.TenantId == DishRecord.DefaultTenantId);
+
+    private static IntegrationOutboxMessage CreateOutboxMessage(DishRecord dish, string changeType)
+    {
+        var integrationEvent = DishCatalogChangedIntegrationEvent.Create(
+            dish.Id,
+            dish.TenantId,
+            changeType,
+            dish.Name,
+            dish.Status.ToString());
+
+        return IntegrationOutboxMessage.Create(
+            integrationEvent,
+            integrationEvent.EventId,
+            integrationEvent.EventVersion,
+            integrationEvent.OccurredAtUtc,
+            integrationEvent.CorrelationId,
+            "dish.events",
+            $"dish.catalog.{changeType.ToLowerInvariant()}.v1",
+            dish.Id,
+            "Dish");
+    }
+
+    private static IQueryable<DishRecord> ApplySqliteTextSearch(IQueryable<DishRecord> query, string normalizedQuery)
+    {
+        var aliasToken = $"%|{normalizedQuery}%";
+        return query.Where(dish =>
+            dish.NormalizedName.Contains(normalizedQuery)
+            || EF.Functions.Like(dish.AliasesSearchText, aliasToken));
+    }
+
+    private static IQueryable<DishRecord> ApplyPostgresTextSearch(IQueryable<DishRecord> query, string normalizedQuery)
+    {
+        var escaped = EscapeLikePattern(normalizedQuery);
+        var namePattern = $"%{escaped}%";
+        var aliasPattern = $"%|{escaped}%";
+        return query.Where(dish =>
+            EF.Functions.ILike(dish.NormalizedName, namePattern, "\\")
+            || EF.Functions.ILike(dish.AliasesSearchText, aliasPattern, "\\")
+            || EF.Functions.TrigramsAreSimilar(dish.NormalizedName, normalizedQuery)
+            || EF.Functions.TrigramsAreSimilar(dish.AliasesSearchText, normalizedQuery));
+    }
+
+    private bool IsNpgsqlProvider() =>
+        string.Equals(_dbContext.Database.ProviderName, "Npgsql.EntityFrameworkCore.PostgreSQL", StringComparison.Ordinal);
+
+    private static string EscapeLikePattern(string value) =>
+        value.Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("%", "\\%", StringComparison.Ordinal)
+            .Replace("_", "\\_", StringComparison.Ordinal);
 
     private static bool IsUniqueViolation(DbUpdateException exception)
     {

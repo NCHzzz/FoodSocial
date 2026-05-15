@@ -23,6 +23,9 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
                 .HasMaxLength(200)
                 .IsRequired();
 
+            entity.Property(user => user.TenantId)
+                .IsRequired();
+
             entity.Property(user => user.PreferredUsername)
                 .HasMaxLength(100);
 
@@ -37,7 +40,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
                 .HasMaxLength(32)
                 .IsRequired();
 
-            entity.HasIndex(user => user.Subject)
+            entity.HasIndex(user => new { user.TenantId, user.Subject })
                 .IsUnique();
         });
 
@@ -51,6 +54,9 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
                 .HasMaxLength(200)
                 .IsRequired();
 
+            entity.Property(assignment => assignment.TenantId)
+                .IsRequired();
+
             entity.Property(assignment => assignment.Role)
                 .HasMaxLength(32)
                 .IsRequired();
@@ -58,7 +64,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             entity.Property(assignment => assignment.AssignedAtUtc)
                 .IsRequired();
 
-            entity.HasIndex(assignment => new { assignment.Subject, assignment.Role })
+            entity.HasIndex(assignment => new { assignment.TenantId, assignment.Subject, assignment.Role })
                 .IsUnique();
         });
 

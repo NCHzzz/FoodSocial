@@ -3,7 +3,11 @@ using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using FluentAssertions;
 using FoodSocial.Contracts.Dishes;
+using FoodSocial.Dish.Infrastructure.Persistence;
+using FoodSocial.Messaging;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace FoodSocial.Dish.Api.Tests;
@@ -29,6 +33,13 @@ public sealed class DishEndpointTests
         payload!["name"]!.GetValue<string>().Should().Be("Bánh Mì");
         payload["normalizedName"]!.GetValue<string>().Should().Be("banh mi");
         payload["status"]!.GetValue<string>().Should().Be("Active");
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<DishDbContext>();
+        var outbox = await dbContext.IntegrationOutboxMessages.SingleAsync();
+        outbox.EventType.Should().Be(nameof(DishCatalogChangedIntegrationEvent));
+        outbox.DeliveryState.Should().BeOneOf(IntegrationOutboxDeliveryState.Pending, IntegrationOutboxDeliveryState.FailedRetryable);
+        outbox.RoutingKey.Should().Be("dish.catalog.created.v1");
     }
 
     [Fact]
@@ -79,6 +90,25 @@ public sealed class DishEndpointTests
         var items = payload!["items"]!.AsArray();
         items.Should().ContainSingle();
         items[0]!["id"]!.GetValue<string>().Should().Be(activeId.ToString());
+    }
+
+    [Fact]
+    public async Task ReadAndSearch_ExcludeForeignTenantDishes()
+    {
+        await using var factory = new DishApiFactory();
+        var defaultTenantId = await factory.SeedDishAsync("Tenant Phở", "Noodles", "Vietnamese");
+        var foreignTenantId = await factory.SeedDishInTenantAsync("Foreign Tenant Phở", Guid.Parse("00000000-0000-0000-0000-000000000002"));
+        using var client = factory.CreateClient();
+
+        using var foreignRead = await client.GetAsync($"/api/dishes/{foreignTenantId}");
+        using var search = await client.GetAsync("/api/dishes/search?query=pho&limit=10");
+
+        foreignRead.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var searchBody = await search.Content.ReadAsStringAsync();
+        search.StatusCode.Should().Be(HttpStatusCode.OK, searchBody);
+        var items = (JsonNode.Parse(searchBody) as JsonObject)!["items"]!.AsArray();
+        items.Select(item => item!["id"]!.GetValue<string>()).Should().Contain(defaultTenantId.ToString());
+        items.Select(item => item!["id"]!.GetValue<string>()).Should().NotContain(foreignTenantId.ToString());
     }
 
     [Fact]

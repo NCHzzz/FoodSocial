@@ -9,7 +9,7 @@ The workspace is rooted directly at `Frontend/` and follows the repository’s A
 - signals for local and view-oriented state
 - strict TypeScript + strict Angular template diagnostics
 - TailwindCSS v4 as the primary styling layer
-- BFF-owned browser auth integration through `/api/auth/*`
+- API Gateway entrypoint for `/api/*` and BFF-owned browser auth integration through `/api/auth/*`
 
 The repository's canonical frontend working rules live in:
 
@@ -17,7 +17,7 @@ The repository's canonical frontend working rules live in:
 - `Frontend/AGENTS.md`
 - `../docs/ai/workflows.md`
 - `../docs/ai/stack-rules/angular-tailwind.md`
-- `../docs/ai/stack-rules/frontend-ui-unification.md` for visual/UI work
+- `../DESIGN.md` for visual/UI work
 
 ## Development server
 
@@ -29,7 +29,7 @@ npm start
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`.
 
-The Angular dev server proxies auth-related browser routes to the BFF using `proxy.conf.json`. For login/logout verification to work locally, the Aspire/AppHost stack and Keycloak resource must also be running healthy.
+The Angular dev server proxies `/api`, `/signin-oidc`, and `/signout-callback-oidc` to the API Gateway using `proxy.conf.json`. The Gateway forwards browser API and auth callback traffic to the BFF. For login/logout verification to work locally, the Aspire/AppHost stack and Keycloak resource must also be running healthy.
 
 ## Workspace structure
 
@@ -94,7 +94,7 @@ The workspace uses the Angular/Vitest unit-test integration configured at the ro
 
 ## Running end-to-end tests
 
-Manual auth verification should be performed with the local Aspire/AppHost platform running, so the Angular shell can round-trip through the BFF and Keycloak.
+Manual auth verification should be performed with the local Aspire/AppHost platform running, so the Angular shell can round-trip through the API Gateway, BFF, and Keycloak.
 
 Suggested local sequence:
 
@@ -106,5 +106,5 @@ npm start
 ## Additional Resources
 
 - `../docs/ai/stack-rules/angular-tailwind.md` — repo frontend engineering rules
-- `../docs/ai/stack-rules/frontend-ui-unification.md` — canonical FoodSocial UI rules for visual/frontend implementation
+- `../DESIGN.md` — canonical FoodSocial UI/UX rules for visual/frontend implementation
 - [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli)

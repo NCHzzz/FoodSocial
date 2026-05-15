@@ -15,6 +15,26 @@ commonEnv:
   Post__ApplyMigrationsOnStartup: "false"
 
 services:
+  api-gateway:
+    enabled: true
+    image: api-gateway
+    replicas: 2
+    port: 8080
+    env:
+      Gateway__Clusters__Bff__Address: http://foodsocial-bff
+      Gateway__Cors__AllowedOrigins__0: https://foodsocial.example.com
+      Gateway__Health__BffTimeoutSeconds: "3"
+      Gateway__MaxRequestBodySizeBytes: "26214400"
+      Gateway__Proxy__ActivityTimeoutSeconds: "30"
+      Gateway__RateLimiting__Default__PermitLimit: "300"
+      Gateway__RateLimiting__Default__WindowSeconds: "60"
+      Gateway__RateLimiting__Auth__PermitLimit: "30"
+      Gateway__RateLimiting__Auth__WindowSeconds: "60"
+      Gateway__RateLimiting__RiskyWrite__PermitLimit: "60"
+      Gateway__RateLimiting__RiskyWrite__WindowSeconds: "60"
+      Gateway__RateLimiting__MediaUpload__PermitLimit: "20"
+      Gateway__RateLimiting__MediaUpload__WindowSeconds: "60"
+      ForwardedHeaders__KnownNetworks__0: 10.0.0.0/8
   bff:
     enabled: true
     image: bff
@@ -39,12 +59,19 @@ services:
     replicas: 1
     port: 8080
     env: {}
+  place-api:
+    enabled: true
+    image: place-api
+    replicas: 1
+    port: 8080
+    env: {}
   post-api:
     enabled: true
     image: post-api
     replicas: 1
     port: 8080
-    env: {}
+    env:
+      Post__Media__StoragePath: /app/App_Data/media
   web:
     enabled: true
     image: web
@@ -80,3 +107,14 @@ ingress:
   className: ""
   hosts: []
   tls: []
+
+mediaStorage:
+  postApi:
+    mountPath: /app/App_Data/media
+    persistentVolumeClaim:
+      enabled: true
+      existingClaim: ""
+      storageClassName: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 10Gi

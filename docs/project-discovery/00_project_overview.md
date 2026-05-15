@@ -8,7 +8,7 @@
 
 ## Project Summary
 
-The product is a food-focused social media platform for users to share and discover food-related content.
+FoodSocial is a food-focused social product for people who want to share food experiences, discover dishes and places, and make better everyday eating decisions.
 
 The platform will support content such as:
 
@@ -24,9 +24,9 @@ The long-term direction includes enabling users to order food directly through i
 - Create a social platform dedicated only to food and dining content
 - Help users decide what to eat and where to eat
 - Enable users to share memorable dishes, restaurants, and recipes with others
-- Build a foundation for future AI-based food recommendations
+- Build AI-assisted food recommendations as a core product capability
 - Position the product as an AI-native food social platform
-- Validate that a small group of real users uses the product repeatedly and finds it useful
+- Grow into a dependable public product with repeated real-world usage, clear moderation operations, and staged scale maturity
 
 ## Problem Statement
 
@@ -56,18 +56,24 @@ Users need a dedicated place to:
 - Restaurant or food business partners (Need confirmation)
 - Food delivery partners for ordering integration in later phases (Assumption)
 
-## MVP Summary
+## Product Release Summary
 
-The current MVP direction includes all of the following capabilities:
+FoodSocial should be documented and built as a real food-first social product, not as a disposable MVP prototype.
+
+The product baseline must deliver a coherent loop with all of the following capabilities:
 
 - create posts about food, restaurants, and recipes
-- discovery feed
+- following and discovery feeds
 - like, comment, save, and share interactions
 - search by dish, restaurant, and location
-- user profile
-- follow other users
-- AI-based food recommendation
+- public profile and account-owned profile management
+- follow, block, mute, and basic privacy controls
+- AI-assisted food recommendation with deterministic fallback
 - moderation and reporting
+- notification center
+- production operations for identity, media, backup, observability, and incident response
+
+Product maturity is staged in `16_maturity_roadmap.md`.
 
 ## Content Strategy Direction
 
@@ -75,13 +81,13 @@ The current MVP direction includes all of the following capabilities:
 - Primary content strategy: Food-first
 - Secondary content types: Restaurant / place content and recipe content
 
-The MVP should optimize for the user question "what should I eat?" before deeper place-centric or recipe-centric experiences.
+The product should optimize for the user question "what should I eat?" before deeper place-centric or recipe-centric experiences.
 
 ## AI-Native Product Direction
 
 The product should be designed as an AI-native social experience rather than a conventional social product with AI added later.
 
-In MVP terms, this means AI should meaningfully improve:
+For the product baseline, this means AI should meaningfully improve:
 
 - discovery
 - search
@@ -105,22 +111,22 @@ Initial architectural interpretation:
 
 Current clarified direction:
 
-- MVP priority: AI for end users plus controlled agent consumption
-- later direction: broader external agent actions with proper authorization and audit controls
+- Product priority: AI for end users plus controlled agent consumption
+- Later direction: broader external agent actions with proper authorization, policy, and audit controls
 
-## Approved MVP AI Direction
+## Approved AI Direction
 
-The approved MVP direction is:
+The approved direction is:
 
 - Priority A: AI for end users
 - Priority B: AI agents can consume the platform effectively
 - Later phase: C, internal AI agents inside the product
 
-This means the MVP should focus on:
+This means the product should focus first on:
 
 - AI-assisted discovery for human users
 - agent-friendly APIs and structured platform contracts
-- postponing deeper internal agent orchestration until later phases
+- postponing deeper internal agent orchestration until authorization, observability, and operator controls are ready
 
 Long-term agent direction:
 
@@ -138,11 +144,11 @@ High-level summary:
 - Identity: self-hosted Keycloak
 - Local orchestration: .NET Aspire
 - Deployment direction: Kubernetes
-- Search MVP: PostgreSQL-first
+- Product search: PostgreSQL-first until real query volume, relevance gaps, or operational needs justify a dedicated search engine
 
-For MVP implementation, tenant should be treated primarily as an architectural isolation concern rather than a rich product-facing workflow driver.
+Tenant should be treated primarily as an architectural isolation concern until a real partner or multi-operator business model requires richer product-facing tenant workflows.
 
-## Architecture Snapshot for MVP
+## Product Architecture Snapshot
 
 - Canonical architecture truth lives in `10_architecture.md`.
 
@@ -151,42 +157,45 @@ Snapshot:
 - Edge pattern: API Gateway / BFF
 - Internal communication: Hybrid REST + async events
 - Async backbone: RabbitMQ
-- Search MVP: PostgreSQL-first
+- Search: PostgreSQL-first, with a staged path to dedicated search if evidence requires it
 - AI strategy: provider-agnostic integration with deterministic fallback
 - Rollout safety: lightweight runtime feature controls
 
 ## Platform Direction
 
-- MVP platform strategy: Responsive web first
-- Native mobile apps: Phase 2 or later (current direction)
+- Product platform strategy: responsive web first, with native mobile staged after the web product proves retention and operational stability
+- Native mobile apps: later product phase unless distribution evidence changes the priority
 
 ## Delivery Context
 
-- Project type: Personal project
-- Delivery mode: Solo build with AI-assisted / vibe coding workflow
-- Target timeline: 2 months
-- Delivery implication: MVP scope must be carefully constrained even if the feature vision remains broad
-- End-of-timeline target: limited real-user beta first, with a path toward production-ready public launch later
+- Project type: Personal project evolving toward a real production product
+- Delivery mode: Solo build with AI-assisted workflow
+- Delivery implication: the product must use maturity gates so the architecture stays real-world capable without introducing every mature social-network subsystem at once
+- Current delivery target: production-like beta first, then public launch, then scale maturity as described in `16_maturity_roadmap.md`
 
 ## Current Assumptions
 
 - The initial target audience is consumer users, not enterprise users
 - The first growth engine is content creation and sharing by food reviewers / food sharers
-- Recipe content is included in MVP, but it may not be as deep as the social/discovery layer
-- AI recommendation in MVP will use staged implementation rather than advanced ML infrastructure from day one
-- Search in MVP will remain PostgreSQL-centered instead of using a heavyweight dedicated search engine
+- Recipe content is included in the launch release, but it may not be as deep as the social/discovery layer
+- AI recommendation will use staged implementation rather than advanced ML infrastructure before there are enough signals to justify it
+- Search will remain PostgreSQL-centered until dedicated search has a clear relevance, scale, or operations case
 - Multiple AI providers will be supported through a provider-agnostic internal integration layer
-- Recommendation priority in MVP is Food-first: dishes first, then places
-- Recommendation personalization in MVP will be medium-depth, with a deliberate upgrade path toward stronger personalization later
-- Selective caching is sufficient for MVP if explicit ownership and invalidation remain visible per use case
-- Vector-search infrastructure is not a default MVP dependency unless semantic retrieval needs become real enough to justify it
+- Recommendation priority is Food-first: dishes first, then places
+- Recommendation personalization starts at medium depth, with a deliberate upgrade path toward stronger personalization later
+- Selective caching is sufficient until feed, catalog, or recommendation hotspots are measured
+- Vector-search infrastructure is not a default dependency unless semantic retrieval needs become real enough to justify it
 - Media lifecycle and deletion behavior must be treated as architecture concerns, not only implementation details
+- Block, mute, privacy controls, and abuse operations are required for a real social product even if the first implementation remains simple
 
 ## Need Confirmation
 
-- Exact MVP depth for recommendation heuristics and signal weighting
-- Budget constraints
+- Production budget constraints
+- Public-launch user cap and operating model
+- Exact threshold for dedicated feed, search, notification, or moderation service extraction
 
-## Launch Scope
+## Product Scope
 
-- Initial launch market: Vietnam
+- Initial market: Vietnam
+- Product class: food-first social platform
+- Release strategy: production-like beta, public launch, then scale maturity

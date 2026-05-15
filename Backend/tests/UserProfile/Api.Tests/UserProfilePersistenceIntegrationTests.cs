@@ -1,5 +1,7 @@
 using FluentAssertions;
 using FoodSocial.Contracts.Identity;
+using FoodSocial.Contracts.UserProfiles;
+using FoodSocial.Messaging;
 using FoodSocial.UserProfile.Application;
 using FoodSocial.UserProfile.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
@@ -26,6 +28,7 @@ public sealed class UserProfilePersistenceIntegrationTests
 
         var shell = await dbContext.UserProfileShells.SingleAsync(candidate => candidate.IdentityId == integrationEvent.IdentityId);
         var details = await dbContext.UserProfileDetails.SingleAsync(candidate => candidate.UserProfileShellId == shell.Id);
+        var outbox = await dbContext.IntegrationOutboxMessages.SingleAsync();
 
         details.DisplayName.Should().Be("demo-user");
         details.Bio.Should().BeNull();
@@ -33,6 +36,9 @@ public sealed class UserProfilePersistenceIntegrationTests
         details.PreferredCuisines.Should().BeEmpty();
         details.DislikedIngredients.Should().BeEmpty();
         details.DietaryRestrictions.Should().BeEmpty();
+        outbox.EventType.Should().Be(nameof(UserProfileChangedIntegrationEvent));
+        outbox.DeliveryState.Should().Be(IntegrationOutboxDeliveryState.Pending);
+        outbox.RoutingKey.Should().Be("userprofile.profile.profileshellcreated.v1");
     }
 
     [Fact]

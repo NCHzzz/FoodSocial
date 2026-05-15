@@ -1,4 +1,5 @@
 using FoodSocial.Place.Domain;
+using FoodSocial.Messaging;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -24,11 +25,14 @@ public sealed class PlaceDbContext(DbContextOptions<PlaceDbContext> options) : D
     /// Gets the persisted canonical Places.
     /// </summary>
     public DbSet<PlaceRecord> Places => Set<PlaceRecord>();
+    public DbSet<IntegrationOutboxMessage> IntegrationOutboxMessages => Set<IntegrationOutboxMessage>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.HasPostgresExtension("pg_trgm");
+        modelBuilder.ConfigureIntegrationOutbox("place_outbox_messages");
 
         modelBuilder.Entity<PlaceRecord>(entity =>
         {
@@ -37,6 +41,7 @@ public sealed class PlaceDbContext(DbContextOptions<PlaceDbContext> options) : D
             entity.HasKey(place => place.Id);
 
             entity.Property(place => place.Name).HasMaxLength(180).IsRequired();
+            entity.Property(place => place.TenantId).IsRequired();
             entity.Property(place => place.NormalizedName).HasMaxLength(180).IsRequired();
             entity.Property(place => place.Description).HasMaxLength(1200);
             entity.Property(place => place.AddressText).HasMaxLength(300).IsRequired();
@@ -62,13 +67,12 @@ public sealed class PlaceDbContext(DbContextOptions<PlaceDbContext> options) : D
             entity.Property(place => place.CreatedAtUtc).IsRequired();
             entity.Property(place => place.UpdatedAtUtc).IsRequired();
 
-            entity.HasIndex(place => place.NormalizedName);
-            entity.HasIndex(place => new { place.NormalizedName, place.NormalizedCity, place.NormalizedArea }).IsUnique();
-            entity.HasIndex(place => new { place.NormalizedCity, place.NormalizedArea });
-            entity.HasIndex(place => place.CuisineTypes);
-            entity.HasIndex(place => place.CuisineTypesSearchText);
-            entity.HasIndex(place => place.PriceRange);
-            entity.HasIndex(place => place.Status);
+            entity.HasIndex(place => new { place.TenantId, place.NormalizedName });
+            entity.HasIndex(place => new { place.TenantId, place.NormalizedName, place.NormalizedCity, place.NormalizedArea }).IsUnique();
+            entity.HasIndex(place => new { place.TenantId, place.NormalizedCity, place.NormalizedArea });
+            entity.HasIndex(place => new { place.TenantId, place.CuisineTypesSearchText });
+            entity.HasIndex(place => new { place.TenantId, place.PriceRange });
+            entity.HasIndex(place => new { place.TenantId, place.Status });
         });
     }
 

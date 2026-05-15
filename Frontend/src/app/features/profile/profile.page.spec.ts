@@ -5,6 +5,8 @@ import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 
 import { AuthSessionState } from '../../core/auth/auth-session.models';
 import { AuthSessionService } from '../../core/auth/auth-session.service';
+import { DishApi } from '../../core/dishes/infrastructure/dish.api';
+import { PlaceApi } from '../../core/places/infrastructure/place.api';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
 import { PostApi } from '../../core/posts/infrastructure/post.api';
 import { PostSearchResponse } from '../../core/posts/post.models';
@@ -115,6 +117,48 @@ describe('ProfilePage', () => {
             searchPosts: () => (options?.searchPosts ?? (() => of(authoredPosts)))(),
           },
         },
+        {
+          provide: DishApi,
+          useValue: {
+            getDish: (dishId: string) => of({
+              id: dishId,
+              name: dishId === 'dish-authored-1' ? 'Cơm tấm' : 'Bún bò Huế',
+              normalizedName: dishId,
+              description: null,
+              category: null,
+              cuisineType: 'Vietnamese',
+              aliases: [],
+              ingredients: [],
+              dietaryFlags: [],
+              status: 'Active',
+              createdAtUtc: '2026-04-25T00:00:00Z',
+              updatedAtUtc: '2026-04-25T00:00:00Z',
+              deprecatedAtUtc: null,
+            }),
+          },
+        },
+        {
+          provide: PlaceApi,
+          useValue: {
+            getPlace: () => of({
+              id: 'place-1',
+              name: 'Quán Ăn Ngon',
+              normalizedName: 'quan an ngon',
+              description: null,
+              addressText: '18 Phan Bội Châu',
+              area: 'District 1',
+              city: 'Ho Chi Minh City',
+              country: 'Vietnam',
+              latitude: null,
+              longitude: null,
+              cuisineTypes: [],
+              priceRange: '$$',
+              status: 'Active',
+              createdAtUtc: '2026-04-25T00:00:00Z',
+              updatedAtUtc: '2026-04-25T00:00:00Z',
+            }),
+          },
+        },
         ProfileStateService,
       ],
     }).compileComponents();
@@ -137,9 +181,11 @@ describe('ProfilePage', () => {
 
     expect(compiled.textContent).toContain('Demo Explorer');
     expect(compiled.textContent).toContain('Post post-1');
-    expect(compiled.textContent).toContain('Dish dish-1');
+    expect(compiled.textContent).toContain('Bún bò Huế');
     expect(compiled.textContent).toContain('Authored posts');
     expect(compiled.textContent).toContain('My best cơm tấm note.');
+    expect(compiled.textContent).toContain('Cơm tấm');
+    expect(compiled.textContent).not.toContain('Dish dish-1');
     expect(compiled.textContent).toContain('No saved places.');
   });
 

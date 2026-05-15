@@ -9,7 +9,7 @@
 
 Build a responsive web-first AI-native food-focused social media platform.
 
-Implement the approved MVP scope from `03_scope_mvp.md` and `04_functional_requirements.md`.
+Implement the approved product scope from `03_product_scope.md`, `04_functional_requirements.md`, and `16_maturity_roadmap.md`.
 
 Use `AGENTS.md`, `docs/ai/repo-map.md`, and the approved project-discovery documents as source material.
 
@@ -28,17 +28,16 @@ Use `AGENTS.md`, `docs/ai/workflows.md`, `docs/ai/engineering-rules.md`, and the
 - Aspire AppHost and shared service defaults
 - Angular shell and route structure
 - identity/auth service skeleton
-- posts/media service skeleton
+- user/profile service skeleton
 - dish service skeleton
 - place service skeleton
-- search/recommendation service skeleton
-- notification service skeleton
-- Python AI capability service skeleton for query understanding or enrichment
-- moderation/trust service skeleton
+- posts/media service skeleton
+
+Do not generate dedicated Feed, Search/Recommendation, Notification, Moderation/Trust, Media, Analytics, or Python AI services by default. Those are maturity-gated extractions defined in `16_maturity_roadmap.md` and `10_architecture.md`.
 
 ## Suggested Build Order
 
-Suggested build order follows the same intent as the file-generation list above; keep only one sequencing source when this helper is used.
+Suggested build order follows the same intent as the file-generation list above. Keep the first implementation inside current launch boundaries unless an approved maturity gate requires extraction.
 
 ## Need Confirmation
 

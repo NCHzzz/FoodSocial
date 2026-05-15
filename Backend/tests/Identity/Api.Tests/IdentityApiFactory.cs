@@ -12,7 +12,7 @@ namespace FoodSocial.Identity.Api.Tests;
 
 internal sealed class IdentityApiFactory : WebApplicationFactory<Program>
 {
-    private const string TestIdentityInternalTrustSharedSecret = "foodsocial-bff-test-shared-secret";
+    internal const string TestBffServiceClientId = "foodsocial-bff-service";
     private readonly TestIdentityUserStore _testIdentityUserStore = new();
 
     public IdentityApiFactory()
@@ -26,8 +26,7 @@ internal sealed class IdentityApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        builder.UseSetting("Identity:InternalTrust:ServiceId", "foodsocial-bff");
-        builder.UseSetting("Identity:InternalTrust:SharedSecret", TestIdentityInternalTrustSharedSecret);
+        builder.UseSetting("Identity:TrustedServiceClients:BffClientId", TestBffServiceClientId);
 
         builder.ConfigureTestServices(services =>
         {

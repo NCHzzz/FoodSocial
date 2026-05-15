@@ -18,7 +18,7 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
         var accessToken = await fixture.Auth.GetDemoUserAccessTokenAsync(cts.Token);
         accessToken.Should().NotBeNullOrWhiteSpace();
 
-        using var bffClient = await fixture.Auth.CreateAuthenticatedBffBearerClientAsync(cts.Token);
+        using var bffClient = await fixture.Auth.CreateAuthenticatedGatewayBearerClientAsync(cts.Token);
         var sessionPayload = await GetSessionAsync(bffClient, cts.Token);
 
         await WaitForAsync(
@@ -49,7 +49,7 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
         using var cts = fixture.CreateDefaultCancellationTokenSource();
         await ResetBootstrapArtifactsAsync(cts.Token);
 
-        using var bffClient = await fixture.Auth.CreateAuthenticatedBffBearerClientAsync(cts.Token);
+        using var bffClient = await fixture.Auth.CreateAuthenticatedGatewayBearerClientAsync(cts.Token);
 
         CurrentUserResponse? lastSession = null;
         for (var attempt = 0; attempt < 4; attempt++)
@@ -105,7 +105,7 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
         using var cts = fixture.CreateDefaultCancellationTokenSource();
         await ResetBootstrapArtifactsAsync(cts.Token);
 
-        using var bffClient = await fixture.Auth.CreateAuthenticatedBffBearerClientAsync(cts.Token);
+        using var bffClient = await fixture.Auth.CreateAuthenticatedGatewayBearerClientAsync(cts.Token);
         var sessionPayload = await GetSessionAsync(bffClient, cts.Token);
         sessionPayload.User.Subject.Should().NotBeNullOrWhiteSpace();
 
@@ -151,7 +151,7 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
         using var cts = fixture.CreateDefaultCancellationTokenSource();
         await ResetBootstrapArtifactsAsync(cts.Token);
 
-        using var bffClient = await fixture.Auth.CreateAuthenticatedBffBearerClientAsync(cts.Token);
+        using var bffClient = await fixture.Auth.CreateAuthenticatedGatewayBearerClientAsync(cts.Token);
         var sessionPayload = await GetSessionAsync(bffClient, cts.Token);
 
         await WaitForAsync(
@@ -223,7 +223,7 @@ public sealed class ProductionPathVerificationIntegrationTests(AppHostFixture fi
 
         try
         {
-            using var bffClient = await fixture.Auth.CreateAuthenticatedBffBearerClientAsync(cts.Token);
+            using var bffClient = await fixture.Auth.CreateAuthenticatedGatewayBearerClientAsync(cts.Token);
             var sessionPayload = await GetSessionAsync(bffClient, cts.Token);
 
             sessionPayload.Identity.State.Should().Be("PendingBootstrap");

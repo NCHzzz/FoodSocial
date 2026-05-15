@@ -323,7 +323,7 @@ public sealed class BffUserProfileEndpointTests
             builder.UseSetting("Keycloak:BffClientSecret", "test-client-secret");
             builder.UseSetting("Services:identity-api:https:0", "https://identity-api.example.test");
             builder.UseSetting("Services:userprofile-api:https:0", "https://userprofile-api.example.test");
-            builder.UseSetting("Identity:InternalTrust:SharedSecret", "test-shared-secret");
+            builder.UseSetting("Keycloak:ServiceClientAccessToken", "test-service-token");
 
             builder.ConfigureTestServices(services =>
             {

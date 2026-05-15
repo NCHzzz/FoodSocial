@@ -37,3 +37,26 @@ groups:
         annotations:
           summary: "High HTTP p95 latency for {{ $labels.job }}"
           description: "HTTP server p95 latency has exceeded 1 second for more than 5 minutes."
+
+      - alert: FoodSocialPostMediaCleanupFailures
+        expr: increase(foodsocial_post_media_cleanup_failures_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Post media cleanup is failing"
+          description: "Post.Api has recorded one or more media cleanup failures in the last 15 minutes."
+
+      - alert: FoodSocialModerationBacklogGrowth
+        expr: |
+          (
+            sum(increase(foodsocial_post_content_reports_created_total[1h]))
+            -
+            sum(increase(foodsocial_post_content_reports_resolved_total[1h]))
+          ) > 25
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Moderation backlog growth detected"
+          description: "Content reports are arriving faster than they are being resolved over the last hour."

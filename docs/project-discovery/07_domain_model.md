@@ -3,11 +3,11 @@
 ## Status
 
 - Working draft
-- Last updated: 2026-04-02
+- Last updated: 2026-05-13
 
 ## Overview
 
-This document defines the core entities, their attributes, relationships, and the MVP modeling direction for FoodSocial.
+This document defines the core entities, their attributes, relationships, and the launch modeling direction for FoodSocial.
 
 ---
 
@@ -17,6 +17,7 @@ This document defines the core entities, their attributes, relationships, and th
 ```json
 {
   "id": "uuid",
+  "identitySubject": "string",
   "username": "string",
   "email": "string",
   "displayName": "string",
@@ -27,8 +28,8 @@ This document defines the core entities, their attributes, relationships, and th
     "dislikedIngredients": ["string"],
     "dietaryRestrictions": ["string"]
   },
-  "role": "enum: guest | user | admin",
-  "status": "enum: active | suspended | deleted",
+  "roles": ["user", "moderator", "admin"],
+  "status": "enum: active | restricted | suspended | deleted",
   "createdAt": "datetime",
   "updatedAt": "datetime"
 }
@@ -42,7 +43,7 @@ This document defines the core entities, their attributes, relationships, and th
   "authorId": "uuid",
   "caption": "string",
   "media": [{
-    "type": "enum: image | video",
+    "type": "enum: image | video_later",
     "url": "string",
     "thumbnailUrl": "string",
     "caption": "string"
@@ -73,7 +74,7 @@ This document defines the core entities, their attributes, relationships, and th
   "id": "uuid", // References Post.id
   "dishName": "string",
   "dishId": "uuid", // References Dish.id
-  "placeId": "uuid", // References Place.id
+  "placeId": "uuid | null", // References Place.id when known
   "rating": "integer (1-5)",
   "priceRange": "enum: $ | $$ | $$$ | $$$$",
   "tasteNotes": ["string"]
@@ -87,12 +88,11 @@ This document defines the core entities, their attributes, relationships, and th
   "name": "string",
   "description": "string",
   "address": "string",
+  "city": "string",
+  "area": "string",
   "location": {"latitude": "float", "longitude": "float"},
   "cuisineTypes": ["string"],
   "priceRange": "enum: $ | $$ | $$$ | $$$$",
-  "operatingHours": {"monday": {"open": "time", "close": "time"}, "tuesday": {"open": "time", "close": "time"}},
-  "contact": {"phone": "string", "website": "string", "email": "string"},
-  "rating": {"average": "float", "count": "integer"},
   "status": "enum: active | closed | suspended",
   "createdAt": "datetime",
   "updatedAt": "datetime"
@@ -105,13 +105,12 @@ This document defines the core entities, their attributes, relationships, and th
   "id": "uuid",
   "name": "string",
   "description": "string",
+  "aliases": ["string"],
   "category": "string",
   "cuisine": "string",
-  "ingredients": ["string"],
-  "dietaryInfo": {"isVegetarian": "boolean", "isVegan": "boolean", "isGlutenFree": "boolean", "isSpicy": "boolean"},
-  "nutrition": {"calories": "integer", "protein": "float", "carbs": "float", "fat": "float"},
   "status": "enum: active | deprecated",
-  "createdAt": "datetime"
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
 }
 ```
 
@@ -134,12 +133,35 @@ This document defines the core entities, their attributes, relationships, and th
 {
   "id": "uuid",
   "postId": "uuid",
-  "parentId": "uuid",
   "authorId": "uuid",
   "content": "string",
   "status": "enum: visible | hidden | deleted",
   "createdAt": "datetime",
   "updatedAt": "datetime"
+}
+```
+
+#### UserRelationship
+```json
+{
+  "id": "uuid",
+  "sourceUserId": "uuid",
+  "targetUserId": "uuid",
+  "type": "enum: follow | block | mute",
+  "status": "enum: active | removed",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
+
+#### SavedItem
+```json
+{
+  "id": "uuid",
+  "userId": "uuid",
+  "targetType": "enum: post | dish | place",
+  "targetId": "uuid",
+  "createdAt": "datetime"
 }
 ```
 
@@ -165,30 +187,35 @@ This document defines the core entities, their attributes, relationships, and th
 {
   "id": "uuid",
   "userId": "uuid",
-  "type": "enum: like | comment | follow | share | save | system",
+  "type": "enum: like | comment | follow | repost | report_outcome | account | system",
   "title": "string",
   "message": "string",
   "data": "json",
   "isRead": "boolean",
-  "createdAt": "datetime"
+  "createdAt": "datetime",
+  "readAt": "datetime | null"
 }
 ```
 
 ---
 
-### High‑Level Domain Model (MVP Direction)
+### High-Level Domain Model (Launch Direction)
 
-- **Dish** and **Place** are first‑class entities from day 1.
+- **Dish** and **Place** are first-class entities from day 1.
 - Food posts must reference a canonical `Dish`, and may reference a canonical `Place` when known.
+- Place fallback text may exist for launch posting, but canonical `Place` remains the preferred link for search and discovery quality.
 - `Post` is the central content aggregate.
-- `User` owns posts, likes, comments, follows, and saved items.
-- Tenant isolation is enforced at the service layer rather than as a separate MVP domain entity.
+- `User/Profile` owns profile state, follows, blocks, mutes, and saved items.
+- Tenant isolation is enforced at the service layer rather than as a separate product-facing domain entity until tenant workflows become part of the business model.
 - Aggregates:
   - `User/Profile`
   - `Post` (including `FoodPost`, `RecipePost`)
   - `Dish`
   - `Place`
+  - `Media`
   - `Moderation` (reports, actions)
+  - `Notification`
+  - `Analytics/Event`
 
 ---
 
@@ -198,13 +225,14 @@ This document defines the core entities, their attributes, relationships, and th
 erDiagram
     User ||--o{ Post : creates
     User ||--o{ Comment : writes
+    User ||--o{ UserRelationship : owns
+    User ||--o{ SavedItem : saves
     User ||--o{ Report : submits
     User ||--o{ Notification : receives
     Post ||--o{ FoodPost : extends
     Post ||--o{ Recipe : extends
     FoodPost }o--|| Dish : references
     FoodPost }o--|| Place : references
-    Comment ||--o{ Comment : nested
     Place ||--o{ FoodPost : location
 ```
 
@@ -212,13 +240,15 @@ erDiagram
 
 ### Indexing Strategy (summary)
 
-Canonical schema/index detail lives in `08_database_design.md`.
+Canonical schema/index detail lives in `09_database_design.md`.
 
 Only the highest-value summary remains here:
 
 - primary keys use UUIDs
 - `User.username` and `User.email` are unique
 - search indexes matter on `Post.caption`, `Place.name`, and `Dish.name`
+- relationship indexes matter on `(sourceUserId, targetUserId, type)` and target-user lookup paths
+- saved-item indexes matter on `(userId, targetType, targetId)`
 
 ---
 

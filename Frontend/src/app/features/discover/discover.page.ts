@@ -15,7 +15,7 @@ import { PostSummaryResponse } from '../../core/posts/post.models';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
 import { DishSearchSelectComponent } from '../dishes/dish-search-select.component';
 import { PlaceSearchSelectComponent } from '../places/place-search-select.component';
-import { PostCardComponent } from '../posts/post-card.component';
+import { PostCardComponent, PostReportSubmission } from '../posts/post-card.component';
 import { UiButtonDirective } from '../../shared/ui/button/ui-button.directive';
 import { UiSurfaceDirective } from '../../shared/ui/surface/ui-surface.directive';
 
@@ -110,16 +110,20 @@ export class DiscoverPage {
     });
   }
 
-  protected sharePost(postId: string): void {
+  protected async sharePost(postId: string): Promise<void> {
     const url = `${this.browserWindow.location.origin}/posts/${encodeURIComponent(postId)}`;
-    void this.browserWindow.navigator.clipboard?.writeText(url);
-    this.showActionSuccess('Post link copied.');
+    try {
+      await this.browserWindow.navigator.clipboard?.writeText(url);
+      this.showActionSuccess('Post link copied.');
+    } catch {
+      this.showActionError('Share failed. Copy the URL from the address bar.');
+    }
   }
 
-  protected reportPost(postId: string): void {
+  protected reportPost(report: PostReportSubmission): void {
     if (!this.requireAuthenticatedAction('Sign in to report posts from Discover.')) return;
     this.actionStatus.set('pending');
-    this.postApi.reportPost(postId, 'spam_or_low_quality', 'Reported from Discover feed.').subscribe({
+    this.postApi.reportPost(report.postId, report.reason, report.description).subscribe({
       next: () => this.showActionSuccess('Report submitted for manual review.'),
       error: () => this.showActionError('Report failed. Retry when moderation intake is available.'),
     });

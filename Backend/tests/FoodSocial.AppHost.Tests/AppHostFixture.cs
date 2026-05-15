@@ -12,8 +12,8 @@ public sealed class AppHostFixture : IAsyncLifetime
     private const string UseStableDockerResourceNamesEnvironmentVariable = "FoodSocial__AppHost__UseStableDockerResourceNames";
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
     internal const string TestKeycloakBffClientSecret = "foodsocial-bff-test-secret";
+    internal const string TestKeycloakBffServiceClientSecret = "foodsocial-bff-service-test-secret";
     internal const string TestKeycloakDemoUserPassword = "Pass@word1";
-    internal const string TestIdentityInternalTrustSharedSecret = "foodsocial-bff-test-shared-secret";
 
     private readonly DirectoryInfo _tempAspireStore = Directory.CreateTempSubdirectory("foodsocial-apphost-tests-");
     private DistributedApplication? _app;
@@ -46,8 +46,8 @@ public sealed class AppHostFixture : IAsyncLifetime
         appHost.Configuration["Aspire:Store:Path"] = _tempAspireStore.FullName;
         appHost.Configuration["DcpPublisher:WaitForResourceCleanup"] = bool.TrueString;
         appHost.Configuration["Parameters:keycloak-bff-client-secret"] = TestKeycloakBffClientSecret;
+        appHost.Configuration["Parameters:keycloak-bff-service-client-secret"] = TestKeycloakBffServiceClientSecret;
         appHost.Configuration["Parameters:keycloak-demo-user-password"] = TestKeycloakDemoUserPassword;
-        appHost.Configuration["Parameters:identity-internal-trust-shared-secret"] = TestIdentityInternalTrustSharedSecret;
 
         _app = await appHost.BuildAsync();
         await _app.StartAsync().WaitAsync(StartupTimeout);
@@ -65,6 +65,7 @@ public sealed class AppHostFixture : IAsyncLifetime
         await WaitForHttpOkAsync("identity-api", ["https", "http"], "/alive", cts.Token);
         await WaitForHttpOkAsync("userprofile-api", ["https", "http"], "/alive", cts.Token);
         await WaitForHttpOkAsync("bff", ["https", "http"], "/alive", cts.Token);
+        await WaitForHttpOkAsync("api-gateway", ["https", "http"], "/alive", cts.Token);
 
         var identityConnectionString = await _app.GetConnectionStringAsync("identitydb", cts.Token)
             ?? throw new InvalidOperationException("AppHost did not expose a connection string for 'identitydb'.");

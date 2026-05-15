@@ -12,16 +12,16 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
     private const string DemoUsername = "demo-user";
     private const string RealmName = "foodsocial";
     private const string TokenClientId = "foodsocial-cli";
-    private static readonly Uri BrowserBffHttpsOrigin = new("https://localhost:7187", UriKind.Absolute);
+    private static readonly Uri BrowserGatewayHttpsOrigin = new("https://localhost:7280", UriKind.Absolute);
     private static readonly TimeSpan BrowserLoginRetryDelay = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan TokenRetryDelay = TimeSpan.FromSeconds(2);
 
     private readonly AppHostResourceDiscovery _resources = resources ?? throw new ArgumentNullException(nameof(resources));
     private static string DemoPassword => AppHostFixture.TestKeycloakDemoUserPassword;
 
-    public async Task<HttpClient> CreateBffClientAsync(CancellationToken cancellationToken)
+    public async Task<HttpClient> CreateAuthenticatedGatewayBearerClientAsync(CancellationToken cancellationToken)
     {
-        var client = _resources.CreateHttpClient("bff", "https");
+        var client = _resources.CreateHttpClient("api-gateway", "https");
         client.DefaultRequestHeaders.Authorization = await CreateAuthorizationHeaderAsync(cancellationToken);
         return client;
     }
@@ -47,7 +47,7 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
 
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            var actualBffHttpsOrigin = _resources.GetEndpoint("bff", "https");
+            var actualGatewayHttpsOrigin = _resources.GetEndpoint("api-gateway", "https");
             var browserCookies = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
             var handler = new HttpClientHandler
             {
@@ -59,19 +59,19 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
 
             var client = new HttpClient(handler, disposeHandler: true)
             {
-                BaseAddress = actualBffHttpsOrigin
+                BaseAddress = actualGatewayHttpsOrigin
             };
 
             try
             {
                 using var loginEntryResponse = await SendBrowserGetAsync(
                     client,
-                    actualBffHttpsOrigin,
+                    actualGatewayHttpsOrigin,
                     new Uri("/api/auth/login?returnUrl=%2Fapi%2Fauth%2Fsession", UriKind.Relative),
                     browserCookies,
                     cancellationToken);
 
-                using var loginPageResponse = await FollowRedirectsAsync(client, actualBffHttpsOrigin, loginEntryResponse, browserCookies, cancellationToken);
+                using var loginPageResponse = await FollowRedirectsAsync(client, actualGatewayHttpsOrigin, loginEntryResponse, browserCookies, cancellationToken);
 
                 var loginPageBody = await loginPageResponse.Content.ReadAsStringAsync(cancellationToken);
                 if (!loginPageResponse.IsSuccessStatusCode)
@@ -99,13 +99,13 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
 
                 using var loginResponse = await SendBrowserPostAsync(
                     client,
-                    actualBffHttpsOrigin,
+                    actualGatewayHttpsOrigin,
                     loginFormAction,
                     new FormUrlEncodedContent(loginFormPayload),
                     browserCookies,
                     cancellationToken);
 
-                using var finalResponse = await FollowRedirectsAsync(client, actualBffHttpsOrigin, loginResponse, browserCookies, cancellationToken);
+                using var finalResponse = await FollowRedirectsAsync(client, actualGatewayHttpsOrigin, loginResponse, browserCookies, cancellationToken);
 
                 var finalUri = finalResponse.RequestMessage?.RequestUri;
                 if (finalUri is not null && !string.Equals(finalUri.AbsolutePath, "/api/auth/session", StringComparison.Ordinal))
@@ -282,7 +282,7 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
 
     private static async Task<HttpResponseMessage> FollowRedirectsAsync(
         HttpClient client,
-        Uri actualBffHttpsOrigin,
+        Uri actualGatewayHttpsOrigin,
         HttpResponseMessage response,
         IReadOnlyDictionary<string, Dictionary<string, string>> browserCookies,
         CancellationToken cancellationToken)
@@ -302,11 +302,11 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
                 var nextUri = location.IsAbsoluteUri ? location : new Uri(requestUri, location);
 
                 currentResponse.Dispose();
-                currentResponse = await SendBrowserGetAsync(client, actualBffHttpsOrigin, nextUri, browserCookies, cancellationToken);
+                currentResponse = await SendBrowserGetAsync(client, actualGatewayHttpsOrigin, nextUri, browserCookies, cancellationToken);
                 continue;
             }
 
-            var autoSubmitForm = await TryCreateAutoSubmitFormAsync(currentResponse, actualBffHttpsOrigin, cancellationToken);
+            var autoSubmitForm = await TryCreateAutoSubmitFormAsync(currentResponse, actualGatewayHttpsOrigin, cancellationToken);
             if (autoSubmitForm is null)
             {
                 break;
@@ -315,7 +315,7 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
             currentResponse.Dispose();
             currentResponse = await SendBrowserPostAsync(
                 client,
-                actualBffHttpsOrigin,
+                actualGatewayHttpsOrigin,
                 autoSubmitForm.Action,
                 new FormUrlEncodedContent(autoSubmitForm.Payload),
                 browserCookies,
@@ -335,22 +335,22 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
 
     private static Task<HttpResponseMessage> SendBrowserGetAsync(
         HttpClient client,
-        Uri actualBffHttpsOrigin,
+        Uri actualGatewayHttpsOrigin,
         Uri requestUri,
         IReadOnlyDictionary<string, Dictionary<string, string>> browserCookies,
         CancellationToken cancellationToken) =>
-        SendBrowserRequestAsync(client, actualBffHttpsOrigin, HttpMethod.Get, requestUri, content: null, browserCookies, cancellationToken);
+        SendBrowserRequestAsync(client, actualGatewayHttpsOrigin, HttpMethod.Get, requestUri, content: null, browserCookies, cancellationToken);
 
     private static Task<HttpResponseMessage> SendBrowserPostAsync(
         HttpClient client,
-        Uri actualBffHttpsOrigin,
+        Uri actualGatewayHttpsOrigin,
         Uri requestUri,
         HttpContent content,
         IReadOnlyDictionary<string, Dictionary<string, string>> browserCookies,
         CancellationToken cancellationToken) =>
-        SendBrowserRequestAsync(client, actualBffHttpsOrigin, HttpMethod.Post, requestUri, content, browserCookies, cancellationToken);
+        SendBrowserRequestAsync(client, actualGatewayHttpsOrigin, HttpMethod.Post, requestUri, content, browserCookies, cancellationToken);
 
-    private static async Task EnsureAuthenticatedSessionAsync(HttpClient client, Uri actualBffHttpsOrigin, CancellationToken cancellationToken)
+    private static async Task EnsureAuthenticatedSessionAsync(HttpClient client, Uri actualGatewayHttpsOrigin, CancellationToken cancellationToken)
     {
         const int maxAttempts = 15;
         string? lastBody = null;
@@ -360,7 +360,7 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
         {
             using var sessionResponse = await SendBrowserGetAsync(
                 client,
-                actualBffHttpsOrigin,
+                actualGatewayHttpsOrigin,
                 new Uri("/api/auth/session", UriKind.Relative),
                 new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase),
                 cancellationToken);
@@ -384,7 +384,7 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
 
     private static async Task<HttpResponseMessage> SendBrowserRequestAsync(
         HttpClient client,
-        Uri actualBffHttpsOrigin,
+        Uri actualGatewayHttpsOrigin,
         HttpMethod method,
         Uri requestUri,
         HttpContent? content,
@@ -392,22 +392,22 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(client);
-        ArgumentNullException.ThrowIfNull(actualBffHttpsOrigin);
+        ArgumentNullException.ThrowIfNull(actualGatewayHttpsOrigin);
         ArgumentNullException.ThrowIfNull(method);
         ArgumentNullException.ThrowIfNull(requestUri);
 
         var target = requestUri.IsAbsoluteUri
-            ? RewriteBffBrowserUri(requestUri, actualBffHttpsOrigin)
-            : new Uri(actualBffHttpsOrigin, requestUri);
+            ? RewriteGatewayBrowserUri(requestUri, actualGatewayHttpsOrigin)
+            : new Uri(actualGatewayHttpsOrigin, requestUri);
 
         using var request = new HttpRequestMessage(method, target)
         {
             Content = content
         };
 
-        if (!requestUri.IsAbsoluteUri || IsSameOrigin(requestUri, BrowserBffHttpsOrigin))
+        if (!requestUri.IsAbsoluteUri || IsSameOrigin(requestUri, BrowserGatewayHttpsOrigin))
         {
-            request.Headers.Host = BrowserBffHttpsOrigin.Authority;
+            request.Headers.Host = BrowserGatewayHttpsOrigin.Authority;
         }
 
         AttachBrowserCookies(request, target, browserCookies);
@@ -474,13 +474,13 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
         && string.Equals(left.Host, right.Host, StringComparison.OrdinalIgnoreCase)
         && left.Port == right.Port;
 
-    private static Uri RewriteBffBrowserUri(Uri requestUri, Uri actualBffHttpsOrigin)
+    private static Uri RewriteGatewayBrowserUri(Uri requestUri, Uri actualGatewayHttpsOrigin)
     {
         ArgumentNullException.ThrowIfNull(requestUri);
-        ArgumentNullException.ThrowIfNull(actualBffHttpsOrigin);
+        ArgumentNullException.ThrowIfNull(actualGatewayHttpsOrigin);
 
-        return IsSameOrigin(requestUri, BrowserBffHttpsOrigin)
-            ? new Uri(actualBffHttpsOrigin, requestUri.PathAndQuery)
+        return IsSameOrigin(requestUri, BrowserGatewayHttpsOrigin)
+            ? new Uri(actualGatewayHttpsOrigin, requestUri.PathAndQuery)
             : requestUri;
     }
 
@@ -541,7 +541,7 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
             var hasExpectedFormId = string.Equals(formId, "kc-form-login", StringComparison.OrdinalIgnoreCase);
             var looksLikeKeycloakLoginAction = resolvedAction.AbsolutePath.Contains("/login-actions/", StringComparison.OrdinalIgnoreCase);
             var looksLikeBffSigninCallback = string.Equals(resolvedAction.AbsolutePath, "/signin-oidc", StringComparison.OrdinalIgnoreCase)
-                && IsSameOrigin(resolvedAction, BrowserBffHttpsOrigin);
+                && IsSameOrigin(resolvedAction, BrowserGatewayHttpsOrigin);
 
             if (hasExpectedFormId || looksLikeKeycloakLoginAction || looksLikeBffSigninCallback)
             {
@@ -589,11 +589,11 @@ internal sealed class AppHostAuthenticationHelper(AppHostResourceDiscovery resou
 
     private static async Task<AutoSubmitForm?> TryCreateAutoSubmitFormAsync(
         HttpResponseMessage response,
-        Uri actualBffHttpsOrigin,
+        Uri actualGatewayHttpsOrigin,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(response);
-        ArgumentNullException.ThrowIfNull(actualBffHttpsOrigin);
+        ArgumentNullException.ThrowIfNull(actualGatewayHttpsOrigin);
 
         var html = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!html.Contains("document.forms[0].submit()", StringComparison.OrdinalIgnoreCase))

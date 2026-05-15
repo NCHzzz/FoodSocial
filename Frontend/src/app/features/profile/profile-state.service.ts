@@ -1,7 +1,8 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 
 import { AuthSessionService } from '../../core/auth/auth-session.service';
+import { CatalogLabelService } from '../../core/catalog/catalog-label.service';
 import { UserProfileApi } from '../../core/user-profiles/infrastructure/user-profile.api';
 import { PostApi } from '../../core/posts/infrastructure/post.api';
 import { PostSummaryResponse } from '../../core/posts/post.models';
@@ -27,6 +28,7 @@ export class ProfileStateService {
   private readonly authSessionService = inject(AuthSessionService);
   private readonly userProfileApi = inject(UserProfileApi);
   private readonly postApi = inject(PostApi);
+  private readonly catalogLabels = inject(CatalogLabelService);
 
   private readonly profileLoadStatusState = signal<OwnProfileLoadStatus>('loading');
   private readonly saveStatusState = signal<OwnProfileSaveStatus>('idle');
@@ -67,22 +69,42 @@ export class ProfileStateService {
   readonly savedDishes = computed<SavedItemView[]>(() =>
     (this.savedItems()?.dishes ?? []).map((item) => ({
       id: item.dishId,
-      label: `Dish ${item.dishId}`,
+      label: this.catalogLabels.dishLabel(item.dishId),
       savedAtUtc: item.savedAtUtc,
     })),
   );
   readonly savedPlaces = computed<SavedItemView[]>(() =>
     (this.savedItems()?.places ?? []).map((item) => ({
       id: item.placeId,
-      label: `Place ${item.placeId}`,
+      label: this.catalogLabels.placeLabel(item.placeId),
       savedAtUtc: item.savedAtUtc,
     })),
   );
 
   constructor() {
+    effect(() => {
+      const currentSavedItems = this.savedItems();
+      if (currentSavedItems) {
+        for (const item of currentSavedItems.dishes) {
+          this.catalogLabels.resolveDish(item.dishId);
+        }
+
+        for (const item of currentSavedItems.places) {
+          this.catalogLabels.resolvePlace(item.placeId);
+        }
+      }
+
+      for (const post of this.authoredPosts()) {
+        this.catalogLabels.resolveDish(post.dishId);
+      }
+    });
     this.loadOwnProfile();
     this.loadSavedItems();
     this.loadAuthoredPosts();
+  }
+
+  authoredPostDishLabel(dishId: string): string {
+    return this.catalogLabels.dishLabel(dishId);
   }
 
   loadOwnProfile(): void {

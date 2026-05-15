@@ -20,13 +20,24 @@ public sealed record RegisterMediaUploadCommand(
     DateTimeOffset CleanupDueAtUtc);
 public sealed record PostMediaUploadAttachmentRequest(string Url, string ThumbnailUrl);
 
-public sealed record PostSearchCriteria(Guid? AuthorId, Guid? DishId, Guid? PlaceId, string? Tag, string? Query, bool IncludeHidden, int Limit)
+public sealed record PostSearchCriteria(IReadOnlyList<Guid> AuthorIds, Guid? DishId, Guid? PlaceId, string? Tag, string? Query, bool IncludeHidden, int Limit)
 {
     public const int DefaultLimit = 20;
     public const int MaxLimit = 100;
-    public static PostSearchCriteria Create(Guid? authorId, Guid? dishId, Guid? placeId, string? tag, string? query, bool includeHidden, int? limit) =>
-        new(authorId, dishId, placeId, Normalize(tag), Normalize(query), includeHidden, Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit));
+    public static PostSearchCriteria Create(IReadOnlyList<Guid>? authorIds, Guid? dishId, Guid? placeId, string? tag, string? query, bool includeHidden, int? limit) =>
+        new(
+            NormalizeAuthorIds(authorIds),
+            dishId,
+            placeId,
+            Normalize(tag),
+            Normalize(query),
+            includeHidden,
+            Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit));
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim().TrimStart('#').ToLowerInvariant();
+    private static IReadOnlyList<Guid> NormalizeAuthorIds(IReadOnlyList<Guid>? authorIds) =>
+        authorIds is null
+            ? []
+            : authorIds.Where(id => id != Guid.Empty).Distinct().ToArray();
 }
 
 public sealed record DiscoverFeedCriteria(int Limit)

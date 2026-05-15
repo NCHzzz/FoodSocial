@@ -3,7 +3,11 @@ using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using FluentAssertions;
 using FoodSocial.Contracts.Places;
+using FoodSocial.Messaging;
+using FoodSocial.Place.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace FoodSocial.Place.Api.Tests;
@@ -29,6 +33,13 @@ public sealed class PlaceEndpointTests
         payload!["name"]!.GetValue<string>().Should().Be("Quán Ăn Ngon");
         payload["normalizedName"]!.GetValue<string>().Should().Be("quan an ngon");
         payload["status"]!.GetValue<string>().Should().Be("Active");
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PlaceDbContext>();
+        var outbox = await dbContext.IntegrationOutboxMessages.SingleAsync();
+        outbox.EventType.Should().Be(nameof(PlaceCatalogChangedIntegrationEvent));
+        outbox.DeliveryState.Should().BeOneOf(IntegrationOutboxDeliveryState.Pending, IntegrationOutboxDeliveryState.FailedRetryable);
+        outbox.RoutingKey.Should().Be("place.catalog.created.v1");
     }
 
     [Fact]
@@ -80,6 +91,25 @@ public sealed class PlaceEndpointTests
         var items = payload!["items"]!.AsArray();
         items.Should().ContainSingle();
         items[0]!["id"]!.GetValue<string>().Should().Be(activeId.ToString());
+    }
+
+    [Fact]
+    public async Task ReadAndSearch_ExcludeForeignTenantPlaces()
+    {
+        await using var factory = new PlaceApiFactory();
+        var defaultTenantId = await factory.SeedPlaceAsync("Tenant Bún", "1 Default Street", "District 1", "Ho Chi Minh City", "Vietnamese", "$");
+        var foreignTenantId = await factory.SeedPlaceInTenantAsync("Foreign Tenant Bún", Guid.Parse("00000000-0000-0000-0000-000000000002"));
+        using var client = factory.CreateClient();
+
+        using var foreignRead = await client.GetAsync($"/api/places/{foreignTenantId}");
+        using var search = await client.GetAsync("/api/places/search?query=bun&limit=10");
+
+        foreignRead.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var searchBody = await search.Content.ReadAsStringAsync();
+        search.StatusCode.Should().Be(HttpStatusCode.OK, searchBody);
+        var items = (JsonNode.Parse(searchBody) as JsonObject)!["items"]!.AsArray();
+        items.Select(item => item!["id"]!.GetValue<string>()).Should().Contain(defaultTenantId.ToString());
+        items.Select(item => item!["id"]!.GetValue<string>()).Should().NotContain(foreignTenantId.ToString());
     }
 
     [Fact]

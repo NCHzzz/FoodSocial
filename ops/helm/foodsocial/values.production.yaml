@@ -5,11 +5,22 @@ global:
   otlpEndpoint: http://otel-collector.observability.svc.cluster.local:4317
 
 services:
+  api-gateway:
+    replicas: 2
+    env:
+      Gateway__Cors__AllowedOrigins__0: https://foodsocial.example.com
+      ForwardedHeaders__KnownNetworks__0: 10.0.0.0/8
   bff:
     replicas: 2
   identity-api:
     replicas: 2
   userprofile-api:
+    replicas: 2
+  dish-api:
+    replicas: 2
+  place-api:
+    replicas: 2
+  post-api:
     replicas: 2
   web:
     replicas: 2

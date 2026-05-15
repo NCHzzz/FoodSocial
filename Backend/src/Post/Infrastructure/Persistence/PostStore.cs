@@ -1,3 +1,5 @@
+using FoodSocial.Contracts.Posts;
+using FoodSocial.Messaging;
 using FoodSocial.Post.Application;
 using FoodSocial.Post.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +13,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
     public async Task<PostRecord> CreatePostAsync(PostRecord post, CancellationToken cancellationToken)
     {
         _dbContext.Posts.Add(post);
+        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(post, "Created"));
         await _dbContext.SaveChangesAsync(cancellationToken);
         return post;
     }
@@ -19,7 +22,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
     {
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
         var mediaUrlsToAttach = mediaUploadsToAttach.Select(upload => upload.Url).Distinct(StringComparer.Ordinal).ToArray();
-        var uploads = await _dbContext.PostMediaUploads
+        var uploads = await CurrentTenantUploads()
             .AsNoTracking()
             .Where(upload => upload.OwnerId == post.AuthorId
                 && upload.Status == PostMediaUploadStatus.StoredPendingAttachment
@@ -33,9 +36,10 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         }
 
         _dbContext.Posts.Add(post);
+        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(post, "Created"));
         await _dbContext.SaveChangesAsync(cancellationToken);
         var attachedAtUtc = DateTimeOffset.UtcNow;
-        var attachedCount = await _dbContext.PostMediaUploads
+        var attachedCount = await CurrentTenantUploads()
             .Where(upload => upload.OwnerId == post.AuthorId
                 && upload.Status == PostMediaUploadStatus.StoredPendingAttachment
                 && mediaUrlsToAttach.Contains(upload.Url))
@@ -56,13 +60,13 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
     }
 
     public async Task<PostRecord?> GetPostAsync(Guid postId, CancellationToken cancellationToken) =>
-        await IncludePostGraph(_dbContext.Posts)
+        await IncludePostGraph(CurrentTenantPosts())
             .AsSplitQuery()
             .FirstOrDefaultAsync(post => post.Id == postId && post.Status == PostStatus.Published, cancellationToken);
 
     public async Task<PostMediaUploadRecord?> GetDeliverableMediaUploadAsync(Guid uploadId, Guid? callerIdentityId, CancellationToken cancellationToken)
     {
-        var upload = await _dbContext.PostMediaUploads
+        var upload = await CurrentTenantUploads()
             .AsNoTracking()
             .FirstOrDefaultAsync(candidate => candidate.Id == uploadId && !candidate.ModerationHold, cancellationToken);
         if (upload is null)
@@ -80,7 +84,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
             return null;
         }
 
-        var attachedPostIsPublished = await _dbContext.Posts
+        var attachedPostIsPublished = await CurrentTenantPosts()
             .AsNoTracking()
             .AnyAsync(post => post.Id == upload.AttachedPostId && post.Status == PostStatus.Published, cancellationToken);
         return attachedPostIsPublished ? upload : null;
@@ -88,13 +92,13 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
     public async Task<IReadOnlyList<PostRecord>> SearchPostsAsync(PostSearchCriteria criteria, CancellationToken cancellationToken)
     {
-        var query = _dbContext.Posts.AsQueryable();
+        var query = CurrentTenantPosts();
         if (!criteria.IncludeHidden) query = query.Where(post => post.Status == PostStatus.Published);
-        if (criteria.AuthorId is { } authorId) query = query.Where(post => post.AuthorId == authorId);
+        if (criteria.AuthorIds.Count > 0) query = query.Where(post => criteria.AuthorIds.Contains(post.AuthorId));
         if (criteria.DishId is { } dishId) query = query.Where(post => post.DishId == dishId);
         if (criteria.PlaceId is { } placeId) query = query.Where(post => post.PlaceId == placeId);
-        if (!string.IsNullOrWhiteSpace(criteria.Tag)) query = query.Where(post => post.TagsSearchText.Contains(criteria.Tag));
-        if (!string.IsNullOrWhiteSpace(criteria.Query)) query = query.Where(post => post.Caption.ToLower().Contains(criteria.Query) || post.TagsSearchText.ToLower().Contains(criteria.Query) || (post.LocationText != null && post.LocationText.ToLower().Contains(criteria.Query)));
+        if (!string.IsNullOrWhiteSpace(criteria.Tag)) query = ApplyTagFilter(query, criteria.Tag);
+        if (!string.IsNullOrWhiteSpace(criteria.Query)) query = ApplyTextSearch(query, criteria.Query);
         var postIds = IsSqliteProvider()
             ? (await query.AsNoTracking().ToListAsync(cancellationToken))
                 .OrderByDescending(post => post.CreatedAtUtc)
@@ -114,7 +118,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
     public async Task<IReadOnlyList<PostRecord>> GetDiscoverFeedAsync(DiscoverFeedCriteria criteria, CancellationToken cancellationToken)
     {
-        var publishedPosts = _dbContext.Posts
+        var publishedPosts = CurrentTenantPosts()
             .AsNoTracking()
             .Where(post => post.Status == PostStatus.Published);
 
@@ -143,43 +147,45 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
     public async Task<int?> AddLikeAsync(Guid postId, Guid actorId, CancellationToken cancellationToken)
     {
-        var post = await _dbContext.Posts.FirstOrDefaultAsync(candidate => candidate.Id == postId && candidate.Status == PostStatus.Published, cancellationToken);
+        var post = await CurrentTenantPosts().FirstOrDefaultAsync(candidate => candidate.Id == postId && candidate.Status == PostStatus.Published, cancellationToken);
         if (post is null)
         {
             return null;
         }
 
-        var alreadyLiked = await _dbContext.PostLikes.AnyAsync(like => like.PostId == postId && like.ActorId == actorId, cancellationToken);
+        var alreadyLiked = await CurrentTenantPostLikes().AnyAsync(like => like.PostId == postId && like.ActorId == actorId, cancellationToken);
         if (!alreadyLiked)
         {
             _dbContext.PostLikes.Add(new PostLikeRecord { PostId = postId, ActorId = actorId });
             AddNotification(post.AuthorId, actorId, "PostLiked", "Post", postId, postId, "liked your food post");
+            _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(post, "Liked"));
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
-        return await _dbContext.PostLikes.CountAsync(like => like.PostId == postId, cancellationToken);
+        return await CurrentTenantPostLikes().CountAsync(like => like.PostId == postId, cancellationToken);
     }
 
     public async Task<int?> RemoveLikeAsync(Guid postId, Guid actorId, CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.Posts.AnyAsync(post => post.Id == postId && post.Status == PostStatus.Published, cancellationToken);
-        if (!exists)
+        var post = await CurrentTenantPosts().FirstOrDefaultAsync(candidate => candidate.Id == postId && candidate.Status == PostStatus.Published, cancellationToken);
+        if (post is null)
         {
             return null;
         }
 
-        var like = await _dbContext.PostLikes.FindAsync([postId, actorId], cancellationToken);
+        var like = await CurrentTenantPostLikes().FirstOrDefaultAsync(item => item.PostId == postId && item.ActorId == actorId, cancellationToken);
         if (like is not null)
         {
             _dbContext.PostLikes.Remove(like);
+            _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(post, "Unliked"));
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        return await _dbContext.PostLikes.CountAsync(item => item.PostId == postId, cancellationToken);
+        return await CurrentTenantPostLikes().CountAsync(item => item.PostId == postId, cancellationToken);
     }
 
     public async Task<PostCommentRecord?> AddCommentAsync(Guid postId, Guid authorId, string body, CancellationToken cancellationToken)
     {
-        var post = await _dbContext.Posts.FirstOrDefaultAsync(candidate => candidate.Id == postId && candidate.Status == PostStatus.Published, cancellationToken);
+        var post = await CurrentTenantPosts().FirstOrDefaultAsync(candidate => candidate.Id == postId && candidate.Status == PostStatus.Published, cancellationToken);
         if (post is null)
         {
             return null;
@@ -196,11 +202,12 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         };
         _dbContext.PostComments.Add(comment);
         AddNotification(post.AuthorId, authorId, "PostCommented", "Comment", comment.Id, postId, "commented on your food post");
+        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(post, "Commented"));
         await _dbContext.SaveChangesAsync(cancellationToken);
         return comment;
     }
 
-    public async Task<PostCommentRecord?> GetCommentAsync(Guid commentId, CancellationToken cancellationToken) => await _dbContext.PostComments.FirstOrDefaultAsync(comment => comment.Id == commentId, cancellationToken);
+    public async Task<PostCommentRecord?> GetCommentAsync(Guid commentId, CancellationToken cancellationToken) => await CurrentTenantComments().FirstOrDefaultAsync(comment => comment.Id == commentId, cancellationToken);
 
     public async Task<PostCommentRecord?> SoftDeleteCommentAsync(Guid commentId, Guid actorId, CancellationToken cancellationToken)
     {
@@ -212,20 +219,27 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
         comment.Status = CommentStatus.Deleted;
         comment.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        var post = await CurrentTenantPosts().FirstOrDefaultAsync(candidate => candidate.Id == comment.PostId, cancellationToken);
+        if (post is not null)
+        {
+            _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(post, "CommentDeleted"));
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
         return comment;
     }
 
     public async Task<PostRepostRecord?> AddRepostAsync(Guid postId, Guid actorId, string? caption, CancellationToken cancellationToken)
     {
-        var post = await _dbContext.Posts.FirstOrDefaultAsync(candidate => candidate.Id == postId && candidate.Status == PostStatus.Published, cancellationToken);
+        var post = await CurrentTenantPosts().FirstOrDefaultAsync(candidate => candidate.Id == postId && candidate.Status == PostStatus.Published, cancellationToken);
         if (post is null) return null;
 
         var normalizedCaption = string.IsNullOrWhiteSpace(caption) ? null : caption.Trim();
-        var existing = await _dbContext.PostReposts.FirstOrDefaultAsync(repost => repost.PostId == postId && repost.ActorId == actorId, cancellationToken);
+        var existing = await CurrentTenantPostReposts().FirstOrDefaultAsync(repost => repost.PostId == postId && repost.ActorId == actorId, cancellationToken);
         if (existing is not null)
         {
             existing.Caption = normalizedCaption;
+            _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(post, "RepostUpdated"));
             await _dbContext.SaveChangesAsync(cancellationToken);
             return existing;
         }
@@ -240,16 +254,17 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         };
         _dbContext.PostReposts.Add(repost);
         AddNotification(post.AuthorId, actorId, "PostReposted", "Repost", repost.Id, postId, "reposted your food post");
+        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(post, "Reposted"));
         await _dbContext.SaveChangesAsync(cancellationToken);
         return repost;
     }
 
     public Task<int> CountRepostsAsync(Guid postId, CancellationToken cancellationToken) =>
-        _dbContext.PostReposts.CountAsync(repost => repost.PostId == postId, cancellationToken);
+        CurrentTenantPostReposts().CountAsync(repost => repost.PostId == postId, cancellationToken);
 
     public async Task<ContentReportRecord?> CreateReportAsync(ReportTargetType targetType, Guid targetId, Guid reporterId, string reason, string? description, CancellationToken cancellationToken)
     {
-        var targetExists = targetType == ReportTargetType.Post ? await _dbContext.Posts.AnyAsync(post => post.Id == targetId, cancellationToken) : await _dbContext.PostComments.AnyAsync(comment => comment.Id == targetId, cancellationToken);
+        var targetExists = targetType == ReportTargetType.Post ? await CurrentTenantPosts().AnyAsync(post => post.Id == targetId, cancellationToken) : await CurrentTenantComments().AnyAsync(comment => comment.Id == targetId, cancellationToken);
         if (!targetExists)
         {
             return null;
@@ -266,15 +281,24 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
         _dbContext.ContentReports.Add(report);
+        if (targetType == ReportTargetType.Post)
+        {
+            var post = await CurrentTenantPosts().FirstOrDefaultAsync(candidate => candidate.Id == targetId, cancellationToken);
+            if (post is not null)
+            {
+                _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(post, "Reported"));
+            }
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
         return report;
     }
 
-    public async Task<IReadOnlyList<ContentReportRecord>> GetReportsAsync(int limit, CancellationToken cancellationToken) => await _dbContext.ContentReports.AsNoTracking().OrderBy(report => report.Status == ReportStatus.Submitted ? 0 : 1).ThenByDescending(report => report.CreatedAtUtc).Take(limit).ToListAsync(cancellationToken);
+    public async Task<IReadOnlyList<ContentReportRecord>> GetReportsAsync(int limit, CancellationToken cancellationToken) => await CurrentTenantReports().AsNoTracking().OrderBy(report => report.Status == ReportStatus.Submitted ? 0 : 1).ThenByDescending(report => report.CreatedAtUtc).Take(limit).ToListAsync(cancellationToken);
 
     public async Task<ContentReportRecord?> ResolveReportAsync(Guid reportId, Guid moderatorId, string action, string auditNote, CancellationToken cancellationToken)
     {
-        var report = await _dbContext.ContentReports.FirstOrDefaultAsync(item => item.Id == reportId, cancellationToken);
+        var report = await CurrentTenantReports().FirstOrDefaultAsync(item => item.Id == reportId, cancellationToken);
         if (report is null)
         {
             return null;
@@ -303,18 +327,18 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
     public async Task<IReadOnlyList<PostNotificationRecord>> GetNotificationsAsync(Guid recipientId, int limit, CancellationToken cancellationToken)
     {
-        var query = _dbContext.PostNotifications.AsNoTracking().Where(notification => notification.RecipientId == recipientId);
+        var query = CurrentTenantNotifications().AsNoTracking().Where(notification => notification.RecipientId == recipientId);
         return IsSqliteProvider()
             ? (await query.ToListAsync(cancellationToken)).OrderByDescending(notification => notification.CreatedAtUtc).ThenBy(notification => notification.Id).Take(limit).ToArray()
             : await query.OrderByDescending(notification => notification.CreatedAtUtc).ThenBy(notification => notification.Id).Take(limit).ToListAsync(cancellationToken);
     }
 
     public Task<int> CountUnreadNotificationsAsync(Guid recipientId, CancellationToken cancellationToken) =>
-        _dbContext.PostNotifications.CountAsync(notification => notification.RecipientId == recipientId && notification.Status == NotificationStatus.Unread, cancellationToken);
+        CurrentTenantNotifications().CountAsync(notification => notification.RecipientId == recipientId && notification.Status == NotificationStatus.Unread, cancellationToken);
 
     public async Task<PostNotificationRecord?> MarkNotificationReadAsync(Guid notificationId, Guid recipientId, CancellationToken cancellationToken)
     {
-        var notification = await _dbContext.PostNotifications.FirstOrDefaultAsync(item => item.Id == notificationId && item.RecipientId == recipientId, cancellationToken);
+        var notification = await CurrentTenantNotifications().FirstOrDefaultAsync(item => item.Id == notificationId && item.RecipientId == recipientId, cancellationToken);
         if (notification is null) return null;
         notification.MarkRead();
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -345,7 +369,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
         var stalePendingUploads = IsSqliteProvider()
-            ? (await _dbContext.PostMediaUploads
+            ? (await CurrentTenantUploads()
                 .Where(upload => upload.Status == PostMediaUploadStatus.StoredPendingAttachment
                     && upload.AttachedPostId == null)
                 .ToListAsync(cancellationToken))
@@ -354,7 +378,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
                 .ThenBy(upload => upload.Id)
                 .Take(limit)
                 .ToList()
-            : await _dbContext.PostMediaUploads
+            : await CurrentTenantUploads()
                 .Where(upload => upload.Status == PostMediaUploadStatus.StoredPendingAttachment
                     && upload.AttachedPostId == null
                     && upload.CleanupDueAtUtc <= utcNow)
@@ -373,7 +397,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         }
 
         var uploads = IsSqliteProvider()
-            ? (await _dbContext.PostMediaUploads
+            ? (await CurrentTenantUploads()
                 .AsNoTracking()
                 .Where(upload => upload.Status == PostMediaUploadStatus.CleanupDue)
                 .ToListAsync(cancellationToken))
@@ -381,7 +405,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
                 .ThenBy(upload => upload.Id)
                 .Take(limit)
                 .ToList()
-            : await _dbContext.PostMediaUploads
+            : await CurrentTenantUploads()
                 .AsNoTracking()
                 .Where(upload => upload.Status == PostMediaUploadStatus.CleanupDue)
                 .OrderBy(upload => upload.CleanupDueAtUtc)
@@ -400,7 +424,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
             return;
         }
 
-        var upload = await _dbContext.PostMediaUploads.FindAsync([uploadId], cancellationToken);
+        var upload = await CurrentTenantUploads().FirstOrDefaultAsync(item => item.Id == uploadId, cancellationToken);
         if (upload is null || upload.Status != PostMediaUploadStatus.CleanupDue)
         {
             return;
@@ -418,7 +442,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         }
 
         var mediaUrls = mediaUploads.Select(upload => upload.Url).Distinct(StringComparer.Ordinal).ToArray();
-        var uploads = await _dbContext.PostMediaUploads
+        var uploads = await CurrentTenantUploads()
             .AsNoTracking()
             .Where(upload => upload.OwnerId == ownerId
                 && upload.Status == PostMediaUploadStatus.StoredPendingAttachment
@@ -444,11 +468,12 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
     {
         if (report.TargetType == ReportTargetType.Post)
         {
-            var post = await _dbContext.Posts.FirstOrDefaultAsync(item => item.Id == report.TargetId, cancellationToken);
+            var post = await CurrentTenantPosts().FirstOrDefaultAsync(item => item.Id == report.TargetId, cancellationToken);
             if (post is not null)
             {
                 post.Hide();
-                await _dbContext.PostMediaUploads
+                _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(post, "Hidden"));
+                await CurrentTenantUploads()
                     .Where(upload => upload.AttachedPostId == post.Id)
                     .ExecuteUpdateAsync(updates => updates.SetProperty(upload => upload.ModerationHold, true), cancellationToken);
             }
@@ -456,7 +481,7 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
             return;
         }
 
-        var comment = await _dbContext.PostComments.FirstOrDefaultAsync(item => item.Id == report.TargetId, cancellationToken);
+        var comment = await CurrentTenantComments().FirstOrDefaultAsync(item => item.Id == report.TargetId, cancellationToken);
         if (comment is not null)
         {
             comment.Status = CommentStatus.Hidden;
@@ -466,6 +491,9 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
 
     private bool IsSqliteProvider() =>
         string.Equals(_dbContext.Database.ProviderName, "Microsoft.EntityFrameworkCore.Sqlite", StringComparison.Ordinal);
+
+    private bool IsNpgsqlProvider() =>
+        string.Equals(_dbContext.Database.ProviderName, "Npgsql.EntityFrameworkCore.PostgreSQL", StringComparison.Ordinal);
 
     private void AddNotification(Guid recipientId, Guid actorId, string type, string targetType, Guid targetId, Guid? postId, string message)
     {
@@ -488,13 +516,103 @@ public sealed class PostStore(PostDbContext dbContext) : IPostStore
         });
     }
 
+    private IQueryable<PostRecord> CurrentTenantPosts() =>
+        _dbContext.Posts.Where(post => post.TenantId == PostRecord.DefaultTenantId);
+
+    private static IntegrationOutboxMessage CreateOutboxMessage(PostRecord post, string changeType)
+    {
+        var integrationEvent = PostContentChangedIntegrationEvent.Create(
+            post.Id,
+            post.TenantId,
+            post.AuthorId,
+            post.DishId,
+            post.PlaceId,
+            changeType);
+
+        return IntegrationOutboxMessage.Create(
+            integrationEvent,
+            integrationEvent.EventId,
+            integrationEvent.EventVersion,
+            integrationEvent.OccurredAtUtc,
+            integrationEvent.CorrelationId,
+            "post.events",
+            $"post.content.{changeType.ToLowerInvariant()}.v1",
+            post.Id,
+            "Post");
+    }
+
+    private IQueryable<PostMediaUploadRecord> CurrentTenantUploads() =>
+        _dbContext.PostMediaUploads.Where(upload => upload.TenantId == PostRecord.DefaultTenantId);
+
+    private IQueryable<PostCommentRecord> CurrentTenantComments() =>
+        from comment in _dbContext.PostComments
+        join post in CurrentTenantPosts() on comment.PostId equals post.Id
+        select comment;
+
+    private IQueryable<PostLikeRecord> CurrentTenantPostLikes() =>
+        from like in _dbContext.PostLikes
+        join post in CurrentTenantPosts() on like.PostId equals post.Id
+        select like;
+
+    private IQueryable<PostRepostRecord> CurrentTenantPostReposts() =>
+        from repost in _dbContext.PostReposts
+        join post in CurrentTenantPosts() on repost.PostId equals post.Id
+        select repost;
+
+    private IQueryable<PostNotificationRecord> CurrentTenantNotifications() =>
+        from notification in _dbContext.PostNotifications
+        where notification.PostId == null || CurrentTenantPosts().Any(post => post.Id == notification.PostId)
+        select notification;
+
+    private IQueryable<ContentReportRecord> CurrentTenantReports()
+    {
+        var postIds = CurrentTenantPosts().Select(post => post.Id);
+        var commentIds = CurrentTenantComments().Select(comment => comment.Id);
+        return _dbContext.ContentReports.Where(report =>
+            (report.TargetType == ReportTargetType.Post && postIds.Contains(report.TargetId))
+            || (report.TargetType == ReportTargetType.Comment && commentIds.Contains(report.TargetId)));
+    }
+
+    private IQueryable<PostRecord> ApplyTagFilter(IQueryable<PostRecord> query, string tag)
+    {
+        if (!IsNpgsqlProvider())
+        {
+            return query.Where(post => post.TagsSearchText.Contains(tag));
+        }
+
+        var pattern = $"%{EscapeLikePattern(tag)}%";
+        return query.Where(post => EF.Functions.ILike(post.TagsSearchText, pattern, "\\"));
+    }
+
+    private IQueryable<PostRecord> ApplyTextSearch(IQueryable<PostRecord> query, string searchText)
+    {
+        if (!IsNpgsqlProvider())
+        {
+            return query.Where(post => post.Caption.ToLower().Contains(searchText)
+                || post.TagsSearchText.ToLower().Contains(searchText)
+                || (post.LocationText != null && post.LocationText.ToLower().Contains(searchText)));
+        }
+
+        return query.Where(post =>
+            EF.Functions.ToTsVector("simple", post.Caption + " " + post.TagsSearchText + " " + (post.LocationText ?? string.Empty))
+                .Matches(EF.Functions.PlainToTsQuery("simple", searchText))
+            || EF.Functions.TrigramsAreSimilar(post.Caption, searchText)
+            || EF.Functions.TrigramsAreSimilar(post.TagsSearchText, searchText)
+            || (post.LocationText != null && EF.Functions.TrigramsAreSimilar(post.LocationText, searchText)));
+    }
+
+    private static string EscapeLikePattern(string value) =>
+        value.Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("%", "\\%", StringComparison.Ordinal)
+            .Replace("_", "\\_", StringComparison.Ordinal);
+
     private static IQueryable<PostRecord> IncludePostGraph(IQueryable<PostRecord> posts) => posts.Include(post => post.Media).Include(post => post.Likes).Include(post => post.Comments).Include(post => post.Reposts);
 
     private async Task<IReadOnlyList<PostRecord>> LoadPostsByIdsAsync(IReadOnlyList<Guid> postIds, CancellationToken cancellationToken)
     {
         if (postIds.Count == 0) return [];
         var order = postIds.Select((id, index) => new { id, index }).ToDictionary(item => item.id, item => item.index);
-        var posts = await IncludePostGraph(_dbContext.Posts).AsSplitQuery().Where(post => postIds.Contains(post.Id)).ToListAsync(cancellationToken);
+        var posts = await IncludePostGraph(CurrentTenantPosts()).AsSplitQuery().Where(post => postIds.Contains(post.Id)).ToListAsync(cancellationToken);
         return posts.OrderBy(post => order[post.Id]).ToArray();
     }
 }

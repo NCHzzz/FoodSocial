@@ -19,7 +19,7 @@ Convert vague completion into concrete validation.
 
 ## Repo-Specific Checks
 
-- Does the change stay within MVP scope?
+- Does the change stay within current product scope and maturity stage?
 - Does it preserve BFF and service-boundary assumptions?
-- Does it preserve manual-review-first moderation in MVP?
+- Does it preserve manual-review-first moderation at launch?
 - Does it preserve recommendation depth and future extensibility?

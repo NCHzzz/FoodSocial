@@ -4,11 +4,13 @@
 
 - Reviewed working source
 
-## Proposed Architecture
+## Architecture Direction
 
-Current direction is to design for a responsive web-first MVP.
+FoodSocial is a production-bound, food-first social platform. It should be documented and built as a real product with staged maturity, not as a disposable MVP.
 
-Approved backend architecture direction: microservices.
+Approved backend architecture direction: microservices with pragmatic service extraction. The codebase may initially group some responsibilities where this reduces delivery risk, but the product architecture must keep boundaries explicit enough to extract Feed, Search/Recommendation, Notification, Moderation, and Media services when ownership, scale, or correctness justifies it.
+
+Maturity staging from beta to public product to scale lives in `16_maturity_roadmap.md`.
 
 ## Architecture Decision Summary
 
@@ -16,16 +18,16 @@ The following decisions are the most important architecture anchors for quick re
 
 - API edge: API Gateway / BFF
 - Internal communication: Hybrid REST + async events
-- Messaging backbone: RabbitMQ
-- Search MVP: PostgreSQL-first lexical search with trigram and structured filters
-- Geo-discovery MVP: practical PostgreSQL-native nearby and area-aware retrieval before dedicated geo infrastructure
-- AI integration: provider-agnostic abstraction with graceful fallback
-- Media handling: object-style storage plus explicit delivery and cleanup lifecycle
-- Caching: selective and measured, not a mandatory platform dependency
-- Feature control: lightweight runtime controls for rollout gating and kill switches
-- Reliability: idempotent consumers with explicit retry, dead-letter, and replay expectations
-- Moderation posture: manual-review-first in MVP
-- Explicitly deferred: heavyweight search platform, vector-first retrieval, platform-wide cache dependency, heavyweight experimentation tooling
+- Messaging backbone: RabbitMQ until throughput or replay needs justify heavier streaming infrastructure
+- Search: PostgreSQL-first lexical search with trigram, full-text, structured filters, and a staged path to dedicated search
+- Geo-discovery: practical PostgreSQL-native nearby and area-aware retrieval before dedicated geo/search infrastructure
+- AI integration: provider-agnostic abstraction with strict timeouts and deterministic fallback
+- Media handling: object-style storage plus explicit delivery, derivative, deletion, and cleanup lifecycle
+- Caching: selective and measured, not a platform-wide source of truth
+- Feature control: lightweight runtime controls for rollout gating, provider routing, moderation rules, and kill switches
+- Reliability: outbox-backed publishing where needed, idempotent consumers, and explicit retry, dead-letter, replay, and operator response
+- Moderation posture: manual-review-first for enforcement decisions until automation has review, appeal, audit, and rollback controls
+- Social safety: follow, block, mute, visibility, rate-limit, and report flows are core social controls
 
 Chosen stack direction:
 
@@ -35,9 +37,9 @@ Chosen stack direction:
 - PostgreSQL owned by each service
 - Aspire for local orchestration, composition, and observability support
 - multiple AI providers behind an internal abstraction layer
-- self-hosted Keycloak as the external identity provider for MVP
+- self-hosted Keycloak as the external identity provider
 - Kubernetes-based deployment target
-- Redis is allowed as a selective cache and short-lived state layer, not a source-of-truth replacement
+- Redis as selective cache or short-lived state, not source of truth
 
 ## Main Components
 
@@ -45,162 +47,196 @@ Chosen stack direction:
 - API gateway or BFF layer
 - identity service
 - user/profile graph service
-- post and media service
+- post service
+- media lifecycle capability, initially inside Post and extractable later
 - dish service
 - place service
-- feed service
-- search / recommendation service
-- notification service
+- feed capability or service
+- search/recommendation capability or service
+- notification capability or service
 - AI integration gateway or provider abstraction layer
-- Python AI capability services
-- moderation / trust service
-- media storage
+- optional Python AI capability services behind internal contracts
+- moderation/trust capability or service
+- object media storage
+- analytics/event pipeline capability
 - structured domain and API contracts that remain usable by AI agents
 
 ## Data Flow
 
-Initial high-level flow:
+High-level product flow:
 
-1. Users create structured food-first posts
-2. Posts are linked to canonical dishes and places when possible
-3. The post service stores content while resolving dish/place references through canonical services or shared contracts
-4. The feed service retrieves content based on follow graph and discovery rules
-5. The search / recommendation service assembles AI-assisted discovery results and may call Python AI capability services for model-heavy execution
-6. Notification state is updated from follow and interaction events
-7. User interactions create additional ranking and recommendation signals across service boundaries
+1. Users create structured food-first posts linked to canonical dishes and optional canonical places.
+2. Post/media stores content metadata and media lifecycle state while binary media lives in object-style storage.
+3. User/Profile owns profile, saved items, follow, block, mute, and visibility relationship state.
+4. Feed assembly uses source-service data first, then evolves toward feed-serving projections and timelines when scale or ranking complexity requires it.
+5. Search/Recommendation assembles deterministic search, AI-assisted suggestions, ranking, and recommendation outputs through structured contracts.
+6. Notification state is created from follow, interaction, moderation, and account/system events.
+7. Moderation receives reports, records decisions, preserves evidence, and controls enforcement actions.
+8. Analytics captures product and operational events without blocking core user paths.
 
 ## Service Responsibility Matrix
 
-- BFF/API Gateway: frontend-facing contracts, auth-aware request shaping, and response aggregation
-- Identity service: Keycloak integration, identity mapping, and authentication-related boundary concerns
-- User/Profile graph service: profile data, taste preferences, follow graph, and saved-item ownership
-- Post and media service: posts, comments, likes, and repost/reshare behavior
-- Dish service: canonical dish identity and normalization
-- Place service: canonical place identity and normalization
-- Feed service: timeline and feed-serving projections
-- Search / recommendation service: search retrieval, ranking, recommendation, and AI-assisted discovery behavior
-- Notification service: notification center state and retrieval
-- Moderation / trust service: report lifecycle, review, moderation outcomes, and auditability
+- BFF/API Gateway: browser-facing contracts, auth/session orchestration, CSRF enforcement, request shaping, aggregation, and safe ProblemDetails responses
+- Identity service: Keycloak integration, identity mapping, lifecycle state, roles, and authentication-related boundaries
+- User/Profile graph service: profile data, taste preferences, saved items, follow/block/mute relationships, relationship-state reads, and profile visibility state
+- Post service: post content, comments, likes, reposts, report intake, post-owned notifications, and public content retrieval primitives
+- Media capability/service: upload validation, original and derivative assets, storage references, delivery policy, cleanup, and deletion coordination
+- Dish service: canonical dish identity, normalization, aliases, lifecycle, and dish search primitives
+- Place service: canonical place identity, normalization, location metadata, lifecycle, and place search primitives
+- Feed capability/service: following/discover timelines, feed projections, fanout strategy, ranking inputs, replay/backfill, and cache invalidation when extracted
+- Search/Recommendation capability/service: retrieval, ranking, AI-assisted discovery, recommendation explanations, and future dedicated search integration
+- Notification capability/service: notification records, read state, account/system notifications, and future push/email/realtime delivery adapters
+- Moderation/Trust capability/service: report lifecycle, review queue, actions, evidence, auditability, appeal readiness, spam/seeding rules, and future automation
+- Analytics/Event pipeline: product event taxonomy, non-blocking collection, reporting feeds, and operational learning signals
 - Python AI services: model-heavy helper capabilities behind internal contracts only
 
 ## Why This Architecture
 
-Responsive web first reduces launch scope.
+Responsive web first focuses the product surface while still supporting real user adoption.
 
-Microservices is an intentional trade-off that preserves explicit service boundaries despite higher MVP complexity.
+Microservices are an intentional trade-off that preserves explicit service boundaries despite higher early-product complexity. The product should avoid speculative infrastructure, but it must keep the boundaries a real social product needs: identity, profile graph, post/media, feed, search/recommendation, notification, moderation/trust, analytics, and operations.
 
 The architecture should optimize for both:
 
 - AI-assisted experiences for end users
 - structured contracts for AI-agent consumption
 
-It should not require full internal multi-agent behavior in the first release.
+It should not require full internal multi-agent behavior until authorization, policy, audit, and operations maturity exist.
 
-### Chosen search architecture
+## Search Architecture
 
-The recommended MVP search architecture is:
+The recommended product search architecture is:
 
-- PostgreSQL full-text search as the primary lexical engine
-- trigram similarity for typo-tolerant matching on key dish/place fields
-- structured filters for dish, place, location, and related food metadata
+- PostgreSQL full-text search as the first lexical engine
+- trigram similarity for typo-tolerant matching on key dish/place/post fields
+- structured filters for dish, place, location, cuisine, category, price, and related food metadata
 - AI-assisted query understanding and suggestion generation above deterministic retrieval
-- optional later evolution to hybrid search with embeddings if MVP traction justifies it
+- dedicated OpenSearch/Elasticsearch-style search only when PostgreSQL-first relevance, latency, indexing, or operational ownership becomes insufficient
+- optional later hybrid/vector search when semantic retrieval has measurable product value
 
-This approach is chosen to preserve AI-native UX while avoiding a heavyweight dedicated search platform too early.
+This preserves AI-native UX while avoiding a heavyweight search platform before it is justified.
 
-### Chosen geo-discovery direction
+## Feed Architecture
 
-The recommended MVP geo-discovery direction is:
+The feed direction must support staged maturity:
+
+- first production beta: bounded Post/UserProfile-backed query composition through BFF or Post
+- public product: feed read models and event-driven projection refresh where query composition is not enough
+- mature scale: dedicated feed service with timeline storage, fanout-on-write/read strategy, ranking cache, replay/backfill, and special handling for high-fanout accounts
+
+Following and Discover remain separate surfaces. Following prioritizes followed users; Discover is the primary recommendation surface.
+
+Feed ranking should combine recency, engagement, food relevance, relationship signals, location context, user interests, diversity, and safety filters. Ranking inputs must remain observable enough for debugging, moderation review, and product learning.
+
+## Social Graph Direction
+
+The social graph must support:
+
+- follow/unfollow
+- block
+- mute
+- relationship-state reads for profiles, feeds, notifications, and interaction authorization
+- basic visibility controls for public profile/content behavior
+- idempotent mutations and clear ownership in User/Profile
+
+Friendship, close-friend circles, and full privacy-account semantics are later features unless product direction proves they are needed earlier.
+
+## Geo-Discovery Direction
+
+The recommended geo-discovery direction is:
 
 - keep place coordinates and canonical place metadata in the Place boundary
-- support practical location queries such as city, area, district, and nearby discovery without introducing a separate geo platform
-- use PostgreSQL-native geo-friendly querying patterns that are sufficient for radius, bounding, or distance-aware retrieval if location precision is needed in MVP
-- combine geo relevance with lexical relevance and food relevance rather than treating map distance as the only ranking signal
-- keep the first release biased toward useful nearby discovery instead of map-heavy exploration UX
+- support practical city, area, district, and nearby discovery without introducing a separate geo platform first
+- use PostgreSQL-native geo-friendly querying patterns for radius, bounding, or distance-aware retrieval when location precision is needed
+- combine geo relevance with lexical relevance and food relevance rather than treating distance as the only ranking signal
 
-This approach keeps location-aware food discovery viable for Vietnam-first launch while avoiding premature dedicated search or mapping infrastructure.
+## AI Strategy
 
-### Chosen multi-provider AI strategy
-
-The recommended MVP AI integration strategy is:
+The recommended AI integration strategy is:
 
 - one internal provider-agnostic AI abstraction or gateway
 - capability-based adapters for multiple providers
-- config-driven routing and fallback rules
+- config-driven routing, timeouts, and fallback rules
 - graceful degradation to deterministic behavior when providers fail or time out
-- keep public platform contracts in .NET even if some AI capability services are implemented in Python
+- public contracts remain in .NET even if model-heavy AI capability services use Python
+- provider calls must avoid unnecessary PII and must document logging, redaction, and retention behavior
 
-### Chosen media storage and delivery direction
+## Media Storage and Delivery Direction
 
-The recommended MVP media direction is:
+The recommended media direction is:
 
-- posts/media owns the application-level media lifecycle for uploads, attachment validation, moderation touchpoints, and deletion orchestration
-- binary media should be stored in object-style storage rather than inside PostgreSQL
-- the platform should support a clear distinction between original uploads and derived assets such as thumbnails or resized images
-- image derivatives may be generated asynchronously when needed, while the MVP should avoid overcomplicated video workflows unless usage proves they matter
-- media delivery should support controlled access patterns such as signed URLs, gateway-issued access, or equivalent bounded exposure instead of treating storage as a public free-for-all by default
-- media deletion or post deletion must also trigger cleanup expectations for derived assets and storage references
+- posts/media owns application-level media lifecycle for uploads, attachment validation, moderation touchpoints, and deletion coordination
+- binary media is stored in object-style storage rather than PostgreSQL
+- original uploads and derived assets such as thumbnails or resized images are distinct
+- image derivatives may be generated asynchronously when needed
+- video-first workflows and transcoding-heavy pipelines are deferred until usage proves they matter
+- media delivery supports controlled access patterns such as signed URLs, gateway-issued access, CDN-backed delivery with bounded exposure, or equivalent controls
+- media deletion or post deletion must include cleanup expectations for derived assets and storage references
 
-This direction acknowledges that FoodSocial is media-heavy by nature and therefore needs an explicit media-serving model even in MVP.
+## Notification Direction
 
-### Recommendation evolution direction
+The notification direction must support:
 
-- MVP recommendation depth: medium personalization
-- architecture should preserve a clean upgrade path toward stronger personalization later
-- recommendation signals, user-interest data, and read models should be designed to evolve without rewriting core service boundaries
+- follow, like, comment, repost, moderation outcome, and account/system notifications
+- read-state management and user-facing retrieval
+- graceful partial-source behavior while notifications remain split across services
+- extraction to a dedicated notification service when cross-service notification ownership, push/email/realtime delivery, or account/system notifications become difficult to operate inside current boundaries
 
-### Chosen caching and read-model direction
+Push notifications, email, and realtime delivery are delivery adapters, not substitutes for canonical notification records.
 
-The recommended MVP caching direction is:
+## Moderation and Trust Direction
+
+The moderation/trust direction must support:
+
+- user reports for posts, users, and comments
+- report queue and manual review
+- dismiss, hide/delete content, warn, restrict, suspend, and audit actions
+- evidence retention and moderation history
+- block and mute as user safety controls
+- rate limits and obvious spam/seeding rules
+- appeal readiness even if appeals are staged later
+
+Deep automation, trust scoring, shadow banning, and auto-hide should not be introduced until review, appeal, audit, rollback, and operator capacity are defined.
+
+## Caching and Read-Model Direction
+
+The recommended caching direction is:
 
 - treat PostgreSQL and service-owned read models as the default source of truth
-- allow selective caching only for measured hotspots such as feed fragments, canonical entity lookups, or expensive AI-assist responses
-- avoid making a dedicated cache platform a mandatory dependency before production bottlenecks are proven
-- require cache ownership and invalidation expectations to remain explicit per use case
+- allow selective caching for measured hotspots such as feed fragments, canonical entity lookups, session-adjacent state, or expensive AI-assist responses
+- require cache ownership, TTL, invalidation, and degradation behavior to remain explicit per use case
+- do not use Redis as source of truth for canonical social data
 
-This keeps the architecture operationally lighter for a solo MVP while preserving a path toward targeted acceleration later.
+## Feature Control and Runtime Configuration Direction
 
-### Feature control and runtime configuration direction
+The recommended feature-control direction is:
 
-The recommended MVP feature-control direction is:
-
-- use configuration and lightweight feature-flagging for launch gating, beta rollout, kill switches, provider routing, and safety fallback behavior
-- keep runtime feature control simple enough that it does not require a heavyweight experimentation platform in MVP
-- ensure operationally sensitive toggles such as AI assistance, ranking variants, and moderation rules can be disabled without redeploying all services
-
-This helps a limited beta evolve safely while keeping the architecture compatible with later experimentation needs.
-
-### Honest framing of this choice
-
-Microservices is not the fastest or safest path for this MVP. It is an intentional trade-off that prioritizes explicit service separation and future extraction readiness over delivery simplicity.
-
-Given the current scope and timeline, the architectural priority should still be:
-
-- end-to-end debuggability
-- clear domain ownership
-- minimal cross-service complexity where possible
-- graceful degradation when AI or downstream services fail
+- use configuration and lightweight feature flags for rollout gating, beta cohorts, kill switches, provider routing, ranking variants, and safety fallback behavior
+- keep runtime feature control simple enough that it does not require a heavyweight experimentation platform before product scale requires it
+- ensure operationally sensitive toggles can be disabled without redeploying all services
+- keep feature changes auditable enough that operators can understand why a capability was enabled, disabled, or rerouted
 
 ## Trade-offs
 
 ### Benefits
 
-- clearer service ownership
+- clear service ownership
 - stronger contract boundaries
-- simpler MVP search stack
+- practical first production stack
 - lower frontend coupling through the BFF
+- staged path from query-based features to dedicated read models and services
 
 ### Costs
 
-- higher operational complexity for a solo MVP
+- higher operational complexity than a monolith
 - slower feature iteration during validation
 - more cross-service consistency risk
 - added complexity from first-class Dish and Place modeling
-- added burden from self-hosted identity and multi-provider AI routing
+- added burden from self-hosted identity, multi-provider AI routing, and media lifecycle operations
 
 ## Environments
 
-Likely required environments if microservices is retained:
+Required environments:
 
 - local multi-service development environment
 - staging environment
@@ -208,100 +244,79 @@ Likely required environments if microservices is retained:
 
 Chosen deployment direction: Kubernetes-based deployment.
 
-Aspire should be treated as the default local development composition layer, not as the full production hosting decision by itself.
-
-## Need Confirmation
-
-- Whether microservices means true independently deployable services or a lighter service-shaped deployment model for MVP
+Aspire should be treated as the default local development composition layer, not as the production hosting decision by itself.
 
 ## Agent Exposure Direction
 
-- MVP should remain conservative and structured
-- long-term direction allows broader external agent actions when authorization and auditing controls are mature enough
-- MVP agent-facing APIs should use private or controlled-access exposure rather than public open developer exposure
-
-## Feed Mixing Direction
-
-- Following feed should prioritize followed-user content
-- limited mixed content is allowed in Following feed
-- Discover remains the primary surface for stronger recommendation behavior
-
-## Delivery Quality Target
-
-- 2-month target: limited real-user beta
-- later direction: evolve toward production-ready public launch
-
-Public launch readiness should be evaluated using a combination of product usefulness, technical stability, and operational confidence rather than a single criterion.
-
-Current priority factors for release expansion:
-
-- active and retained real users
-- technical stability
+- Product APIs should be structured enough for controlled agent consumption.
+- External agent actions require explicit authorization, scoping, policy enforcement, and auditability.
+- Broad external agent actions are not public-launch defaults.
 
 ## Operational Readiness Direction
 
-The architecture should distinguish between limited beta readiness and broader public-launch readiness.
+The architecture should distinguish between production-like beta, public launch, and mature scale.
 
-Minimum beta-ready architecture expectations:
+Minimum public product expectations:
 
-- production-like monitoring for service health, downstream latency, and degraded AI behavior
-- at least one documented restore path for each service-owned PostgreSQL datastore that matters to user trust
-- documented operator actions for provider outage, queue backlog, media pipeline failure, and degraded search quality
-- feature controls that allow high-risk product capabilities to be disabled quickly during beta learning
+- production monitoring for service health, downstream latency, queue/outbox backlog, degraded AI behavior, degraded search, moderation backlog, and media lifecycle failures
+- documented restore path and tested restore drill for each service-owned PostgreSQL datastore that matters to user trust
+- documented recovery expectations for Keycloak, RabbitMQ, Redis if used for active flows, and media storage
+- documented operator actions for provider outage, queue backlog, media pipeline failure, degraded search quality, moderation backlog, and auth failure
+- feature controls that allow high-risk capabilities to be disabled quickly
+- rollback path for application deployments and documented decision rules for database forward repair versus rollback
 
-Broader public-launch readiness should additionally require:
+Broader scale maturity should additionally require:
 
-- more formal alert thresholds and operational dashboards
-- restore testing discipline rather than backup existence alone
+- formal SLOs and alert thresholds
 - stronger abuse defenses and confidence that moderation operations can keep up with incoming volume
+- feed, search, notification, moderation, analytics, and media extraction where current ownership becomes unclear or operationally risky
 
 ## Monetization Readiness Direction
 
-- MVP should focus on product validation rather than immediate monetization
-- architecture and data contracts should remain extensible for later monetization models such as ads, affiliate/ordering commission, premium features, or mixed revenue strategies
-- the primary long-term monetization direction should favor affiliate / ordering commission within a mixed model
+- The product should validate retention and trust before active monetization.
+- Architecture and data contracts should remain extensible for later monetization models such as affiliate/ordering commission, premium features, ads, or mixed revenue.
+- The primary long-term monetization direction should favor affiliate/ordering commission within a mixed model.
 
 ## Async Messaging Direction
 
-- chosen event bus for MVP: RabbitMQ
-- suitable for moderation triggers, search projection refresh, recommendation signals, and enrichment workflows
+- chosen event bus: RabbitMQ
+- suitable for moderation triggers, search projection refresh, recommendation signals, notification creation, media lifecycle, analytics events, and enrichment workflows
+- heavier streaming infrastructure should be introduced only when throughput, replay, partitioning, or long-retention event needs exceed RabbitMQ plus outbox/read-model patterns
 
-### MVP event reliability direction
+### Event reliability expectations
 
-The architecture should treat async delivery as an explicit reliability concern, not only a transport choice.
-
-Minimum expectations for MVP:
-
-- critical cross-service events should be published through an explicit reliability pattern such as an outbox or another clearly documented equivalent
+- critical cross-service events should be published through an explicit reliability pattern such as an outbox
 - consumers must remain idempotent and safe under duplicate delivery
 - retries, dead-letter handling, and replay expectations should be documented for workflows that affect user-visible state or moderation-sensitive behavior
 - event contracts should evolve additively where possible to reduce cross-service breakage risk
-
-This keeps the microservices choice honest by acknowledging delivery correctness and recovery as part of the design.
+- event ownership, schema version, producer, consumer, retry policy, and replay strategy should be visible for product-critical events
 
 ## Tenant Direction
 
-Approved direction: multi-tenant.
+Approved direction: multi-tenant capable.
 
 Architectural implication:
 
 - tenant isolation must be reflected in identity, service contracts, persistence, and moderation workflows
-- this improves long-term platform flexibility, but it increases MVP complexity significantly
+- this improves long-term platform flexibility, but it increases complexity
 
 Current clarification:
 
-- tenant semantics are not yet exercised as a primary MVP business model
+- tenant semantics are not yet exercised as a primary business model
 - the current intent is to preserve future multi-tenant capability rather than require rich tenant-specific product behavior from day one
-- in MVP implementation, tenant should be treated primarily as an architectural isolation concern rather than a rich product-facing workflow driver
+- tenant should be treated primarily as an architectural isolation concern until a real partner or multi-operator business model appears
 
-## Explicitly Deferred Until Post-Beta Unless Evidence Changes
+## Explicitly Deferred Until Evidence Changes
 
-The following capabilities should remain explicitly deferred unless real usage, product learning, or measured bottlenecks justify them:
+The following capabilities should remain deferred unless real usage, product learning, or measured bottlenecks justify them:
 
-- a heavyweight dedicated search platform beyond the approved PostgreSQL-first search approach
-- a platform-wide cache dependency introduced before concrete hotspots are measured
-- vector-search infrastructure or embedding-first retrieval as a default MVP dependency
-- a heavyweight experimentation platform beyond lightweight runtime feature control
-- a deeply automated moderation system that contradicts the manual-review-first MVP stance
+- heavyweight dedicated search platform beyond PostgreSQL-first search
+- platform-wide cache dependency
+- vector-search infrastructure or embedding-first retrieval as a default dependency
+- heavyweight experimentation platform
+- deeply automated moderation that bypasses manual review, appeal readiness, audit, or rollback controls
+- chat/direct messaging, presence, typing indicators, and read receipts
+- video-first posting and heavy transcoding pipeline
+- native mobile apps before web retention and operational stability justify the investment
 
-This deferred list is meant to protect the product from accidental architecture inflation during solo MVP delivery.
+This deferred list protects the product from accidental architecture inflation while preserving a real path to social-platform maturity.

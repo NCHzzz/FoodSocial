@@ -14,7 +14,7 @@
       "secret": "${KEYCLOAK_BFF_CLIENT_SECRET}",
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:4200/signout-callback-oidc##http://localhost:5276/signout-callback-oidc##https://localhost:7187/signout-callback-oidc##http://localhost:4200/##http://localhost:5276/##https://localhost:7187/"
+        "post.logout.redirect.uris": "http://localhost:4200/signout-callback-oidc##http://localhost:5280/signout-callback-oidc##https://localhost:7280/signout-callback-oidc##http://localhost:4200/##http://localhost:5280/##https://localhost:7280/"
       },
       "protocolMappers": [
         {
@@ -34,13 +34,13 @@
       "directAccessGrantsEnabled": false,
       "redirectUris": [
         "http://localhost:4200/signin-oidc",
-        "http://localhost:5276/signin-oidc",
-        "https://localhost:7187/signin-oidc"
+        "http://localhost:5280/signin-oidc",
+        "https://localhost:7280/signin-oidc"
       ],
       "webOrigins": [
         "http://localhost:4200",
-        "http://localhost:5276",
-        "https://localhost:7187"
+        "http://localhost:5280",
+        "https://localhost:7280"
       ]
     },
     {
@@ -50,6 +50,17 @@
       "protocol": "openid-connect",
       "publicClient": false,
       "bearerOnly": true
+    },
+    {
+      "clientId": "foodsocial-bff-service",
+      "name": "FoodSocial BFF Service Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "${KEYCLOAK_BFF_SERVICE_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
     },
     {
       "clientId": "foodsocial-cli",

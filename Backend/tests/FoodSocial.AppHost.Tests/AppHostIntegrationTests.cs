@@ -15,21 +15,27 @@ public sealed class AppHostIntegrationTests(AppHostFixture fixture)
         using var cts = fixture.CreateDefaultCancellationTokenSource();
 
         await fixture.WaitForHealthyAsync("bff", cts.Token);
+        await fixture.WaitForHealthyAsync("api-gateway", cts.Token);
         await fixture.WaitForHealthyAsync("identity-api", cts.Token);
 
         var bffEndpoint = fixture.Resources.GetEndpoint("bff", "https");
+        var apiGatewayEndpoint = fixture.Resources.GetEndpoint("api-gateway", "https");
         var identityEndpoint = fixture.Resources.GetEndpoint("identity-api", "https");
 
         bffEndpoint.Port.Should().BeGreaterThan(0);
+        apiGatewayEndpoint.Port.Should().BeGreaterThan(0);
         identityEndpoint.Port.Should().BeGreaterThan(0);
 
         using var bffClient = fixture.CreateUnauthenticatedClient("bff", "https");
+        using var apiGatewayClient = fixture.CreateUnauthenticatedClient("api-gateway", "https");
         using var identityClient = fixture.CreateUnauthenticatedClient("identity-api", "https");
 
         using var bffHealthResponse = await bffClient.GetAsync("/health", cts.Token);
+        using var apiGatewayHealthResponse = await apiGatewayClient.GetAsync("/health", cts.Token);
         using var identityHealthResponse = await identityClient.GetAsync("/health", cts.Token);
 
         bffHealthResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        apiGatewayHealthResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         identityHealthResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         (await fixture.Databases.Identity.CanConnectAsync(cts.Token)).Should().BeTrue();
         (await fixture.Databases.UserProfile.CanConnectAsync(cts.Token)).Should().BeTrue();

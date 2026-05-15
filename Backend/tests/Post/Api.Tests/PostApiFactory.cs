@@ -1,8 +1,10 @@
 using FoodSocial.Contracts.Posts;
 using FoodSocial.Post.Application;
 using FoodSocial.Post.Api;
+using FoodSocial.Post.Domain;
 using FoodSocial.Post.Infrastructure.Persistence;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -16,7 +18,7 @@ namespace FoodSocial.Post.Api.Tests;
 
 internal sealed class PostApiFactory : WebApplicationFactory<Program>
 {
-    internal const string TestInternalSecret = "post-test-internal-secret";
+    internal const string TestServiceClientId = "foodsocial-bff-test";
     internal static readonly Guid TestCallerIdentityId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
     private readonly TestCatalogReferenceValidator _catalogReferenceValidator = new();
@@ -31,10 +33,20 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:postdb", "Host=localhost;Database=post_api_tests;Username=test;Password=test");
         builder.UseSetting("Post:ApplyMigrationsOnStartup", bool.FalseString);
-        builder.UseSetting("Post:InternalTrust:SharedSecret", TestInternalSecret);
+        builder.UseSetting("Keycloak:Realm", "foodsocial");
+        builder.UseSetting("Keycloak:Authority", "https://identity.example.test/realms/foodsocial");
+        builder.UseSetting("Post:TrustedServiceClients:BffClientId", TestServiceClientId);
         builder.UseSetting("Post:Media:StoragePath", _mediaStoragePath);
         builder.ConfigureTestServices(services =>
         {
+            services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = TestAuthenticationHandler.SchemeName;
+                    options.DefaultChallengeScheme = TestAuthenticationHandler.SchemeName;
+                })
+                .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
+                    TestAuthenticationHandler.SchemeName,
+                    _ => { });
             services.RemoveAll<IDbContextOptionsConfiguration<PostDbContext>>();
             services.RemoveAll<DbContextOptions<PostDbContext>>();
             services.RemoveAll<PostDbContext>();
@@ -64,11 +76,12 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
 
     internal static void AddTrustHeaders(HttpClient client, Guid identityId, bool moderator = false)
     {
-        client.DefaultRequestHeaders.Add("X-FoodSocial-Internal-Secret", TestInternalSecret);
+        var rolesHeader = moderator ? "moderator" : string.Empty;
+        client.DefaultRequestHeaders.Add("X-Test-Azp", TestServiceClientId);
         client.DefaultRequestHeaders.Add("X-FoodSocial-Identity-Id", identityId.ToString());
         if (moderator)
         {
-            client.DefaultRequestHeaders.Add("X-FoodSocial-Identity-Roles", "moderator");
+            client.DefaultRequestHeaders.Add("X-FoodSocial-Identity-Roles", rolesHeader);
         }
     }
 
@@ -96,6 +109,26 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
         using var response = await client.PostAsJsonAsync("/api/posts", request);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<PostDetailResponse>())!.Id;
+    }
+
+    internal async Task MovePostToTenantAsync(Guid postId, Guid tenantId)
+    {
+        await EnsureDatabaseCreatedAsync();
+        using var scope = Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PostDbContext>();
+        var post = await dbContext.Posts.SingleAsync(item => item.Id == postId);
+        dbContext.Entry(post).Property(nameof(PostRecord.TenantId)).CurrentValue = tenantId;
+        await dbContext.SaveChangesAsync();
+    }
+
+    internal async Task MoveUploadToTenantAsync(Guid uploadId, Guid tenantId)
+    {
+        await EnsureDatabaseCreatedAsync();
+        using var scope = Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PostDbContext>();
+        var upload = await dbContext.PostMediaUploads.SingleAsync(item => item.Id == uploadId);
+        upload.TenantId = tenantId;
+        await dbContext.SaveChangesAsync();
     }
 
     private sealed class TestCatalogReferenceValidator : IPostCatalogReferenceValidator
