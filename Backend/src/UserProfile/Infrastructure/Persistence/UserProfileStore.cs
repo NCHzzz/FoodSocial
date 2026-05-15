@@ -10,7 +10,7 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence;
 /// <summary>
 /// Entity Framework Core implementation of the application-owned user profile graph store.
 /// </summary>
-public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProfileStore
+public sealed partial class UserProfileStore(UserProfileDbContext dbContext) : IUserProfileStore
 {
     private readonly UserProfileDbContext _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 
@@ -225,39 +225,6 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
         return new UserProfileMutationResult(UserProfileOperationStatus.Success, followedIdentityId, true, null);
     }
 
-    public async Task<UserNotificationListSnapshot?> GetNotificationsAsync(Guid identityId, int limit, CancellationToken cancellationToken)
-    {
-        var ownership = await FindOwnershipByIdentityIdAsync(identityId, cancellationToken);
-        if (ownership is null) return null;
-        var normalizedLimit = NormalizeLimit(limit);
-        var query = _dbContext.UserNotifications.AsNoTracking().Where(notification => notification.UserProfileShellId == ownership.ShellId);
-        var unreadCount = await query.CountAsync(notification => notification.Status == UserNotificationStatus.Unread, cancellationToken);
-        IReadOnlyList<UserNotification> rawItems = IsSqliteProvider()
-            ? (await query.ToListAsync(cancellationToken))
-                .OrderByDescending(notification => notification.CreatedAtUtc)
-                .ThenBy(notification => notification.Id)
-                .Take(normalizedLimit)
-                .ToArray()
-            : await query
-                .OrderByDescending(notification => notification.CreatedAtUtc)
-                .ThenBy(notification => notification.Id)
-                .Take(normalizedLimit)
-                .ToListAsync(cancellationToken);
-        var items = rawItems.Select(MapNotification).ToArray();
-        return new UserNotificationListSnapshot(items, normalizedLimit, unreadCount);
-    }
-
-    public async Task<UserNotificationSnapshot?> MarkNotificationReadAsync(Guid identityId, Guid notificationId, CancellationToken cancellationToken)
-    {
-        var ownership = await FindOwnershipByIdentityIdAsync(identityId, cancellationToken);
-        if (ownership is null) return null;
-        var notification = await _dbContext.UserNotifications.SingleOrDefaultAsync(item => item.UserProfileShellId == ownership.ShellId && item.Id == notificationId, cancellationToken);
-        if (notification is null) return null;
-        notification.MarkRead();
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        return MapNotification(notification);
-    }
-
     /// <inheritdoc />
     public async Task<UserProfileMutationResult> UnfollowAsync(Guid followerIdentityId, Guid followedIdentityId, CancellationToken cancellationToken)
     {
@@ -283,149 +250,6 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
         return new UserProfileMutationResult(UserProfileOperationStatus.Success, followedIdentityId, false, null);
     }
 
-    /// <inheritdoc />
-    public async Task<UserSavedItemsSnapshot?> GetSavedItemsAsync(Guid identityId, CancellationToken cancellationToken)
-    {
-        var ownership = await FindOwnershipByIdentityIdAsync(identityId, cancellationToken);
-        if (ownership is null)
-        {
-            return null;
-        }
-
-        var postsQuery = _dbContext.SavedPosts
-            .AsNoTracking()
-            .Where(savedPost => savedPost.UserProfileShellId == ownership.ShellId)
-            .Select(savedPost => new SavedPostSnapshot(savedPost.PostId, savedPost.CreatedAtUtc));
-        var posts = IsSqliteProvider()
-            ? (await postsQuery.ToListAsync(cancellationToken)).OrderByDescending(item => item.SavedAtUtc).ToArray()
-            : await postsQuery.OrderByDescending(item => item.SavedAtUtc).ToArrayAsync(cancellationToken);
-
-        var dishesQuery = _dbContext.SavedDishes
-            .AsNoTracking()
-            .Where(savedDish => savedDish.UserProfileShellId == ownership.ShellId)
-            .Select(savedDish => new SavedDishSnapshot(savedDish.DishId, savedDish.CreatedAtUtc));
-        var dishes = IsSqliteProvider()
-            ? (await dishesQuery.ToListAsync(cancellationToken)).OrderByDescending(item => item.SavedAtUtc).ToArray()
-            : await dishesQuery.OrderByDescending(item => item.SavedAtUtc).ToArrayAsync(cancellationToken);
-
-        var placesQuery = _dbContext.SavedPlaces
-            .AsNoTracking()
-            .Where(savedPlace => savedPlace.UserProfileShellId == ownership.ShellId)
-            .Select(savedPlace => new SavedPlaceSnapshot(savedPlace.PlaceId, savedPlace.CreatedAtUtc));
-        var places = IsSqliteProvider()
-            ? (await placesQuery.ToListAsync(cancellationToken)).OrderByDescending(item => item.SavedAtUtc).ToArray()
-            : await placesQuery.OrderByDescending(item => item.SavedAtUtc).ToArrayAsync(cancellationToken);
-
-        return new UserSavedItemsSnapshot(
-            posts,
-            dishes,
-            places);
-    }
-
-    /// <inheritdoc />
-    public Task<UserSavedItemMutationResult> SavePostAsync(Guid identityId, Guid postId, CancellationToken cancellationToken) =>
-        SaveItemAsync(identityId, postId, "post", shellId => new SavedPost(shellId, postId), savedPost => savedPost.PostId == postId, cancellationToken);
-
-    /// <inheritdoc />
-    public Task<UserSavedItemMutationResult> UnsavePostAsync(Guid identityId, Guid postId, CancellationToken cancellationToken) =>
-        UnsaveItemAsync(identityId, postId, "post", postId, _dbContext.SavedPosts, savedPost => savedPost.PostId == postId, cancellationToken);
-
-    /// <inheritdoc />
-    public Task<UserSavedItemMutationResult> SaveDishAsync(Guid identityId, Guid dishId, CancellationToken cancellationToken) =>
-        SaveItemAsync(identityId, dishId, "dish", shellId => new SavedDish(shellId, dishId), savedDish => savedDish.DishId == dishId, cancellationToken);
-
-    /// <inheritdoc />
-    public Task<UserSavedItemMutationResult> UnsaveDishAsync(Guid identityId, Guid dishId, CancellationToken cancellationToken) =>
-        UnsaveItemAsync(identityId, dishId, "dish", dishId, _dbContext.SavedDishes, savedDish => savedDish.DishId == dishId, cancellationToken);
-
-    /// <inheritdoc />
-    public Task<UserSavedItemMutationResult> SavePlaceAsync(Guid identityId, Guid placeId, CancellationToken cancellationToken) =>
-        SaveItemAsync(identityId, placeId, "place", shellId => new SavedPlace(shellId, placeId), savedPlace => savedPlace.PlaceId == placeId, cancellationToken);
-
-    /// <inheritdoc />
-    public Task<UserSavedItemMutationResult> UnsavePlaceAsync(Guid identityId, Guid placeId, CancellationToken cancellationToken) =>
-        UnsaveItemAsync(identityId, placeId, "place", placeId, _dbContext.SavedPlaces, savedPlace => savedPlace.PlaceId == placeId, cancellationToken);
-
-    private async Task<UserSavedItemMutationResult> SaveItemAsync<TEntity>(
-        Guid identityId,
-        Guid targetId,
-        string targetType,
-        Func<Guid, TEntity> entityFactory,
-        System.Linq.Expressions.Expression<Func<TEntity, bool>> existsPredicate,
-        CancellationToken cancellationToken)
-        where TEntity : class
-    {
-        var ownership = await FindOwnershipByIdentityIdAsync(identityId, cancellationToken);
-        if (ownership is null)
-        {
-            return new UserSavedItemMutationResult(UserProfileOperationStatus.NotFound, identityId, targetId, targetType, false, "The requested user profile was not found.");
-        }
-
-        _dbContext.Add(entityFactory(ownership.ShellId));
-        _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(identityId, $"Saved{ToPascalTargetType(targetType)}", targetId, targetType));
-
-        try
-        {
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
-        {
-            _dbContext.ChangeTracker.Clear();
-
-            var duplicateExists = await _dbContext.Set<TEntity>()
-                .AnyAsync(CombineWithShell(existsPredicate, ownership.ShellId), cancellationToken);
-
-            if (!duplicateExists)
-            {
-                throw;
-            }
-        }
-
-        return new UserSavedItemMutationResult(UserProfileOperationStatus.Success, identityId, targetId, targetType, true, null);
-    }
-
-    private async Task<UserSavedItemMutationResult> UnsaveItemAsync<TEntity>(
-        Guid identityId,
-        Guid targetId,
-        string targetType,
-        Guid itemId,
-        DbSet<TEntity> dbSet,
-        System.Linq.Expressions.Expression<Func<TEntity, bool>> predicate,
-        CancellationToken cancellationToken)
-        where TEntity : class
-    {
-        var ownership = await FindOwnershipByIdentityIdAsync(identityId, cancellationToken);
-        if (ownership is null)
-        {
-            return new UserSavedItemMutationResult(UserProfileOperationStatus.NotFound, identityId, targetId, targetType, false, "The requested user profile was not found.");
-        }
-
-        var entity = await dbSet.SingleOrDefaultAsync(CombineWithShell(predicate, ownership.ShellId), cancellationToken);
-        if (entity is not null)
-        {
-            dbSet.Remove(entity);
-            _dbContext.IntegrationOutboxMessages.Add(CreateOutboxMessage(identityId, $"Unsaved{ToPascalTargetType(targetType)}", targetId, targetType));
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        }
-
-        return new UserSavedItemMutationResult(UserProfileOperationStatus.Success, identityId, itemId, targetType, false, null);
-    }
-
-    private static System.Linq.Expressions.Expression<Func<TEntity, bool>> CombineWithShell<TEntity>(
-        System.Linq.Expressions.Expression<Func<TEntity, bool>> itemPredicate,
-        Guid shellId)
-        where TEntity : class
-    {
-        var parameter = itemPredicate.Parameters.Single();
-        var shellProperty = System.Linq.Expressions.Expression.Property(parameter, nameof(SavedPost.UserProfileShellId));
-        var shellEquals = System.Linq.Expressions.Expression.Equal(shellProperty, System.Linq.Expressions.Expression.Constant(shellId));
-        var combinedBody = System.Linq.Expressions.Expression.AndAlso(shellEquals, itemPredicate.Body);
-        return System.Linq.Expressions.Expression.Lambda<Func<TEntity, bool>>(combinedBody, parameter);
-    }
-
-    private static UserNotificationSnapshot MapNotification(UserNotification notification) =>
-        new(notification.Id, notification.RecipientIdentityId, notification.ActorIdentityId, notification.Type, notification.Message, notification.Status == UserNotificationStatus.Read, notification.CreatedAtUtc, notification.ReadAtUtc);
-
     private static IntegrationOutboxMessage CreateOutboxMessage(Guid identityId, string changeType, Guid? targetId = null, string? targetType = null)
     {
         var integrationEvent = UserProfileChangedIntegrationEvent.Create(
@@ -446,15 +270,6 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             identityId,
             "UserProfile");
     }
-
-    private static string ToPascalTargetType(string targetType) =>
-        string.Equals(targetType, "post", StringComparison.Ordinal)
-            ? "Post"
-            : string.Equals(targetType, "dish", StringComparison.Ordinal)
-                ? "Dish"
-                : string.Equals(targetType, "place", StringComparison.Ordinal)
-                    ? "Place"
-                    : targetType;
 
     private async Task<UserProfileSnapshot> BuildSnapshotAsync(UserProfileShell shell, CancellationToken cancellationToken)
     {

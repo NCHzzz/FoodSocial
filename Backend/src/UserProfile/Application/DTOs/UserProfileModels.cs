@@ -119,7 +119,9 @@ public sealed record UserSavedItemsResult(
     UserSavedItemsSnapshot? SavedItems,
     string? Error);
 
-
+/// <summary>
+/// Represents a user notification delivered to a profile owner.
+/// </summary>
 public sealed record UserNotificationSnapshot(
     Guid Id,
     Guid RecipientIdentityId,
@@ -130,4 +132,23 @@ public sealed record UserNotificationSnapshot(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? ReadAtUtc);
 
+/// <summary>
+/// Represents a bounded notification list for a profile owner.
+/// </summary>
 public sealed record UserNotificationListSnapshot(IReadOnlyList<UserNotificationSnapshot> Items, int Limit, int UnreadCount);
+
+/// <summary>
+/// Represents the result of an owner-scoped notification operation.
+/// </summary>
+public sealed record UserNotificationResult(
+    UserProfileOperationStatus Status,
+    UserNotificationSnapshot? Notification,
+    string? Error);
+
+/// <summary>
+/// Represents the result of loading owner-scoped notifications.
+/// </summary>
+public sealed record UserNotificationListResult(
+    UserProfileOperationStatus Status,
+    UserNotificationListSnapshot? Notifications,
+    string? Error);

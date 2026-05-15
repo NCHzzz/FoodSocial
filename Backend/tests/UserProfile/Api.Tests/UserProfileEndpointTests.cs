@@ -165,6 +165,34 @@ public sealed class UserProfileEndpointTests
     }
 
     [Fact]
+    public async Task NotificationsEndpoints_DistinguishMissingProfileFromForbiddenOwner()
+    {
+        await using var factory = new UserProfileApiFactory();
+        var ownerIdentityId = Guid.Parse("1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a");
+        var strangerIdentityId = Guid.Parse("1b1b1b1b-1b1b-1b1b-1b1b-1b1b1b1b1b1b");
+        var missingIdentityId = Guid.Parse("1c1c1c1c-1c1c-1c1c-1c1c-1c1c1c1c1c1c");
+        _ = await factory.SeedProfileAsync(ownerIdentityId, "owner-notifications-subject", displayName: "Owner User");
+        _ = await factory.SeedProfileAsync(strangerIdentityId, "stranger-notifications-subject", displayName: "Stranger User");
+
+        using var strangerClient = factory.CreateClient();
+        strangerClient.DefaultRequestHeaders.Add("X-Test-Sub", "stranger-notifications-subject");
+        using var forbiddenListResponse = await strangerClient.GetAsync($"/api/users/{ownerIdentityId}/notifications");
+        using var forbiddenReadResponse = await strangerClient.PatchAsync($"/api/users/{ownerIdentityId}/notifications/{Guid.NewGuid()}/read", content: null);
+
+        using var ownerClient = factory.CreateClient();
+        ownerClient.DefaultRequestHeaders.Add("X-Test-Sub", "owner-notifications-subject");
+        using var missingListResponse = await ownerClient.GetAsync($"/api/users/{missingIdentityId}/notifications");
+        using var missingReadResponse = await ownerClient.PatchAsync($"/api/users/{ownerIdentityId}/notifications/{Guid.NewGuid()}/read", content: null);
+        using var missingProfileReadResponse = await ownerClient.PatchAsync($"/api/users/{missingIdentityId}/notifications/{Guid.NewGuid()}/read", content: null);
+
+        forbiddenListResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        forbiddenReadResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        missingListResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        missingReadResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        missingProfileReadResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task SavedItemsEndpoints_AreOwnerScoped()
     {
         await using var factory = new UserProfileApiFactory();

@@ -189,10 +189,14 @@ public sealed class UsersController(
             return missingSubjectResult!;
         }
 
-        var snapshot = await _userNotificationService.GetNotificationsAsync(subject!, userId, cancellationToken);
-        return snapshot is null
-            ? Problem(title: "Notification ownership required", detail: "The authenticated user does not own the requested notification stream.", statusCode: StatusCodes.Status403Forbidden)
-            : Ok(new UserNotificationListResponse(snapshot.Items.Select(MapNotification).ToArray(), snapshot.Limit, snapshot.UnreadCount));
+        var result = await _userNotificationService.GetNotificationsAsync(subject!, userId, cancellationToken);
+        return result.Status switch
+        {
+            UserProfileOperationStatus.Success => Ok(new UserNotificationListResponse(result.Notifications!.Items.Select(MapNotification).ToArray(), result.Notifications.Limit, result.Notifications.UnreadCount)),
+            UserProfileOperationStatus.Forbidden => Problem(title: "Notification ownership required", detail: result.Error, statusCode: StatusCodes.Status403Forbidden),
+            UserProfileOperationStatus.NotFound => Problem(title: "User profile not found", detail: result.Error, statusCode: StatusCodes.Status404NotFound),
+            _ => Problem(title: "Notification lookup failed", detail: result.Error ?? "The notifications could not be retrieved.", statusCode: StatusCodes.Status400BadRequest)
+        };
     }
 
     [HttpPatch("{userId:guid}/notifications/{notificationId:guid}/read")]
@@ -205,10 +209,14 @@ public sealed class UsersController(
             return missingSubjectResult!;
         }
 
-        var snapshot = await _userNotificationService.MarkNotificationReadAsync(subject!, userId, notificationId, cancellationToken);
-        return snapshot is null
-            ? Problem(title: "Notification not found", detail: "The requested notification was not found for the authenticated user.", statusCode: StatusCodes.Status404NotFound)
-            : Ok(MapNotification(snapshot));
+        var result = await _userNotificationService.MarkNotificationReadAsync(subject!, userId, notificationId, cancellationToken);
+        return result.Status switch
+        {
+            UserProfileOperationStatus.Success => Ok(MapNotification(result.Notification!)),
+            UserProfileOperationStatus.Forbidden => Problem(title: "Notification ownership required", detail: result.Error, statusCode: StatusCodes.Status403Forbidden),
+            UserProfileOperationStatus.NotFound => Problem(title: "Notification not found", detail: result.Error, statusCode: StatusCodes.Status404NotFound),
+            _ => Problem(title: "Notification update failed", detail: result.Error ?? "The notification could not be updated.", statusCode: StatusCodes.Status400BadRequest)
+        };
     }
 
     private async Task<ActionResult<SaveUserItemResponse>> SaveItemAsync(
