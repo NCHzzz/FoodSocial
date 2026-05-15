@@ -24,12 +24,12 @@ public sealed class DishesController(DishCatalogService dishCatalogService) : Co
     {
         if (dishId == Guid.Empty)
         {
-            return Problem(title: "Invalid dish id", detail: "Dish id must not be empty.", statusCode: StatusCodes.Status400BadRequest);
+            return this.FoodSocialProblem(title: "Invalid dish id", detail: "Dish id must not be empty.", statusCode: StatusCodes.Status400BadRequest);
         }
 
         var dish = await _dishCatalogService.GetDishAsync(dishId, cancellationToken);
         return dish is null
-            ? Problem(title: "Dish not found", detail: "The requested dish was not found.", statusCode: StatusCodes.Status404NotFound)
+            ? this.FoodSocialProblem(title: "Dish not found", detail: "The requested dish was not found.", statusCode: StatusCodes.Status404NotFound)
             : Ok(dish);
     }
 
@@ -68,8 +68,8 @@ public sealed class DishesController(DishCatalogService dishCatalogService) : Co
         {
             DishOperationStatus.Created => CreatedAtAction(nameof(GetDish), new { dishId = result.Dish!.Id }, result.Dish),
             DishOperationStatus.AlreadyExists => Ok(result.Dish),
-            DishOperationStatus.Invalid => Problem(title: "Invalid dish request", detail: result.Error, statusCode: StatusCodes.Status400BadRequest),
-            _ => Problem(title: "Dish creation failed", detail: result.Error ?? "The dish could not be created.", statusCode: StatusCodes.Status400BadRequest)
+            DishOperationStatus.Invalid => this.FoodSocialProblem(title: "Invalid dish request", detail: result.Error, statusCode: StatusCodes.Status400BadRequest),
+            _ => this.FoodSocialProblem(title: "Dish creation failed", detail: result.Error ?? "The dish could not be created.", statusCode: StatusCodes.Status400BadRequest)
         };
     }
 
@@ -84,15 +84,15 @@ public sealed class DishesController(DishCatalogService dishCatalogService) : Co
     {
         if (dishId == Guid.Empty)
         {
-            return Problem(title: "Invalid dish id", detail: "Dish id must not be empty.", statusCode: StatusCodes.Status400BadRequest);
+            return this.FoodSocialProblem(title: "Invalid dish id", detail: "Dish id must not be empty.", statusCode: StatusCodes.Status400BadRequest);
         }
 
         var result = await _dishCatalogService.DeprecateDishAsync(dishId, cancellationToken);
         return result.Status switch
         {
             DishOperationStatus.Deprecated => Ok(new DishLifecycleResponse(result.Dish!.Id, result.Dish.Status, result.Dish.UpdatedAtUtc, result.Dish.DeprecatedAtUtc)),
-            DishOperationStatus.NotFound => Problem(title: "Dish not found", detail: result.Error, statusCode: StatusCodes.Status404NotFound),
-            _ => Problem(title: "Dish deprecation failed", detail: result.Error ?? "The dish could not be deprecated.", statusCode: StatusCodes.Status400BadRequest)
+            DishOperationStatus.NotFound => this.FoodSocialProblem(title: "Dish not found", detail: result.Error, statusCode: StatusCodes.Status404NotFound),
+            _ => this.FoodSocialProblem(title: "Dish deprecation failed", detail: result.Error ?? "The dish could not be deprecated.", statusCode: StatusCodes.Status400BadRequest)
         };
     }
 }

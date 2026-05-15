@@ -47,6 +47,10 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
             entity.HasIndex(post => new { post.TenantId, post.PlaceId, post.CreatedAtUtc });
             entity.HasIndex(post => new { post.TenantId, post.Status, post.CreatedAtUtc });
             entity.HasIndex(post => new { post.TenantId, post.CreatedAtUtc });
+            entity.HasIndex(post => new { post.Status, post.CreatedAtUtc, post.Id });
+            entity.HasIndex(post => new { post.AuthorId, post.Status, post.CreatedAtUtc, post.Id });
+            entity.HasIndex(post => new { post.DishId, post.Status, post.CreatedAtUtc, post.Id });
+            entity.HasIndex(post => new { post.PlaceId, post.Status, post.CreatedAtUtc, post.Id });
         });
         modelBuilder.Entity<PostMediaRecord>(entity =>
         {
@@ -85,6 +89,7 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
             entity.Property(notification => notification.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
             entity.HasIndex(notification => notification.RecipientId);
             entity.HasIndex(notification => new { notification.RecipientId, notification.Status });
+            entity.HasIndex(notification => new { notification.RecipientId, notification.CreatedAtUtc });
             entity.HasIndex(notification => notification.CreatedAtUtc);
         });
         modelBuilder.Entity<PostMediaUploadRecord>(entity =>
@@ -100,6 +105,7 @@ public sealed class PostDbContext(DbContextOptions<PostDbContext> options) : DbC
             entity.HasIndex(upload => upload.Url).IsUnique();
             entity.HasIndex(upload => new { upload.TenantId, upload.Status });
             entity.HasIndex(upload => new { upload.TenantId, upload.CleanupDueAtUtc });
+            entity.HasIndex(upload => new { upload.Status, upload.CleanupDueAtUtc, upload.Id });
             entity.HasOne<PostRecord>().WithMany().HasForeignKey(upload => upload.AttachedPostId).OnDelete(DeleteBehavior.SetNull);
         });
     }

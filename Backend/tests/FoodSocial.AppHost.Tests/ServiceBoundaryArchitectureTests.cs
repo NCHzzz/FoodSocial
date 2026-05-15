@@ -154,6 +154,60 @@ public sealed class ServiceBoundaryArchitectureTests
     }
 
     [Fact]
+    public void BoundedServices_KeepDpUnityStyleRegistrationAndRepositoryInterfaceFolders()
+    {
+        var backendRoot = ResolveBackendRoot();
+        var srcRoot = Path.Combine(backendRoot, "src");
+        var violations = new List<string>();
+
+        foreach (var boundary in Boundaries)
+        {
+            var boundaryRoot = Path.Combine(srcRoot, boundary.Name);
+            var apiRoot = Path.Combine(boundaryRoot, "Api");
+            var applicationRoot = Path.Combine(boundaryRoot, "Application");
+
+            if (!Directory.Exists(Path.Combine(apiRoot, "DependencyInjection")))
+            {
+                violations.Add($"{boundary.Name} API is missing DependencyInjection registration folder");
+            }
+
+            if (!Directory.Exists(Path.Combine(apiRoot, "Startup")))
+            {
+                violations.Add($"{boundary.Name} API is missing Startup folder for pipeline/database startup code");
+            }
+
+            if (!Directory.Exists(Path.Combine(applicationRoot, "Interfaces", "Repositories")))
+            {
+                violations.Add($"{boundary.Name} Application is missing Interfaces/Repositories folder for application-owned repository interfaces");
+            }
+        }
+
+        Directory.Exists(Path.Combine(srcRoot, "Post", "Application", "UseCases"))
+            .Should().BeTrue("Post application orchestration must stay split by use case rather than returning to a god service");
+
+        violations.Should().BeEmpty("bounded service structure should keep explicit API startup registration and DPUnity-style application repository seams");
+    }
+
+    [Fact]
+    public void ApplicationPorts_DoNotStayInApplicationRoot()
+    {
+        var backendRoot = ResolveBackendRoot();
+        var srcRoot = Path.Combine(backendRoot, "src");
+        var violations = new List<string>();
+
+        foreach (var boundary in Boundaries)
+        {
+            var applicationRoot = Path.Combine(srcRoot, boundary.Name, "Application");
+            foreach (var interfacePath in Directory.EnumerateFiles(applicationRoot, "I*Store.cs", SearchOption.TopDirectoryOnly))
+            {
+                violations.Add($"{Relative(backendRoot, interfacePath)} should live under Application/Interfaces/Repositories or a narrower capability folder");
+            }
+        }
+
+        violations.Should().BeEmpty("application root should not become a dumping ground for repository/store interfaces");
+    }
+
+    [Fact]
     public void AppHost_WiresEachServiceOnlyToItsOwnedDatabaseResource()
     {
         var backendRoot = ResolveBackendRoot();

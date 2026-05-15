@@ -8,7 +8,7 @@ public sealed class IdentityDesignTimeDbContextFactory : IDesignTimeDbContextFac
     public IdentityDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__identitydb")
-            ?? "Host=localhost;Port=5432;Database=identitydb;Username=postgres;Password=postgres";
+            ?? throw new InvalidOperationException("Set ConnectionStrings__identitydb before creating the design-time Identity DbContext.");
 
         var optionsBuilder = new DbContextOptionsBuilder<IdentityDbContext>();
 

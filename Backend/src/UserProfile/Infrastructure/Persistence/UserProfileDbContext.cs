@@ -145,6 +145,8 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
 
             entity.HasIndex(follow => new { follow.FollowerUserProfileShellId, follow.FollowedUserProfileShellId })
                 .IsUnique();
+            entity.HasIndex(follow => new { follow.FollowedUserProfileShellId, follow.CreatedAtUtc });
+            entity.HasIndex(follow => new { follow.FollowerUserProfileShellId, follow.CreatedAtUtc });
 
             entity.HasOne<UserProfileShell>()
                 .WithMany()
@@ -174,6 +176,7 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
 
             entity.HasIndex(savedPost => new { savedPost.UserProfileShellId, savedPost.PostId })
                 .IsUnique();
+            entity.HasIndex(savedPost => new { savedPost.UserProfileShellId, savedPost.CreatedAtUtc });
 
             entity.HasOne<UserProfileShell>()
                 .WithMany()
@@ -198,6 +201,7 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
 
             entity.HasIndex(savedDish => new { savedDish.UserProfileShellId, savedDish.DishId })
                 .IsUnique();
+            entity.HasIndex(savedDish => new { savedDish.UserProfileShellId, savedDish.CreatedAtUtc });
 
             entity.HasOne<UserProfileShell>()
                 .WithMany()
@@ -222,6 +226,7 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
 
             entity.HasIndex(savedPlace => new { savedPlace.UserProfileShellId, savedPlace.PlaceId })
                 .IsUnique();
+            entity.HasIndex(savedPlace => new { savedPlace.UserProfileShellId, savedPlace.CreatedAtUtc });
 
             entity.HasOne<UserProfileShell>()
                 .WithMany()
@@ -242,6 +247,8 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
             entity.Property(notification => notification.CreatedAtUtc).IsRequired();
             entity.HasIndex(notification => notification.RecipientIdentityId);
             entity.HasIndex(notification => new { notification.RecipientIdentityId, notification.Status });
+            entity.HasIndex(notification => new { notification.UserProfileShellId, notification.CreatedAtUtc });
+            entity.HasIndex(notification => new { notification.UserProfileShellId, notification.Status });
             entity.HasIndex(notification => notification.CreatedAtUtc);
             entity.HasOne<UserProfileShell>().WithMany().HasForeignKey(notification => notification.UserProfileShellId).OnDelete(DeleteBehavior.Cascade);
         });

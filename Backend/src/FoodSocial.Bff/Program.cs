@@ -17,6 +17,7 @@ builder.Services.AddBffDishClient();
 builder.Services.AddBffPlaceClient();
 builder.Services.AddBffPostClient();
 builder.Services.AddBffCatalogResponseCache(builder.Configuration);
+builder.Services.AddBffDataProtection(builder.Configuration, builder.Environment);
 builder.Services.AddBffRateLimiting(builder.Configuration);
 builder.Services.Configure<BffRecommendationOptions>(builder.Configuration.GetSection(BffRecommendationOptions.SectionName));
 builder.Services.AddScoped<IDiscoverRecommendationProvider, DeterministicDiscoverRecommendationProvider>();
@@ -38,6 +39,13 @@ var app = builder.Build();
 app.UseExceptionHandler();
 
 app.UseForwardedHeaders();
+
+app.UseBffSecurityHeaders();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 
 if (app.Environment.IsDevelopment())
 {

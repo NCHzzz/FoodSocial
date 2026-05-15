@@ -1,4 +1,5 @@
 using FoodSocial.Contracts.Posts;
+using FoodSocial.Messaging;
 using FoodSocial.Post.Application;
 using FoodSocial.Post.Api;
 using FoodSocial.Post.Domain;
@@ -13,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace FoodSocial.Post.Api.Tests;
 
@@ -20,6 +22,7 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
 {
     internal const string TestServiceClientId = "foodsocial-bff-test";
     internal static readonly Guid TestCallerIdentityId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly SemaphoreSlim DatabaseInitializationLock = new(1, 1);
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
     private readonly TestCatalogReferenceValidator _catalogReferenceValidator = new();
     private readonly string _mediaStoragePath = Path.Combine(Path.GetTempPath(), "foodsocial-post-api-tests", Guid.NewGuid().ToString("N"));
@@ -50,6 +53,7 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IDbContextOptionsConfiguration<PostDbContext>>();
             services.RemoveAll<DbContextOptions<PostDbContext>>();
             services.RemoveAll<PostDbContext>();
+            services.RemoveAll<IHostedService>();
             services.RemoveAll<IPostCatalogReferenceValidator>();
             services.AddSingleton<IPostCatalogReferenceValidator>(_catalogReferenceValidator);
             services.AddDbContext<PostDbContext>(options => options.UseSqlite(_connection));
@@ -93,9 +97,19 @@ internal sealed class PostApiFactory : WebApplicationFactory<Program>
     internal async Task EnsureDatabaseCreatedAsync()
     {
         if (_databaseInitialized) return;
-        using var scope = Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<PostDbContext>().Database.EnsureCreatedAsync();
-        _databaseInitialized = true;
+        await DatabaseInitializationLock.WaitAsync();
+        try
+        {
+            if (_databaseInitialized) return;
+
+            using var scope = Services.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<PostDbContext>().Database.EnsureCreatedAsync();
+            _databaseInitialized = true;
+        }
+        finally
+        {
+            DatabaseInitializationLock.Release();
+        }
     }
 
     internal Task CloseDatabaseConnectionAsync() => _connection.CloseAsync();

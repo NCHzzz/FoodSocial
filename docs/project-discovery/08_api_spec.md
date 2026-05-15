@@ -130,11 +130,12 @@ If the API-facing shape and domain model stay effectively identical, prefer upda
 
 1. **Authorization matrix**: endpoints must be classified as public, authenticated, owner-only, moderator/admin, or trusted-service-only.
 2. **Error Handling**: standard HTTP status codes with detailed error bodies.
-3. **Versioning**: if explicit path versioning is introduced later, apply it consistently.
-4. **Pagination**: list endpoints use cursor-based pagination.
-5. **Filtering and Sorting**: list endpoints support filtering and sorting via query parameters.
-6. **Browser safety**: cookie-authenticated state-changing endpoints require CSRF protection.
-7. **Relationship safety**: block, mute, visibility, and moderation state must be respected by profile, feed, interaction, and notification endpoints.
+3. **Versioning**: MVP browser-facing APIs are currently unversioned behind the BFF. Introduce `/api/v1/...` first at the BFF boundary when the API becomes a stable external or mobile-client contract; version internal service routes only when they need independent contract evolution.
+4. **Pagination**: list endpoints must remain bounded today. New or revised collection contracts should move toward cursor-style pagination with an opaque `cursor` request parameter and a response page object containing `limit`, `nextCursor`, and `hasMore`.
+5. **Filtering and Sorting**: list endpoints support filtering via query parameters. Sorting should use whitelisted values such as `recent`, `popular`, or `relevance` rather than exposing arbitrary persistence field names.
+6. **Error Handling**: API errors use RFC 7807 `ProblemDetails` with stable `type`, `title`, `status`, actionable `detail`, and a safe `traceId` extension where available.
+7. **Browser safety**: cookie-authenticated state-changing endpoints require CSRF protection.
+8. **Relationship safety**: block, mute, visibility, and moderation state must be respected by profile, feed, interaction, and notification endpoints.
 
 ## Endpoint Access Model
 

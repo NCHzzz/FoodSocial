@@ -57,11 +57,14 @@ Active backend projects:
 
 - API Gateway is the public HTTP edge for routing, gateway policy, sanitized correlation IDs, spoof-resistant rate limiting, fail-closed non-development CORS, enforced security headers, forwarded-header trust validation, request body limits, BFF readiness checks, YARP tracing, and safe gateway ProblemDetails responses.
 - BFF remains downstream of the API Gateway and owns browser auth/session plus frontend-oriented service facades.
+- BFF exposes narrow browser-facing facades for UserProfile, Dish, Place, Post, recommendation/search-assist, notifications, and moderation review routes while preserving upstream status and safe ProblemDetails behavior.
+- BFF applies Redis-backed anonymous catalog response caching with memory fallback, config-driven rate limiting, browser security headers, production HSTS, and persistent Data Protection key-ring requirements outside development.
 - Local Keycloak browser redirect/origin entries now target the Angular dev server and API Gateway, not direct BFF browser callback ports.
 - Identity owns subject mapping, lifecycle state, app-owned RBAC, and trusted service identity behavior.
 - UserProfile owns profile, follow graph, saved item, and follow-notification behavior.
 - Dish and Place own canonical catalog creation, lifecycle, search, and detail reads.
 - Post owns launch content creation, media upload/cleanup lifecycle, feed/search reads, engagement, reports, moderation review, reposts, and interaction notifications.
+- Backend service APIs use shared safe ProblemDetails helpers where implemented, and ServiceDefaults owns common telemetry, health, resilience, and service-discovery baseline behavior.
 - Service-owned EF Core persistence exists for Identity, UserProfile, Dish, Place, and Post.
 - Service-owned migrations exist; target environments must apply them through a controlled migration path.
 - RabbitMQ is the async backbone with outbox-backed publishing on current service-owned event paths.

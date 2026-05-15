@@ -63,7 +63,7 @@ public sealed class IdentityAdminController(IIdentityUserStore identityUserStore
     }
 
     private ActionResult InvalidRoleAssignmentRequest(string detail) =>
-        Problem(
+        this.FoodSocialProblem(
             title: "Invalid role assignment request",
             detail: detail,
             statusCode: StatusCodes.Status400BadRequest);

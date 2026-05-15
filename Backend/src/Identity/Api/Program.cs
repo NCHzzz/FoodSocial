@@ -1,192 +1,20 @@
-using FoodSocial.Identity.Application;
-using FoodSocial.Identity.Api.Authorization;
-using FoodSocial.Identity.Api.Health;
-using FoodSocial.Identity.Domain;
-using FoodSocial.Identity.Infrastructure;
-using FoodSocial.Identity.Infrastructure.Messaging;
-using FoodSocial.Identity.Infrastructure.Persistence;
-using FoodSocial.Messaging;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using System.Net.Http;
+using FoodSocial.Identity.Api.DependencyInjection;
+using FoodSocial.Identity.Api.Startup;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var audience = builder.Configuration["Keycloak:Audience"];
-var realm = builder.Configuration["Keycloak:Realm"] ?? throw new InvalidOperationException("Keycloak realm is not configured.");
-var keycloakAuthority = ResolveKeycloakAuthority(builder.Configuration, realm);
-var requireHttpsMetadata = ResolveRequireHttpsMetadata(builder.Configuration, builder.Environment, keycloakAuthority);
-var allowInsecureDevBackchannel = ShouldAllowInsecureDevBackchannel(builder.Environment, keycloakAuthority);
-
 builder.AddServiceDefaults();
-
-builder.Services.AddControllers();
-
-builder.Services.AddOpenApi();
-
-builder.Services.AddProblemDetails();
-
-builder.Services.AddApplication();
-
-builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddHealthChecks()
-    .AddCheck<IdentityPostgresHealthCheck>("identity-postgres")
-    .AddCheck<RabbitMqHealthCheck>("identity-rabbitmq");
-builder.Services.AddHostedService<IdentityOutboxPublisherBackgroundService>();
-builder.Services.AddHostedService<UserProfileBootstrapCompletedConsumerBackgroundService>();
-
-builder.Services
-    .AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.Authority = keycloakAuthority;
-        options.MetadataAddress = $"{keycloakAuthority.TrimEnd('/')}/.well-known/openid-configuration";
-        options.Audience = audience;
-        options.RequireHttpsMetadata = requireHttpsMetadata;
-        options.MapInboundClaims = false;
-        if (allowInsecureDevBackchannel)
-        {
-            options.BackchannelHttpHandler = CreateDevelopmentBackchannelHandler();
-        }
-    });
-
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IAuthorizationHandler, IdentityAppRoleAuthorizationHandler>();
-builder.Services.AddSingleton<IAuthorizationHandler, TrustedInternalServiceAuthorizationHandler>();
-
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy(
-        IdentityAuthorizationPolicies.AccountAdminOnly,
-        policy => policy.Requirements.Add(
-            new IdentityAppRoleRequirement(new HashSet<string>(StringComparer.Ordinal)
-            {
-                IdentityAppRoles.Admin
-            })));
-
-    options.AddPolicy(
-        IdentityAuthorizationPolicies.AccountAdminOrModerator,
-        policy => policy.Requirements.Add(
-            new IdentityAppRoleRequirement(new HashSet<string>(StringComparer.Ordinal)
-            {
-                IdentityAppRoles.Admin,
-                IdentityAppRoles.Moderator
-            })));
-
-    options.AddPolicy(
-        IdentityAuthorizationPolicies.TrustedInternalService,
-        policy =>
-        {
-            policy.RequireAuthenticatedUser();
-            policy.Requirements.Add(new TrustedInternalServiceRequirement());
-        });
-});
+builder.Services.AddIdentityApiServices(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
-if (ShouldApplyMigrationsOnStartup(builder.Configuration, builder.Environment, "Identity", requireExplicitNonDevelopmentFlag: true))
+if (IdentityDatabaseStartup.ShouldApplyMigrationsOnStartup(builder.Configuration, builder.Environment, requireExplicitNonDevelopmentFlag: true))
 {
-    await ApplyIdentityDatabaseMigrationsAsync(app.Services);
+    await IdentityDatabaseStartup.ApplyDatabaseMigrationsAsync(app.Services);
 }
 
-app.UseExceptionHandler();
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
-app.UseHttpsRedirection();
-
-app.UseAuthentication();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.MapDefaultEndpoints();
+app.ConfigureIdentityApiPipeline();
 
 app.Run();
 
-static string ResolveKeycloakAuthority(IConfiguration configuration, string realm)
-{
-    var configuredAuthority = configuration["Keycloak:Authority"];
-
-    if (!string.IsNullOrWhiteSpace(configuredAuthority))
-    {
-        return configuredAuthority;
-    }
-
-    var discoveredAuthority = configuration["Services:keycloak:http:0"]
-        ?? configuration["Services:keycloak:https:0"]
-        ?? throw new InvalidOperationException(
-            "Keycloak authority is not configured. Set Keycloak:Authority or provide an Aspire service reference for 'keycloak'.");
-
-    return $"{discoveredAuthority.TrimEnd('/')}/realms/{realm}";
-}
-
-static bool ResolveRequireHttpsMetadata(IConfiguration configuration, IHostEnvironment environment, string keycloakAuthority)
-{
-    var configuredRequirement = configuration.GetValue<bool?>("Authentication:RequireHttpsMetadata")
-        ?? !environment.IsDevelopment();
-
-    if (!Uri.TryCreate(keycloakAuthority, UriKind.Absolute, out var authorityUri))
-    {
-        return configuredRequirement;
-    }
-
-    return configuredRequirement && authorityUri.Scheme == Uri.UriSchemeHttps;
-}
-
-static bool ShouldAllowInsecureDevBackchannel(IHostEnvironment environment, string keycloakAuthority)
-{
-    if (!environment.IsDevelopment())
-    {
-        return false;
-    }
-
-    return Uri.TryCreate(keycloakAuthority, UriKind.Absolute, out var authorityUri)
-        && authorityUri.Scheme == Uri.UriSchemeHttps
-        && string.Equals(authorityUri.Host, "localhost", StringComparison.OrdinalIgnoreCase);
-}
-
-static HttpMessageHandler CreateDevelopmentBackchannelHandler() =>
-    new HttpClientHandler
-    {
-        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-    };
-
-static async Task ApplyIdentityDatabaseMigrationsAsync(IServiceProvider services)
-{
-    using var scope = services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-    await dbContext.Database.MigrateAsync();
-}
-
-static bool ShouldApplyMigrationsOnStartup(
-    IConfiguration configuration,
-    IHostEnvironment environment,
-    string serviceName,
-    bool requireExplicitNonDevelopmentFlag = false)
-{
-    var configuredValue = configuration.GetValue<bool?>($"{serviceName}:ApplyMigrationsOnStartup");
-    if (configuredValue is not null)
-    {
-        return configuredValue.Value;
-    }
-
-    if (!environment.IsDevelopment() && requireExplicitNonDevelopmentFlag)
-    {
-        throw new InvalidOperationException($"{serviceName}:ApplyMigrationsOnStartup must be explicitly configured outside development.");
-    }
-
-    return environment.IsDevelopment();
-}
-
 public partial class Program;
-

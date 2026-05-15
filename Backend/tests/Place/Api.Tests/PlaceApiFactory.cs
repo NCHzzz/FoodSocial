@@ -15,12 +15,14 @@ internal sealed class PlaceApiFactory : WebApplicationFactory<Program>
 {
     internal const string ManagementApiKey = "test-place-management-key";
 
+    private static readonly SemaphoreSlim DatabaseInitializationLock = new(1, 1);
+    private readonly string _connectionString = $"Data Source=file:{Guid.NewGuid():N}?mode=memory&cache=shared";
     private readonly SqliteConnection _connection;
     private bool _databaseInitialized;
 
     public PlaceApiFactory()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
+        _connection = new SqliteConnection(_connectionString);
         _connection.Open();
     }
 
@@ -37,7 +39,7 @@ internal sealed class PlaceApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<DbContextOptions<PlaceDbContext>>();
             services.RemoveAll<PlaceDbContext>();
 
-            services.AddDbContext<PlaceDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<PlaceDbContext>(options => options.UseSqlite(_connectionString));
         });
     }
 
@@ -91,9 +93,22 @@ internal sealed class PlaceApiFactory : WebApplicationFactory<Program>
             return;
         }
 
-        using var scope = Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<PlaceDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
-        _databaseInitialized = true;
+        await DatabaseInitializationLock.WaitAsync();
+        try
+        {
+            if (_databaseInitialized)
+            {
+                return;
+            }
+
+            using var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<PlaceDbContext>();
+            await dbContext.Database.EnsureCreatedAsync();
+            _databaseInitialized = true;
+        }
+        finally
+        {
+            DatabaseInitializationLock.Release();
+        }
     }
 }

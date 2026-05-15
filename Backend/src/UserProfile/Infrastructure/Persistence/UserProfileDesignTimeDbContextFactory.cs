@@ -12,7 +12,7 @@ public sealed class UserProfileDesignTimeDbContextFactory : IDesignTimeDbContext
     public UserProfileDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__userprofiledb")
-            ?? "Host=localhost;Port=5432;Database=userprofiledb;Username=postgres;Password=postgres";
+            ?? throw new InvalidOperationException("Set ConnectionStrings__userprofiledb before creating the design-time UserProfile DbContext.");
 
         var optionsBuilder = new DbContextOptionsBuilder<UserProfileDbContext>();
         optionsBuilder.UseNpgsql(connectionString);

@@ -51,7 +51,7 @@ public sealed class PostRecord
             Rating = rating,
             PriceRange = string.IsNullOrWhiteSpace(priceRange) ? null : priceRange.Trim(),
             Tags = normalizedTags,
-            TagsSearchText = string.Join(' ', normalizedTags),
+            TagsSearchText = PostSearchText.BuildTagsSearchText(normalizedTags),
             LocationText = string.IsNullOrWhiteSpace(locationText) ? null : locationText.Trim(),
             CreatedAtUtc = now,
             UpdatedAtUtc = now,

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
@@ -16,6 +18,10 @@ public static class ServiceDefaultsExtensions
     private const string HealthEndpointPath = "/health";
     private const string LivenessEndpointPath = "/alive";
     private const string ExposeHealthEndpointsConfigurationKey = "ServiceDefaults:ExposeHealthEndpoints";
+    private static readonly TimeSpan HttpAttemptTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan HttpTotalRequestTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan HttpCircuitBreakerSamplingDuration = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan HttpCircuitBreakerBreakDuration = TimeSpan.FromSeconds(15);
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
@@ -27,11 +33,20 @@ public static class ServiceDefaultsExtensions
 
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
-            http.AddStandardResilienceHandler();
+            http.AddStandardResilienceHandler(options => ConfigureStandardHttpResilience(options));
             http.AddServiceDiscovery();
         });
 
         return builder;
+    }
+
+    private static void ConfigureStandardHttpResilience(HttpStandardResilienceOptions options)
+    {
+        options.AttemptTimeout.Timeout = HttpAttemptTimeout;
+        options.TotalRequestTimeout.Timeout = HttpTotalRequestTimeout;
+        options.Retry.MaxRetryAttempts = 2;
+        options.CircuitBreaker.SamplingDuration = HttpCircuitBreakerSamplingDuration;
+        options.CircuitBreaker.BreakDuration = HttpCircuitBreakerBreakDuration;
     }
 
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
@@ -91,12 +106,12 @@ public static class ServiceDefaultsExtensions
     {
         if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>(ExposeHealthEndpointsConfigurationKey))
         {
-            app.MapHealthChecks(HealthEndpointPath);
+            app.MapHealthChecks(HealthEndpointPath).AllowAnonymous();
 
             app.MapHealthChecks(LivenessEndpointPath, new HealthCheckOptions
             {
                 Predicate = r => r.Tags.Contains(LivenessHealthTag)
-            });
+            }).AllowAnonymous();
         }
 
         return app;

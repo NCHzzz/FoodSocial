@@ -1,5 +1,7 @@
 {{- $postApiService := index .Values.services "post-api" }}
 {{- $postMedia := .Values.mediaStorage.postApi }}
+{{- $bffService := index .Values.services "bff" }}
+{{- $bffDataProtection := .Values.dataProtection.bff }}
 {{- if and $postApiService.enabled $postMedia.persistentVolumeClaim.enabled (not $postMedia.persistentVolumeClaim.existingClaim) }}
 ---
 apiVersion: v1
@@ -17,6 +19,25 @@ spec:
       storage: {{ $postMedia.persistentVolumeClaim.size | quote }}
   {{- if $postMedia.persistentVolumeClaim.storageClassName }}
   storageClassName: {{ $postMedia.persistentVolumeClaim.storageClassName | quote }}
+  {{- end }}
+{{- end }}
+{{- if and $bffService.enabled $bffDataProtection.persistentVolumeClaim.enabled (not $bffDataProtection.persistentVolumeClaim.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: foodsocial-bff-data-protection
+  labels:
+    {{ include "foodsocial.labels" . | nindent 4 }}
+    app.kubernetes.io/name: foodsocial-bff-data-protection
+spec:
+  accessModes:
+    {{ toYaml $bffDataProtection.persistentVolumeClaim.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ $bffDataProtection.persistentVolumeClaim.size | quote }}
+  {{- if $bffDataProtection.persistentVolumeClaim.storageClassName }}
+  storageClassName: {{ $bffDataProtection.persistentVolumeClaim.storageClassName | quote }}
   {{- end }}
 {{- end }}
 {{- range $name, $service := .Values.services }}
@@ -98,6 +119,10 @@ spec:
             - name: post-media
               mountPath: {{ $.Values.mediaStorage.postApi.mountPath }}
             {{- end }}
+            {{- if eq $name "bff" }}
+            - name: bff-data-protection
+              mountPath: {{ $.Values.dataProtection.bff.mountPath }}
+            {{- end }}
           resources:
             {{ toYaml $.Values.resources | nindent 12 }}
           securityContext:
@@ -114,6 +139,15 @@ spec:
           {{ if $.Values.mediaStorage.postApi.persistentVolumeClaim.enabled }}
           persistentVolumeClaim:
             claimName: {{ default "foodsocial-post-api-media" $.Values.mediaStorage.postApi.persistentVolumeClaim.existingClaim }}
+          {{ else }}
+          emptyDir: {}
+          {{ end }}
+        {{- end }}
+        {{- if eq $name "bff" }}
+        - name: bff-data-protection
+          {{ if $.Values.dataProtection.bff.persistentVolumeClaim.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default "foodsocial-bff-data-protection" $.Values.dataProtection.bff.persistentVolumeClaim.existingClaim }}
           {{ else }}
           emptyDir: {}
           {{ end }}

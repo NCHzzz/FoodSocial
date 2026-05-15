@@ -31,7 +31,7 @@ public sealed class DishRecord
         Category = category;
         CuisineType = cuisineType;
         Aliases = NormalizeDistinctValues(aliases, normalizeForSearch: true);
-        AliasesSearchText = BuildMultiValueSearchText(Aliases);
+        AliasesSearchText = DishSearchText.BuildAliasesSearchText(Aliases);
         Ingredients = NormalizeDistinctValues(ingredients, normalizeForSearch: false);
         DietaryFlags = NormalizeDistinctValues(dietaryFlags, normalizeForSearch: false);
         Status = DishLifecycleStatus.Active;
@@ -80,7 +80,7 @@ public sealed class DishRecord
     public List<string> Aliases { get; private set; } = [];
 
     /// <summary>
-    /// Gets normalized alias search text used by persistence queries.
+    /// Gets persisted alias search text derived from normalized aliases.
     /// </summary>
     public string AliasesSearchText { get; private set; } = string.Empty;
 
@@ -227,7 +227,4 @@ public sealed class DishRecord
 
         return result;
     }
-
-    private static string BuildMultiValueSearchText(IReadOnlyCollection<string> values) =>
-        values.Count == 0 ? string.Empty : $"|{string.Join('|', values)}|";
 }

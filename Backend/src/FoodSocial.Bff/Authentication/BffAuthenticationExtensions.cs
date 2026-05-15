@@ -6,104 +6,8 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace FoodSocial.Bff;
 
-internal static class BffAuthenticationExtensions
+internal static partial class BffAuthenticationExtensions
 {
-    public static IServiceCollection AddBffIdentityOrchestrationClient(this IServiceCollection services)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services
-            .AddHttpClient<IdentityOrchestrationHttpClient>((serviceProvider, client) =>
-            {
-                client.BaseAddress = ResolveIdentityApiBaseAddress(serviceProvider.GetRequiredService<IConfiguration>());
-                client.Timeout = TimeSpan.FromSeconds(10);
-            })
-            .ConfigurePrimaryHttpMessageHandler(serviceProvider =>
-            {
-                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-                var environment = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-                var identityApiBaseAddress = ResolveIdentityApiBaseAddress(configuration);
-
-                return ShouldAllowInsecureDevServiceBackchannel(environment, identityApiBaseAddress)
-                    ? CreateDevelopmentBackchannelHandler()
-                    : new HttpClientHandler();
-            });
-
-        return services;
-    }
-
-    public static IServiceCollection AddBffUserProfileClient(this IServiceCollection services)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services
-            .AddHttpClient<UserProfileHttpClient>((serviceProvider, client) =>
-            {
-                client.BaseAddress = ResolveUserProfileApiBaseAddress(serviceProvider.GetRequiredService<IConfiguration>());
-                client.Timeout = TimeSpan.FromSeconds(10);
-            })
-            .ConfigurePrimaryHttpMessageHandler(serviceProvider =>
-            {
-                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-                var environment = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-                var userProfileApiBaseAddress = ResolveUserProfileApiBaseAddress(configuration);
-
-                return ShouldAllowInsecureDevServiceBackchannel(environment, userProfileApiBaseAddress)
-                    ? CreateDevelopmentBackchannelHandler()
-                    : new HttpClientHandler();
-            });
-
-        return services;
-    }
-
-    public static IServiceCollection AddBffDishClient(this IServiceCollection services)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services
-            .AddHttpClient<DishHttpClient>((serviceProvider, client) =>
-            {
-                client.BaseAddress = ResolveDishApiBaseAddress(serviceProvider.GetRequiredService<IConfiguration>());
-                client.Timeout = TimeSpan.FromSeconds(10);
-            })
-            .ConfigurePrimaryHttpMessageHandler(serviceProvider =>
-            {
-                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-                var environment = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-                var dishApiBaseAddress = ResolveDishApiBaseAddress(configuration);
-
-                return ShouldAllowInsecureDevServiceBackchannel(environment, dishApiBaseAddress)
-                    ? CreateDevelopmentBackchannelHandler()
-                    : new HttpClientHandler();
-            });
-
-        return services;
-    }
-
-    public static IServiceCollection AddBffPlaceClient(this IServiceCollection services)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services
-            .AddHttpClient<PlaceHttpClient>((serviceProvider, client) =>
-            {
-                client.BaseAddress = ResolvePlaceApiBaseAddress(serviceProvider.GetRequiredService<IConfiguration>());
-                client.Timeout = TimeSpan.FromSeconds(10);
-            })
-            .ConfigurePrimaryHttpMessageHandler(serviceProvider =>
-            {
-                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-                var environment = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-                var placeApiBaseAddress = ResolvePlaceApiBaseAddress(configuration);
-
-                return ShouldAllowInsecureDevServiceBackchannel(environment, placeApiBaseAddress)
-                    ? CreateDevelopmentBackchannelHandler()
-                    : new HttpClientHandler();
-            });
-
-        return services;
-    }
-
     public static AuthenticationBuilder AddBffAuthentication(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -218,54 +122,6 @@ internal static class BffAuthenticationExtensions
         return $"{request.Scheme}://{request.Host}{request.PathBase}".TrimEnd('/');
     }
 
-    private static Uri ResolveIdentityApiBaseAddress(IConfiguration configuration)
-    {
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        var discoveredAddress = configuration["Services:identity-api:https:0"]
-            ?? configuration["Services:identity-api:http:0"]
-            ?? throw new InvalidOperationException(
-                "Identity API base address is not configured. Set an Aspire service reference for 'identity-api'.");
-
-        return new Uri(discoveredAddress.TrimEnd('/'), UriKind.Absolute);
-    }
-
-    private static Uri ResolveUserProfileApiBaseAddress(IConfiguration configuration)
-    {
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        var discoveredAddress = configuration["Services:userprofile-api:https:0"]
-            ?? configuration["Services:userprofile-api:http:0"]
-            ?? throw new InvalidOperationException(
-                "UserProfile API base address is not configured. Set an Aspire service reference for 'userprofile-api'.");
-
-        return new Uri(discoveredAddress.TrimEnd('/'), UriKind.Absolute);
-    }
-
-    private static Uri ResolveDishApiBaseAddress(IConfiguration configuration)
-    {
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        var discoveredAddress = configuration["Services:dish-api:https:0"]
-            ?? configuration["Services:dish-api:http:0"]
-            ?? throw new InvalidOperationException(
-                "Dish API base address is not configured. Set an Aspire service reference for 'dish-api'.");
-
-        return new Uri(discoveredAddress.TrimEnd('/'), UriKind.Absolute);
-    }
-
-    private static Uri ResolvePlaceApiBaseAddress(IConfiguration configuration)
-    {
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        var discoveredAddress = configuration["Services:place-api:https:0"]
-            ?? configuration["Services:place-api:http:0"]
-            ?? throw new InvalidOperationException(
-                "Place API base address is not configured. Set an Aspire service reference for 'place-api'.");
-
-        return new Uri(discoveredAddress.TrimEnd('/'), UriKind.Absolute);
-    }
-
     private static string ResolveKeycloakAuthority(IConfiguration configuration, string realm)
     {
         ArgumentNullException.ThrowIfNull(configuration);
@@ -316,16 +172,6 @@ internal static class BffAuthenticationExtensions
         return Uri.TryCreate(keycloakAuthority, UriKind.Absolute, out var authorityUri)
             && authorityUri.Scheme == Uri.UriSchemeHttps
             && string.Equals(authorityUri.Host, "localhost", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool ShouldAllowInsecureDevServiceBackchannel(IHostEnvironment environment, Uri serviceBaseAddress)
-    {
-        ArgumentNullException.ThrowIfNull(environment);
-        ArgumentNullException.ThrowIfNull(serviceBaseAddress);
-
-        return environment.IsDevelopment()
-            && serviceBaseAddress.Scheme == Uri.UriSchemeHttps
-            && string.Equals(serviceBaseAddress.Host, "localhost", StringComparison.OrdinalIgnoreCase);
     }
 
     private static HttpMessageHandler CreateDevelopmentBackchannelHandler() =>

@@ -12,7 +12,7 @@ public sealed class DishDesignTimeDbContextFactory : IDesignTimeDbContextFactory
     public DishDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__dishdb")
-            ?? "Host=localhost;Database=dishdb;Username=postgres;Password=postgres";
+            ?? throw new InvalidOperationException("Set ConnectionStrings__dishdb before creating the design-time Dish DbContext.");
 
         var options = new DbContextOptionsBuilder<DishDbContext>()
             .UseNpgsql(connectionString, npgsql =>

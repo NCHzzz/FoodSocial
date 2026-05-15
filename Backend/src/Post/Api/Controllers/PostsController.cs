@@ -6,18 +6,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace FoodSocial.Post.Api.Controllers;
 
 [ApiController]
-public sealed class PostsController(PostService postService, PostMediaStorage mediaStorage, PostApiMetrics metrics, IConfiguration configuration, ILogger<PostsController> logger) : ControllerBase
+public sealed class PostsController(PostService postService, PostMediaStorage mediaStorage, PostMediaUploadWorkflow mediaUploadWorkflow, PostApiMetrics metrics, IConfiguration configuration, ILogger<PostsController> logger) : ControllerBase
 {
-    private static readonly IReadOnlyDictionary<string, string> AllowedImageContentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        [".jpg"] = "image/jpeg",
-        [".jpeg"] = "image/jpeg",
-        [".png"] = "image/png",
-        [".webp"] = "image/webp"
-    };
-
     private readonly PostService _postService = postService ?? throw new ArgumentNullException(nameof(postService));
     private readonly PostMediaStorage _mediaStorage = mediaStorage ?? throw new ArgumentNullException(nameof(mediaStorage));
+    private readonly PostMediaUploadWorkflow _mediaUploadWorkflow = mediaUploadWorkflow ?? throw new ArgumentNullException(nameof(mediaUploadWorkflow));
     private readonly PostApiMetrics _metrics = metrics ?? throw new ArgumentNullException(nameof(metrics));
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     private readonly ILogger<PostsController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -41,53 +34,10 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
     [ProducesResponseType<MediaUploadResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<MediaUploadResponse>> UploadMedia(IFormFile? file, CancellationToken cancellationToken)
     {
-        if (file is null)
-        {
-            _metrics.RecordMediaUploadRejected("missing_file");
-            return Problem(title: "Invalid media upload", detail: "A non-empty media file is required.", statusCode: StatusCodes.Status400BadRequest);
-        }
-
-        var validation = await ValidateImageUploadAsync(file, cancellationToken);
-        if (validation.Error is not null)
-        {
-            _metrics.RecordMediaUploadRejected(validation.Reason!);
-            return Problem(title: "Invalid media upload", detail: validation.Error, statusCode: StatusCodes.Status400BadRequest);
-        }
-
-        var uploadId = Guid.NewGuid();
-        try
-        {
-            var storedMedia = await _mediaStorage.StoreImageWithDerivativeAsync(uploadId, file, validation.Extension!, cancellationToken);
-            var cleanupDueAtUtc = DateTimeOffset.UtcNow.AddDays(7);
-            var response = new MediaUploadResponse(
-                uploadId,
-                storedMedia.OriginalUrl,
-                storedMedia.ThumbnailUrl,
-                validation.ContentType!,
-                storedMedia.SizeBytes,
-                cleanupDueAtUtc,
-                "StoredPendingAttachmentWithDerivativePlaceholder");
-            await _postService.RecordMediaUploadAsync(
-                new RegisterMediaUploadCommand(
-                    uploadId,
-                    PostInternalAuthorization.GetIdentityId(HttpContext),
-                    response.Url,
-                    response.ThumbnailUrl,
-                    response.ContentType,
-                    response.SizeBytes,
-                    response.CleanupDueAtUtc),
-                cancellationToken);
-
-            _metrics.RecordMediaUploadAccepted(response.ContentType);
-            return Created(response.Url, response);
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            _metrics.RecordMediaUploadRejected("storage_or_lifecycle_failure");
-            _logger.LogError(exception, "Post media upload {UploadId} failed after storage or lifecycle write started.", uploadId);
-            await _mediaStorage.DeleteUploadAsync(uploadId);
-            throw;
-        }
+        var result = await _mediaUploadWorkflow.UploadAsync(PostInternalAuthorization.GetIdentityId(HttpContext), file, cancellationToken);
+        return result.IsCreated
+            ? Created(result.Response!.Url, result.Response)
+            : Problem(title: "Invalid media upload", detail: result.Error, statusCode: StatusCodes.Status400BadRequest);
     }
 
     [HttpGet("api/media/uploads/{uploadId:guid}/{variant}")]
@@ -124,91 +74,12 @@ public sealed class PostsController(PostService postService, PostMediaStorage me
     [ProducesResponseType<MediaCleanupResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<MediaCleanupResponse>> CleanupMediaUploads([FromQuery] int? limit, CancellationToken cancellationToken)
     {
-        var uploads = await _postService.ClaimMediaUploadsDueForCleanupAsync(DateTimeOffset.UtcNow, limit, cancellationToken);
-        _metrics.RecordMediaCleanupClaimed(uploads.Count);
-        var deletedUploadIds = new List<Guid>(uploads.Count);
-        foreach (var upload in uploads)
-        {
-            try
-            {
-                await _mediaStorage.DeleteUploadAsync(upload.Id);
-                await _postService.MarkMediaUploadDeletedAsync(upload.Id, cancellationToken);
-                deletedUploadIds.Add(upload.Id);
-                _metrics.RecordMediaCleanupDeleted();
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                _metrics.RecordMediaCleanupFailure();
-                _logger.LogError(exception, "Post media cleanup failed for upload {UploadId}.", upload.Id);
-            }
-        }
-
-        return Ok(new MediaCleanupResponse(uploads.Count, deletedUploadIds.Count, deletedUploadIds));
+        var response = await _mediaUploadWorkflow.CleanupAsync(limit, cancellationToken);
+        return Ok(response);
     }
 
     private bool TryResolveTrustedCallerIdentity(HttpContext httpContext, IConfiguration configuration, out Guid identityId) =>
         PostInternalAuthorization.TryAuthorize(httpContext, configuration, _logger, requireModerator: false, out identityId, out _);
-
-    private static async Task<ValidatedImageUpload> ValidateImageUploadAsync(IFormFile file, CancellationToken cancellationToken)
-    {
-        if (file.Length <= 0 || string.IsNullOrWhiteSpace(file.FileName))
-        {
-            return ValidatedImageUpload.Invalid("A non-empty media file is required.", "empty_file");
-        }
-
-        if (file.Length > 10_000_000)
-        {
-            return ValidatedImageUpload.Invalid("Media uploads must be 10 MB or smaller.", "file_too_large");
-        }
-
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!AllowedImageContentTypes.TryGetValue(extension, out var expectedContentType)
-            || !string.Equals(file.ContentType, expectedContentType, StringComparison.OrdinalIgnoreCase))
-        {
-            return ValidatedImageUpload.Invalid("Only JPEG, PNG, and WebP image uploads are supported in the MVP media pipeline.", "unsupported_type");
-        }
-
-        var header = new byte[12];
-        await using var stream = file.OpenReadStream();
-        var bytesRead = await stream.ReadAsync(header, cancellationToken);
-        if (!HasExpectedImageSignature(extension, header.AsSpan(0, bytesRead)))
-        {
-            return ValidatedImageUpload.Invalid("Uploaded media bytes do not match the declared image type.", "signature_mismatch");
-        }
-
-        return ValidatedImageUpload.Valid(extension, expectedContentType);
-    }
-
-    private static bool HasExpectedImageSignature(string extension, ReadOnlySpan<byte> header) =>
-        extension switch
-        {
-            ".jpg" or ".jpeg" => header.Length >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,
-            ".png" => header.Length >= 8
-                && header[0] == 0x89
-                && header[1] == (byte)'P'
-                && header[2] == (byte)'N'
-                && header[3] == (byte)'G'
-                && header[4] == 0x0D
-                && header[5] == 0x0A
-                && header[6] == 0x1A
-                && header[7] == 0x0A,
-            ".webp" => header.Length >= 12
-                && header[0] == (byte)'R'
-                && header[1] == (byte)'I'
-                && header[2] == (byte)'F'
-                && header[3] == (byte)'F'
-                && header[8] == (byte)'W'
-                && header[9] == (byte)'E'
-                && header[10] == (byte)'B'
-                && header[11] == (byte)'P',
-            _ => false
-        };
-
-    private sealed record ValidatedImageUpload(string? Extension, string? ContentType, string? Error, string? Reason)
-    {
-        internal static ValidatedImageUpload Valid(string extension, string contentType) => new(extension, contentType, null, null);
-        internal static ValidatedImageUpload Invalid(string error, string reason = "invalid_file") => new(null, null, error, reason);
-    }
 
     [HttpGet("api/posts/{postId:guid}")]
     [ProducesResponseType<PostDetailResponse>(StatusCodes.Status200OK)]

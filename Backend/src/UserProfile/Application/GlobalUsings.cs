@@ -1,0 +1,9 @@
+global using FoodSocial.UserProfile.Application.DTOs;
+global using FoodSocial.UserProfile.Application.Exceptions;
+global using FoodSocial.UserProfile.Application.Interfaces.Repositories;
+global using FoodSocial.UserProfile.Application.Policies;
+global using FoodSocial.UserProfile.Application.UseCases.Bootstrap;
+global using FoodSocial.UserProfile.Application.UseCases.Follows;
+global using FoodSocial.UserProfile.Application.UseCases.Notifications;
+global using FoodSocial.UserProfile.Application.UseCases.Profiles;
+global using FoodSocial.UserProfile.Application.UseCases.SavedItems;

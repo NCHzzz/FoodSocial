@@ -12,7 +12,7 @@ public sealed class PlaceDesignTimeDbContextFactory : IDesignTimeDbContextFactor
     public PlaceDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__placedb")
-            ?? "Host=localhost;Database=placedb;Username=postgres;Password=postgres";
+            ?? throw new InvalidOperationException("Set ConnectionStrings__placedb before creating the design-time Place DbContext.");
 
         var options = new DbContextOptionsBuilder<PlaceDbContext>()
             .UseNpgsql(connectionString, npgsql =>

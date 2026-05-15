@@ -96,39 +96,29 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             .AsNoTracking()
             .LongCountAsync(follow => follow.FollowedUserProfileShellId == ownership.ShellId, cancellationToken);
 
+        var followersQuery =
+            from follow in _dbContext.UserFollows.AsNoTracking()
+            join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowerUserProfileShellId equals shell.Id
+            join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
+            from detail in detailGroup.DefaultIfEmpty()
+            where follow.FollowedUserProfileShellId == ownership.ShellId
+            select new
+            {
+                follow.CreatedAtUtc,
+                shell.IdentityId,
+                DisplayName = detail != null ? detail.DisplayName : null,
+                AvatarUrl = detail != null ? detail.AvatarUrl : null
+            };
+
         var rawItems = IsSqliteProvider()
-            ? (await (
-                    from follow in _dbContext.UserFollows.AsNoTracking()
-                    join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowerUserProfileShellId equals shell.Id
-                    join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
-                    from detail in detailGroup.DefaultIfEmpty()
-                    where follow.FollowedUserProfileShellId == ownership.ShellId
-                    select new
-                    {
-                        follow.CreatedAtUtc,
-                        shell.IdentityId,
-                        DisplayName = detail != null ? detail.DisplayName : null,
-                        AvatarUrl = detail != null ? detail.AvatarUrl : null
-                    })
-                .ToListAsync(cancellationToken))
+            ? (await followersQuery.ToListAsync(cancellationToken))
                 .OrderByDescending(item => item.CreatedAtUtc)
                 .ThenBy(item => item.IdentityId)
                 .Take(normalizedLimit)
                 .ToList()
-            : await (
-                    from follow in _dbContext.UserFollows.AsNoTracking()
-                    join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowerUserProfileShellId equals shell.Id
-                    join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
-                    from detail in detailGroup.DefaultIfEmpty()
-                    where follow.FollowedUserProfileShellId == ownership.ShellId
-                    orderby follow.CreatedAtUtc descending, shell.IdentityId
-                    select new
-                    {
-                        follow.CreatedAtUtc,
-                        shell.IdentityId,
-                        DisplayName = detail != null ? detail.DisplayName : null,
-                        AvatarUrl = detail != null ? detail.AvatarUrl : null
-                    })
+            : await followersQuery
+                .OrderByDescending(item => item.CreatedAtUtc)
+                .ThenBy(item => item.IdentityId)
                 .Take(normalizedLimit)
                 .ToListAsync(cancellationToken);
 
@@ -153,39 +143,29 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             .AsNoTracking()
             .LongCountAsync(follow => follow.FollowerUserProfileShellId == ownership.ShellId, cancellationToken);
 
+        var followingQuery =
+            from follow in _dbContext.UserFollows.AsNoTracking()
+            join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowedUserProfileShellId equals shell.Id
+            join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
+            from detail in detailGroup.DefaultIfEmpty()
+            where follow.FollowerUserProfileShellId == ownership.ShellId
+            select new
+            {
+                follow.CreatedAtUtc,
+                shell.IdentityId,
+                DisplayName = detail != null ? detail.DisplayName : null,
+                AvatarUrl = detail != null ? detail.AvatarUrl : null
+            };
+
         var rawItems = IsSqliteProvider()
-            ? (await (
-                    from follow in _dbContext.UserFollows.AsNoTracking()
-                    join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowedUserProfileShellId equals shell.Id
-                    join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
-                    from detail in detailGroup.DefaultIfEmpty()
-                    where follow.FollowerUserProfileShellId == ownership.ShellId
-                    select new
-                    {
-                        follow.CreatedAtUtc,
-                        shell.IdentityId,
-                        DisplayName = detail != null ? detail.DisplayName : null,
-                        AvatarUrl = detail != null ? detail.AvatarUrl : null
-                    })
-                .ToListAsync(cancellationToken))
+            ? (await followingQuery.ToListAsync(cancellationToken))
                 .OrderByDescending(item => item.CreatedAtUtc)
                 .ThenBy(item => item.IdentityId)
                 .Take(normalizedLimit)
                 .ToList()
-            : await (
-                    from follow in _dbContext.UserFollows.AsNoTracking()
-                    join shell in _dbContext.UserProfileShells.AsNoTracking() on follow.FollowedUserProfileShellId equals shell.Id
-                    join detail in _dbContext.UserProfileDetails.AsNoTracking() on shell.Id equals detail.UserProfileShellId into detailGroup
-                    from detail in detailGroup.DefaultIfEmpty()
-                    where follow.FollowerUserProfileShellId == ownership.ShellId
-                    orderby follow.CreatedAtUtc descending, shell.IdentityId
-                    select new
-                    {
-                        follow.CreatedAtUtc,
-                        shell.IdentityId,
-                        DisplayName = detail != null ? detail.DisplayName : null,
-                        AvatarUrl = detail != null ? detail.AvatarUrl : null
-                    })
+            : await followingQuery
+                .OrderByDescending(item => item.CreatedAtUtc)
+                .ThenBy(item => item.IdentityId)
                 .Take(normalizedLimit)
                 .ToListAsync(cancellationToken);
 
@@ -312,28 +292,34 @@ public sealed class UserProfileStore(UserProfileDbContext dbContext) : IUserProf
             return null;
         }
 
-        var posts = await _dbContext.SavedPosts
+        var postsQuery = _dbContext.SavedPosts
             .AsNoTracking()
             .Where(savedPost => savedPost.UserProfileShellId == ownership.ShellId)
-            .Select(savedPost => new SavedPostSnapshot(savedPost.PostId, savedPost.CreatedAtUtc))
-            .ToListAsync(cancellationToken);
+            .Select(savedPost => new SavedPostSnapshot(savedPost.PostId, savedPost.CreatedAtUtc));
+        var posts = IsSqliteProvider()
+            ? (await postsQuery.ToListAsync(cancellationToken)).OrderByDescending(item => item.SavedAtUtc).ToArray()
+            : await postsQuery.OrderByDescending(item => item.SavedAtUtc).ToArrayAsync(cancellationToken);
 
-        var dishes = await _dbContext.SavedDishes
+        var dishesQuery = _dbContext.SavedDishes
             .AsNoTracking()
             .Where(savedDish => savedDish.UserProfileShellId == ownership.ShellId)
-            .Select(savedDish => new SavedDishSnapshot(savedDish.DishId, savedDish.CreatedAtUtc))
-            .ToListAsync(cancellationToken);
+            .Select(savedDish => new SavedDishSnapshot(savedDish.DishId, savedDish.CreatedAtUtc));
+        var dishes = IsSqliteProvider()
+            ? (await dishesQuery.ToListAsync(cancellationToken)).OrderByDescending(item => item.SavedAtUtc).ToArray()
+            : await dishesQuery.OrderByDescending(item => item.SavedAtUtc).ToArrayAsync(cancellationToken);
 
-        var places = await _dbContext.SavedPlaces
+        var placesQuery = _dbContext.SavedPlaces
             .AsNoTracking()
             .Where(savedPlace => savedPlace.UserProfileShellId == ownership.ShellId)
-            .Select(savedPlace => new SavedPlaceSnapshot(savedPlace.PlaceId, savedPlace.CreatedAtUtc))
-            .ToListAsync(cancellationToken);
+            .Select(savedPlace => new SavedPlaceSnapshot(savedPlace.PlaceId, savedPlace.CreatedAtUtc));
+        var places = IsSqliteProvider()
+            ? (await placesQuery.ToListAsync(cancellationToken)).OrderByDescending(item => item.SavedAtUtc).ToArray()
+            : await placesQuery.OrderByDescending(item => item.SavedAtUtc).ToArrayAsync(cancellationToken);
 
         return new UserSavedItemsSnapshot(
-            posts.OrderByDescending(item => item.SavedAtUtc).ToArray(),
-            dishes.OrderByDescending(item => item.SavedAtUtc).ToArray(),
-            places.OrderByDescending(item => item.SavedAtUtc).ToArray());
+            posts,
+            dishes,
+            places);
     }
 
     /// <inheritdoc />

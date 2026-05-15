@@ -12,6 +12,7 @@ public sealed class RabbitMqUserProfileBootstrapCompletionPublisher : IUserProfi
 {
     private readonly ConnectionFactory _connectionFactory;
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
+    private readonly SemaphoreSlim _publishLock = new(1, 1);
     private IConnection? _connection;
     private IChannel? _channel;
     private bool _disposed;
@@ -35,8 +36,6 @@ public sealed class RabbitMqUserProfileBootstrapCompletionPublisher : IUserProfi
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        var channel = await GetChannelAsync(cancellationToken);
-
         var payloadBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(integrationEvent));
         var properties = new BasicProperties
         {
@@ -48,13 +47,23 @@ public sealed class RabbitMqUserProfileBootstrapCompletionPublisher : IUserProfi
             Timestamp = new AmqpTimestamp(integrationEvent.OccurredAtUtc.ToUnixTimeSeconds())
         };
 
-        await channel.BasicPublishAsync(
-            exchange: "identity.events",
-            routingKey: "identity.bootstrap.completed.v2",
-            mandatory: false,
-            basicProperties: properties,
-            body: payloadBytes,
-            cancellationToken: cancellationToken);
+        await _publishLock.WaitAsync(cancellationToken);
+        try
+        {
+            ThrowIfDisposed();
+            var channel = await GetChannelAsync(cancellationToken);
+            await channel.BasicPublishAsync(
+                exchange: "identity.events",
+                routingKey: "identity.bootstrap.completed.v2",
+                mandatory: false,
+                basicProperties: properties,
+                body: payloadBytes,
+                cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            _publishLock.Release();
+        }
     }
 
     /// <inheritdoc />
@@ -68,6 +77,7 @@ public sealed class RabbitMqUserProfileBootstrapCompletionPublisher : IUserProfi
         _channel?.Dispose();
         _connection?.Dispose();
         _initializationLock.Dispose();
+        _publishLock.Dispose();
         _disposed = true;
     }
 
@@ -75,7 +85,7 @@ public sealed class RabbitMqUserProfileBootstrapCompletionPublisher : IUserProfi
     {
         ThrowIfDisposed();
 
-        if (_channel is not null)
+        if (_channel is { IsOpen: true })
         {
             return _channel;
         }
@@ -86,10 +96,15 @@ public sealed class RabbitMqUserProfileBootstrapCompletionPublisher : IUserProfi
         {
             ThrowIfDisposed();
 
-            if (_channel is not null)
+            if (_channel is { IsOpen: true })
             {
                 return _channel;
             }
+
+            _channel?.Dispose();
+            _connection?.Dispose();
+            _channel = null;
+            _connection = null;
 
             _connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
             _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);

@@ -104,7 +104,7 @@ public sealed class CurrentUserController(
     }
 
     private ActionResult ProblemMissingSubject() =>
-        Problem(
+        this.FoodSocialProblem(
             title: "Missing subject claim",
             detail: "The authenticated token does not contain a subject claim.",
             statusCode: StatusCodes.Status401Unauthorized);

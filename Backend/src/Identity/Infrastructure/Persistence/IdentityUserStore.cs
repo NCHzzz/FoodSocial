@@ -120,9 +120,19 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
         }
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-        var result = await operation(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return result;
+
+        try
+        {
+            var result = await operation(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return result;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _dbContext.ChangeTracker.Clear();
+            throw;
+        }
     }
 
     private bool IsDuplicateSubjectViolation(DbUpdateException exception)

@@ -710,10 +710,21 @@ public sealed class PostEndpointTests
         using var repostResponse = await actorClient.PostAsJsonAsync($"/api/posts/{postId}/repost", new CreatePostRepostRequest(Guid.NewGuid(), "Try this place too."));
         repostResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         (await repostResponse.Content.ReadFromJsonAsync<PostRepostResponse>())!.ActorId.Should().Be(actorId);
+        using var secondRepostResponse = await actorClient.PostAsJsonAsync($"/api/posts/{postId}/repost", new CreatePostRepostRequest(Guid.NewGuid(), "Updated note."));
+        secondRepostResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var secondRepost = (await secondRepostResponse.Content.ReadFromJsonAsync<PostRepostResponse>())!;
+        secondRepost.ActorId.Should().Be(actorId);
+        secondRepost.Caption.Should().Be("Updated note.");
         using var likeResponse = await actorClient.PostAsJsonAsync($"/api/posts/{postId}/likes", new ActorRequest(Guid.NewGuid()));
         likeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         using var commentResponse = await actorClient.PostAsJsonAsync($"/api/posts/{postId}/comments", new CreatePostCommentRequest(Guid.NewGuid(), "Looks great."));
         commentResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PostDbContext>();
+            (await dbContext.PostReposts.CountAsync(repost => repost.PostId == postId && repost.ActorId == actorId)).Should().Be(1);
+        }
 
         using var notificationsResponse = await ownerClient.GetAsync("/api/notifications?limit=10");
         notificationsResponse.StatusCode.Should().Be(HttpStatusCode.OK);

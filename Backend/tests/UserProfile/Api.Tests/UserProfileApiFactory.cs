@@ -13,12 +13,14 @@ namespace FoodSocial.UserProfile.Api.Tests;
 
 internal sealed class UserProfileApiFactory : WebApplicationFactory<Program>
 {
+    private static readonly SemaphoreSlim DatabaseInitializationLock = new(1, 1);
+    private readonly string _connectionString = $"Data Source=file:{Guid.NewGuid():N}?mode=memory&cache=shared";
     private readonly SqliteConnection _connection;
     private bool _databaseInitialized;
 
     public UserProfileApiFactory()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
+        _connection = new SqliteConnection(_connectionString);
         _connection.Open();
     }
 
@@ -36,7 +38,7 @@ internal sealed class UserProfileApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<DbContextOptions<UserProfileDbContext>>();
             services.RemoveAll<UserProfileDbContext>();
 
-            services.AddDbContext<UserProfileDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<UserProfileDbContext>(options => options.UseSqlite(_connectionString));
 
             services.AddAuthentication(options =>
                 {
@@ -127,9 +129,22 @@ internal sealed class UserProfileApiFactory : WebApplicationFactory<Program>
             return;
         }
 
-        using var scope = Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<UserProfileDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
-        _databaseInitialized = true;
+        await DatabaseInitializationLock.WaitAsync();
+        try
+        {
+            if (_databaseInitialized)
+            {
+                return;
+            }
+
+            using var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<UserProfileDbContext>();
+            await dbContext.Database.EnsureCreatedAsync();
+            _databaseInitialized = true;
+        }
+        finally
+        {
+            DatabaseInitializationLock.Release();
+        }
     }
 }

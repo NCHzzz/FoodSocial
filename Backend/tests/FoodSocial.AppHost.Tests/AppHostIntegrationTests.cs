@@ -2,6 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using FluentAssertions;
+using FoodSocial.Contracts.Identity;
+using FoodSocial.Identity.Application;
+using FoodSocial.Identity.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace FoodSocial.AppHost.Tests;
@@ -226,6 +231,52 @@ public sealed class AppHostIntegrationTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task IdentityEnsure_ConcurrentSameSubjectOnPostgreSqlCreatesSingleIdentityAndCleanOutbox()
+    {
+        using var cts = fixture.CreateDefaultCancellationTokenSource();
+        await fixture.WaitForHealthyAsync("identity-api", cts.Token);
+
+        var subject = $"apphost-postgres-race-{Guid.NewGuid():N}";
+
+        await DeleteIdentityRowsForSubjectAsync(subject, cts.Token);
+
+        var firstTask = EnsureIdentityWithPostgreSqlStoreAsync(subject, cts.Token);
+        var secondTask = EnsureIdentityWithPostgreSqlStoreAsync(subject, cts.Token);
+
+        await Task.WhenAll(firstTask, secondTask);
+
+        var firstResponse = await firstTask;
+        var secondResponse = await secondTask;
+
+        firstResponse.IdentityId.Should().Be(secondResponse.IdentityId);
+        new[] { firstResponse.Created, secondResponse.Created }.Count(created => created).Should().Be(1);
+
+        var identityRows = await fixture.Databases.Identity.CountRowsByColumnValueAsync(
+            "identity_users",
+            "Subject",
+            subject,
+            cancellationToken: cts.Token);
+        var roleRows = await fixture.Databases.Identity.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM \"identity_role_assignments\" WHERE \"Subject\" = @subject AND \"Role\" = 'user';",
+            new Dictionary<string, object?> { ["subject"] = subject },
+            cts.Token);
+        var outboxRows = await fixture.Databases.Identity.CountRowsByColumnValueAsync(
+            "identity_outbox_messages",
+            "Subject",
+            subject,
+            cancellationToken: cts.Token);
+        var corruptOutboxRows = await fixture.Databases.Identity.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM \"identity_outbox_messages\" WHERE \"Subject\" = @subject AND (\"PayloadJson\" IS NULL OR \"PayloadJson\" = '');",
+            new Dictionary<string, object?> { ["subject"] = subject },
+            cts.Token);
+
+        identityRows.Should().Be(1);
+        roleRows.Should().Be(1);
+        outboxRows.Should().BeGreaterThanOrEqualTo(1);
+        corruptOutboxRows.Should().Be(0);
+    }
+
+    [Fact]
     public async Task BffLogout_GetMethodIsNotAllowed_AndPostClearsBrowserSession()
     {
         using var cts = fixture.CreateDefaultCancellationTokenSource();
@@ -259,4 +310,41 @@ public sealed class AppHostIntegrationTests(AppHostFixture fixture)
             _ => false
         };
     }
+
+    private async Task DeleteIdentityRowsForSubjectAsync(string subject, CancellationToken cancellationToken)
+    {
+        await fixture.Databases.Identity.DeleteRowsByColumnValueAsync(
+            "identity_outbox_messages",
+            "Subject",
+            subject,
+            cancellationToken: cancellationToken);
+        await fixture.Databases.Identity.DeleteRowsByColumnValueAsync(
+            "identity_role_assignments",
+            "Subject",
+            subject,
+            cancellationToken: cancellationToken);
+        await fixture.Databases.Identity.DeleteRowsByColumnValueAsync(
+            "identity_users",
+            "Subject",
+            subject,
+            cancellationToken: cancellationToken);
+    }
+
+    private async Task<EnsureIdentityResponse> EnsureIdentityWithPostgreSqlStoreAsync(
+        string subject,
+        CancellationToken cancellationToken)
+    {
+        var options = new DbContextOptionsBuilder<IdentityDbContext>()
+            .UseNpgsql(fixture.Databases.Identity.ConnectionString)
+            .Options;
+
+        await using var dbContext = new IdentityDbContext(options);
+        var store = new IdentityUserStore(dbContext);
+        var handler = new EnsureIdentityCommandHandler(store, NullLogger<EnsureIdentityCommandHandler>.Instance);
+
+        return await handler.HandleAsync(
+            new EnsureIdentityCommand(subject, "demo-user", "demo@example.com"),
+            cancellationToken);
+    }
+
 }

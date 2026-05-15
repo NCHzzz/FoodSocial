@@ -116,6 +116,8 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserProfileShellId", "CreatedAtUtc");
+
                     b.HasIndex("UserProfileShellId", "DishId")
                         .IsUnique();
 
@@ -138,6 +140,8 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserProfileShellId", "CreatedAtUtc");
 
                     b.HasIndex("UserProfileShellId", "PlaceId")
                         .IsUnique();
@@ -162,6 +166,8 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserProfileShellId", "CreatedAtUtc");
+
                     b.HasIndex("UserProfileShellId", "PostId")
                         .IsUnique();
 
@@ -185,7 +191,9 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FollowedUserProfileShellId");
+                    b.HasIndex("FollowedUserProfileShellId", "CreatedAtUtc");
+
+                    b.HasIndex("FollowerUserProfileShellId", "CreatedAtUtc");
 
                     b.HasIndex("FollowerUserProfileShellId", "FollowedUserProfileShellId")
                         .IsUnique();
@@ -235,9 +243,11 @@ namespace FoodSocial.UserProfile.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("RecipientIdentityId");
 
-                    b.HasIndex("UserProfileShellId");
-
                     b.HasIndex("RecipientIdentityId", "Status");
+
+                    b.HasIndex("UserProfileShellId", "CreatedAtUtc");
+
+                    b.HasIndex("UserProfileShellId", "Status");
 
                     b.ToTable("user_notifications", (string)null);
                 });

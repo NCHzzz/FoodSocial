@@ -13,6 +13,8 @@ internal sealed class PostgreSqlDatabaseVerifier(string connectionString, string
 {
     private readonly string _connectionString = BuildScopedConnectionString(connectionString, databaseName);
 
+    public string ConnectionString => _connectionString;
+
     private static string BuildScopedConnectionString(string connectionString, string? databaseName) => string.IsNullOrWhiteSpace(connectionString)
         ? throw new ArgumentException("A PostgreSQL connection string is required.", nameof(connectionString))
         : string.IsNullOrWhiteSpace(databaseName)

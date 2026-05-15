@@ -23,12 +23,12 @@ public sealed class PlacesController(PlaceCatalogService placeCatalogService) : 
     {
         if (placeId == Guid.Empty)
         {
-            return Problem(title: "Invalid place id", detail: "Place id must not be empty.", statusCode: StatusCodes.Status400BadRequest);
+            return this.FoodSocialProblem(title: "Invalid place id", detail: "Place id must not be empty.", statusCode: StatusCodes.Status400BadRequest);
         }
 
         var place = await _placeCatalogService.GetPlaceAsync(placeId, cancellationToken);
         return place is null
-            ? Problem(title: "Place not found", detail: "The requested place was not found.", statusCode: StatusCodes.Status404NotFound)
+            ? this.FoodSocialProblem(title: "Place not found", detail: "The requested place was not found.", statusCode: StatusCodes.Status404NotFound)
             : Ok(place);
     }
 
@@ -69,8 +69,8 @@ public sealed class PlacesController(PlaceCatalogService placeCatalogService) : 
         {
             PlaceOperationStatus.Created => CreatedAtAction(nameof(GetPlace), new { placeId = result.Place!.Id }, result.Place),
             PlaceOperationStatus.AlreadyExists => Ok(result.Place),
-            PlaceOperationStatus.Invalid => Problem(title: "Invalid place request", detail: result.Error, statusCode: StatusCodes.Status400BadRequest),
-            _ => Problem(title: "Place creation failed", detail: result.Error ?? "The place could not be created.", statusCode: StatusCodes.Status400BadRequest)
+            PlaceOperationStatus.Invalid => this.FoodSocialProblem(title: "Invalid place request", detail: result.Error, statusCode: StatusCodes.Status400BadRequest),
+            _ => this.FoodSocialProblem(title: "Place creation failed", detail: result.Error ?? "The place could not be created.", statusCode: StatusCodes.Status400BadRequest)
         };
     }
 
@@ -86,16 +86,16 @@ public sealed class PlacesController(PlaceCatalogService placeCatalogService) : 
     {
         if (placeId == Guid.Empty)
         {
-            return Problem(title: "Invalid place id", detail: "Place id must not be empty.", statusCode: StatusCodes.Status400BadRequest);
+            return this.FoodSocialProblem(title: "Invalid place id", detail: "Place id must not be empty.", statusCode: StatusCodes.Status400BadRequest);
         }
 
         var result = await _placeCatalogService.UpdatePlaceStatusAsync(placeId, request.Status, cancellationToken);
         return result.Status switch
         {
             PlaceOperationStatus.StatusUpdated => Ok(new PlaceLifecycleResponse(result.Place!.Id, result.Place.Status, result.Place.UpdatedAtUtc)),
-            PlaceOperationStatus.NotFound => Problem(title: "Place not found", detail: result.Error, statusCode: StatusCodes.Status404NotFound),
-            PlaceOperationStatus.Invalid => Problem(title: "Invalid place status", detail: result.Error, statusCode: StatusCodes.Status400BadRequest),
-            _ => Problem(title: "Place status update failed", detail: result.Error ?? "The place status could not be updated.", statusCode: StatusCodes.Status400BadRequest)
+            PlaceOperationStatus.NotFound => this.FoodSocialProblem(title: "Place not found", detail: result.Error, statusCode: StatusCodes.Status404NotFound),
+            PlaceOperationStatus.Invalid => this.FoodSocialProblem(title: "Invalid place status", detail: result.Error, statusCode: StatusCodes.Status400BadRequest),
+            _ => this.FoodSocialProblem(title: "Place status update failed", detail: result.Error ?? "The place status could not be updated.", statusCode: StatusCodes.Status400BadRequest)
         };
     }
 }

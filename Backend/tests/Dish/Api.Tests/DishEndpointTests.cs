@@ -69,8 +69,11 @@ public sealed class DishEndpointTests
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest, body);
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
         payload.Should().NotBeNull();
+        payload!["type"]!.GetValue<string>().Should().Be("https://foodsocial/errors/common/bad-request");
         payload!["title"]!.GetValue<string>().Should().Be("Invalid dish id");
         payload["status"]!.GetValue<int>().Should().Be(StatusCodes.Status400BadRequest);
+        payload["instance"]!.GetValue<string>().Should().Be($"/api/dishes/{Guid.Empty}");
+        payload["traceId"].Should().NotBeNull();
     }
 
     [Fact]

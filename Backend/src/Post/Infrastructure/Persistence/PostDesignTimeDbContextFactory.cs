@@ -7,8 +7,11 @@ public sealed class PostDesignTimeDbContextFactory : IDesignTimeDbContextFactory
 {
     public PostDbContext CreateDbContext(string[] args)
     {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__postdb")
+            ?? throw new InvalidOperationException("Set ConnectionStrings__postdb before creating the design-time Post DbContext.");
+
         var options = new DbContextOptionsBuilder<PostDbContext>()
-            .UseNpgsql("Host=localhost;Database=postdb;Username=postgres;Password=postgres", npgsql => npgsql.MigrationsHistoryTable("__PostMigrationsHistory"))
+            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable("__PostMigrationsHistory"))
             .Options;
         return new PostDbContext(options);
     }

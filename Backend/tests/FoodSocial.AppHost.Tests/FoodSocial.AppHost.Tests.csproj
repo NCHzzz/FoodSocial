@@ -11,6 +11,8 @@
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Testing" />
     <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="RabbitMQ.Client" />
@@ -24,6 +26,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\FoodSocial.AppHost\FoodSocial.AppHost.csproj" />
     <ProjectReference Include="..\..\src\FoodSocial.Contracts\FoodSocial.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Identity\Application\FoodSocial.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\src\Identity\Infrastructure\FoodSocial.Identity.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

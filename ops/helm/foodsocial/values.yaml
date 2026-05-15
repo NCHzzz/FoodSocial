@@ -40,7 +40,8 @@ services:
     image: bff
     replicas: 2
     port: 8080
-    env: {}
+    env:
+      Bff__DataProtection__KeyRingPath: /app/App_Data/data-protection-keys
   identity-api:
     enabled: true
     image: identity-api
@@ -118,3 +119,14 @@ mediaStorage:
       accessModes:
         - ReadWriteOnce
       size: 10Gi
+
+dataProtection:
+  bff:
+    mountPath: /app/App_Data/data-protection-keys
+    persistentVolumeClaim:
+      enabled: true
+      existingClaim: ""
+      storageClassName: ""
+      accessModes:
+        - ReadWriteMany
+      size: 1Gi

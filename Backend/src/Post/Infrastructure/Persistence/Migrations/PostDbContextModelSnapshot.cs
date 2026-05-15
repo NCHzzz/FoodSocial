@@ -315,6 +315,8 @@ namespace FoodSocial.Post.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId", "Status");
 
+                    b.HasIndex("Status", "CleanupDueAtUtc", "Id");
+
                     b.ToTable("post_media_uploads", (string)null);
                 });
 
@@ -367,6 +369,8 @@ namespace FoodSocial.Post.Infrastructure.Persistence.Migrations
                     b.HasIndex("CreatedAtUtc");
 
                     b.HasIndex("RecipientId");
+
+                    b.HasIndex("RecipientId", "CreatedAtUtc");
 
                     b.HasIndex("RecipientId", "Status");
 
@@ -439,6 +443,14 @@ namespace FoodSocial.Post.Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId", "PlaceId", "CreatedAtUtc");
 
                     b.HasIndex("TenantId", "Status", "CreatedAtUtc");
+
+                    b.HasIndex("Status", "CreatedAtUtc", "Id");
+
+                    b.HasIndex("AuthorId", "Status", "CreatedAtUtc", "Id");
+
+                    b.HasIndex("DishId", "Status", "CreatedAtUtc", "Id");
+
+                    b.HasIndex("PlaceId", "Status", "CreatedAtUtc", "Id");
 
                     b.ToTable("posts", (string)null);
                 });

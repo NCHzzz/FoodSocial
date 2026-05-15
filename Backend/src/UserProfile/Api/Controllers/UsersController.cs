@@ -25,6 +25,7 @@ public sealed class UsersController(
     private readonly UserNotificationService _userNotificationService = userNotificationService ?? throw new ArgumentNullException(nameof(userNotificationService));
 
     [HttpGet("{userId:guid}")]
+    [AllowAnonymous]
     [ProducesResponseType<UserProfileResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserProfileResponse>> GetProfile(Guid userId, CancellationToken cancellationToken)
@@ -96,6 +97,7 @@ public sealed class UsersController(
     }
 
     [HttpGet("{userId:guid}/followers")]
+    [AllowAnonymous]
     [ProducesResponseType<UserProfileListResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserProfileListResponse>> GetFollowers(Guid userId, CancellationToken cancellationToken)
@@ -107,6 +109,7 @@ public sealed class UsersController(
     }
 
     [HttpGet("{userId:guid}/following")]
+    [AllowAnonymous]
     [ProducesResponseType<UserProfileListResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserProfileListResponse>> GetFollowing(Guid userId, CancellationToken cancellationToken)

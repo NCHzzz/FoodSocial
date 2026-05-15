@@ -15,12 +15,15 @@ internal sealed class DishApiFactory : WebApplicationFactory<Program>
 {
     internal const string ManagementApiKey = "test-dish-management-key";
 
+    private static readonly SemaphoreSlim DatabaseInitializationLock = new(1, 1);
+    private static readonly SemaphoreSlim DatabaseAccessLock = new(1, 1);
+    private readonly string _connectionString = $"Data Source=file:{Guid.NewGuid():N}?mode=memory&cache=shared";
     private readonly SqliteConnection _connection;
     private bool _databaseInitialized;
 
     public DishApiFactory()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
+        _connection = new SqliteConnection(_connectionString);
         _connection.Open();
     }
 
@@ -37,7 +40,7 @@ internal sealed class DishApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<DbContextOptions<DishDbContext>>();
             services.RemoveAll<DishDbContext>();
 
-            services.AddDbContext<DishDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<DishDbContext>(options => options.UseSqlite(_connectionString));
         });
     }
 
@@ -51,30 +54,46 @@ internal sealed class DishApiFactory : WebApplicationFactory<Program>
     {
         await EnsureDatabaseCreatedAsync();
 
-        using var scope = Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<DishDbContext>();
-        var dish = DishRecord.Create(name, null, category, cuisineType, [], [], []);
-        if (deprecated)
+        await DatabaseAccessLock.WaitAsync();
+        try
         {
-            dish.Deprecate();
-        }
+            using var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<DishDbContext>();
+            var dish = DishRecord.Create(name, null, category, cuisineType, [], [], []);
+            if (deprecated)
+            {
+                dish.Deprecate();
+            }
 
-        dbContext.Dishes.Add(dish);
-        await dbContext.SaveChangesAsync();
-        return dish.Id;
+            dbContext.Dishes.Add(dish);
+            await dbContext.SaveChangesAsync();
+            return dish.Id;
+        }
+        finally
+        {
+            DatabaseAccessLock.Release();
+        }
     }
 
     internal async Task<Guid> SeedDishInTenantAsync(string name, Guid tenantId)
     {
         await EnsureDatabaseCreatedAsync();
 
-        using var scope = Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<DishDbContext>();
-        var dish = DishRecord.Create(name, null, "Noodles", "Vietnamese", [], [], []);
-        dbContext.Dishes.Add(dish);
-        dbContext.Entry(dish).Property(nameof(DishRecord.TenantId)).CurrentValue = tenantId;
-        await dbContext.SaveChangesAsync();
-        return dish.Id;
+        await DatabaseAccessLock.WaitAsync();
+        try
+        {
+            using var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<DishDbContext>();
+            var dish = DishRecord.Create(name, null, "Noodles", "Vietnamese", [], [], []);
+            dbContext.Dishes.Add(dish);
+            dbContext.Entry(dish).Property(nameof(DishRecord.TenantId)).CurrentValue = tenantId;
+            await dbContext.SaveChangesAsync();
+            return dish.Id;
+        }
+        finally
+        {
+            DatabaseAccessLock.Release();
+        }
     }
 
     internal async Task EnsureDatabaseCreatedAsync()
@@ -84,9 +103,22 @@ internal sealed class DishApiFactory : WebApplicationFactory<Program>
             return;
         }
 
-        using var scope = Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<DishDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
-        _databaseInitialized = true;
+        await DatabaseInitializationLock.WaitAsync();
+        try
+        {
+            if (_databaseInitialized)
+            {
+                return;
+            }
+
+            using var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<DishDbContext>();
+            await dbContext.Database.EnsureCreatedAsync();
+            _databaseInitialized = true;
+        }
+        finally
+        {
+            DatabaseInitializationLock.Release();
+        }
     }
 }

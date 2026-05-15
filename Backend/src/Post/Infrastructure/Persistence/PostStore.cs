@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FoodSocial.Post.Infrastructure.Persistence;
 
-public sealed class PostStore(PostDbContext dbContext) : IPostStore
+public sealed partial class PostStore(PostDbContext dbContext) : IPostStore
 {
     private readonly PostDbContext _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 

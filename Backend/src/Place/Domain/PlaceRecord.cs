@@ -51,7 +51,7 @@ public sealed class PlaceRecord
         Latitude = latitude;
         Longitude = longitude;
         CuisineTypes = NormalizeDistinctValues(cuisineTypes);
-        CuisineTypesSearchText = BuildMultiValueSearchText(CuisineTypes);
+        CuisineTypesSearchText = PlaceSearchText.BuildCuisineTypesSearchText(CuisineTypes);
         PriceRange = NormalizeOptional(priceRange);
         Status = PlaceLifecycleStatus.Active;
         CreatedAtUtc = DateTimeOffset.UtcNow;
@@ -106,7 +106,7 @@ public sealed class PlaceRecord
     /// <summary>Gets normalized cuisine type labels.</summary>
     public List<string> CuisineTypes { get; private set; } = [];
 
-    /// <summary>Gets the normalized cuisine search text used by persistence queries.</summary>
+    /// <summary>Gets persisted cuisine search text derived from normalized cuisine labels.</summary>
     public string CuisineTypesSearchText { get; private set; } = string.Empty;
 
     /// <summary>Gets the optional price range.</summary>
@@ -277,7 +277,4 @@ public sealed class PlaceRecord
 
         return result;
     }
-
-    private static string BuildMultiValueSearchText(IReadOnlyCollection<string> values) =>
-        values.Count == 0 ? string.Empty : $"|{string.Join('|', values)}|";
 }

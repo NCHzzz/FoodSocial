@@ -158,6 +158,83 @@ public sealed class UserProfilePersistenceIntegrationTests
         following!.Items.Select(item => item.IdentityId).Should().ContainInOrder(followingTwoIdentityId, followingOneIdentityId);
     }
 
+    [Fact]
+    public async Task Notifications_AreOrderedByMostRecentFirstAndBoundedInDatabaseShape()
+    {
+        await using var connection = await OpenDatabaseAsync();
+        var targetIdentityId = Guid.NewGuid();
+        var actorOneIdentityId = Guid.NewGuid();
+        var actorTwoIdentityId = Guid.NewGuid();
+
+        await using (var setupContext = CreateDbContext(connection))
+        {
+            var targetShell = new FoodSocial.UserProfile.Domain.UserProfileShell(targetIdentityId, "notification-target-subject");
+            setupContext.UserProfileShells.Add(targetShell);
+
+            var older = new FoodSocial.UserProfile.Domain.UserNotification(targetShell.Id, targetIdentityId, actorOneIdentityId, "UserFollowed", "followed you");
+            var newer = new FoodSocial.UserProfile.Domain.UserNotification(targetShell.Id, targetIdentityId, actorTwoIdentityId, "UserFollowed", "followed you");
+            setupContext.UserNotifications.AddRange(older, newer);
+            setupContext.Entry(older).Property(notification => notification.CreatedAtUtc).CurrentValue = DateTimeOffset.UtcNow.AddMinutes(-10);
+            setupContext.Entry(newer).Property(notification => notification.CreatedAtUtc).CurrentValue = DateTimeOffset.UtcNow.AddMinutes(-1);
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = CreateDbContext(connection);
+        var store = new UserProfileStore(dbContext);
+
+        var notifications = await store.GetNotificationsAsync(targetIdentityId, 1, CancellationToken.None);
+
+        notifications.Should().NotBeNull();
+        notifications!.UnreadCount.Should().Be(2);
+        notifications.Items.Should().ContainSingle().Which.ActorIdentityId.Should().Be(actorTwoIdentityId);
+    }
+
+    [Fact]
+    public async Task SavedItems_AreOrderedByMostRecentFirst()
+    {
+        await using var connection = await OpenDatabaseAsync();
+        var identityId = Guid.NewGuid();
+        var olderPostId = Guid.NewGuid();
+        var newerPostId = Guid.NewGuid();
+        var olderDishId = Guid.NewGuid();
+        var newerDishId = Guid.NewGuid();
+        var olderPlaceId = Guid.NewGuid();
+        var newerPlaceId = Guid.NewGuid();
+
+        await using (var setupContext = CreateDbContext(connection))
+        {
+            var shell = new FoodSocial.UserProfile.Domain.UserProfileShell(identityId, "saved-order-subject");
+            setupContext.UserProfileShells.Add(shell);
+            var olderPost = new FoodSocial.UserProfile.Domain.SavedPost(shell.Id, olderPostId);
+            var newerPost = new FoodSocial.UserProfile.Domain.SavedPost(shell.Id, newerPostId);
+            var olderDish = new FoodSocial.UserProfile.Domain.SavedDish(shell.Id, olderDishId);
+            var newerDish = new FoodSocial.UserProfile.Domain.SavedDish(shell.Id, newerDishId);
+            var olderPlace = new FoodSocial.UserProfile.Domain.SavedPlace(shell.Id, olderPlaceId);
+            var newerPlace = new FoodSocial.UserProfile.Domain.SavedPlace(shell.Id, newerPlaceId);
+            setupContext.AddRange(olderPost, newerPost, olderDish, newerDish, olderPlace, newerPlace);
+
+            var olderSavedAtUtc = DateTimeOffset.UtcNow.AddMinutes(-10);
+            var newerSavedAtUtc = DateTimeOffset.UtcNow.AddMinutes(-1);
+            setupContext.Entry(olderPost).Property(saved => saved.CreatedAtUtc).CurrentValue = olderSavedAtUtc;
+            setupContext.Entry(newerPost).Property(saved => saved.CreatedAtUtc).CurrentValue = newerSavedAtUtc;
+            setupContext.Entry(olderDish).Property(saved => saved.CreatedAtUtc).CurrentValue = olderSavedAtUtc;
+            setupContext.Entry(newerDish).Property(saved => saved.CreatedAtUtc).CurrentValue = newerSavedAtUtc;
+            setupContext.Entry(olderPlace).Property(saved => saved.CreatedAtUtc).CurrentValue = olderSavedAtUtc;
+            setupContext.Entry(newerPlace).Property(saved => saved.CreatedAtUtc).CurrentValue = newerSavedAtUtc;
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = CreateDbContext(connection);
+        var store = new UserProfileStore(dbContext);
+
+        var savedItems = await store.GetSavedItemsAsync(identityId, CancellationToken.None);
+
+        savedItems.Should().NotBeNull();
+        savedItems!.Posts.Select(item => item.PostId).Should().ContainInOrder(newerPostId, olderPostId);
+        savedItems.Dishes.Select(item => item.DishId).Should().ContainInOrder(newerDishId, olderDishId);
+        savedItems.Places.Select(item => item.PlaceId).Should().ContainInOrder(newerPlaceId, olderPlaceId);
+    }
+
     private static UserProvisionedIntegrationEvent CreateProvisionedEvent(Guid identityId, string subject, string preferredUsername) =>
         new(
             EventId: Guid.NewGuid(),
