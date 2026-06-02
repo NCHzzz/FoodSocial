@@ -176,6 +176,61 @@ Implications:
 
 The API edge decision itself is canonical in `10_architecture.md`.
 
+## Component Internal Layering
+
+Approved internal shape per backend component:
+
+### Domain services (Identity, UserProfile, Dish, Place, Post)
+
+Domain services use the four-layer Clean Architecture shape described in
+`docs/ai/stack-rules/dotnet.md`: `Api/`, `Application/`, `Domain/`, and
+`Infrastructure/`. This shape is required because domain services own real
+business invariants, lifecycle state, and service-owned persistence. Domain
+logic must remain independent of transport, messaging, and persistence
+concerns.
+
+### BFF (FoodSocial.Bff)
+
+The BFF is a transport adapter and session aggregator. It owns no domain
+invariants, no business rules, and no persistence. For that reason the BFF
+**MUST** be organized as **vertical slices by bounded context**, not as a
+four-layer shape:
+
+```text
+FoodSocial.Bff/
+├── Authentication/   # OIDC flow, CSRF filter, request conventions, internal service token
+├── Caching/          # Catalog response cache (Redis + memory fallback)
+├── Endpoints/        # Facades grouped by bounded context (BffDishEndpoints, BffPostEndpoints, ...)
+├── HttpClients/      # Typed downstream clients per service
+├── RateLimiting/     # BFF-level fixed-window rate limit policies
+├── Recommendations/  # Discover/assist providers and models
+├── Results/          # Upstream to browser response translation
+└── Security/         # Data protection, security headers
+```
+
+Rationale:
+
+- The BFF has no Domain layer because it owns no business invariants.
+- Bounded-context folders keep related files together (auth flow, cache,
+  rate limit policy, downstream client, endpoints) instead of scattering
+  them across four layers.
+- BFF endpoints are short, read-mostly facades over downstream service APIs,
+  so they read naturally as vertical slices.
+- The BFF still follows all other rules in `docs/ai/stack-rules/dotnet.md`
+  (ProblemDetails, async end-to-end, environment-driven config, no secrets
+  in code, explicit input validation, rate limiting, observability, security
+  headers, and tests).
+
+### API Gateway (FoodSocial.ApiGateway)
+
+The API Gateway is a single-purpose edge proxy. It owns YARP cluster config,
+security headers, CORS, forwarded-headers, request body limits, correlation
+IDs, and edge rate limiting. It is **not** a backend service and has no
+business logic. The folder shape is a flat collection of middleware and
+configuration helpers; the four-layer shape does not apply.
+
+This layering decision is part of the approved architecture direction; the
+canonical cross-system architecture lives in `10_architecture.md`.
 ## Internal Service Communication Direction
 
 Approved direction:

@@ -92,6 +92,27 @@ Each bounded service should use this shape. Use only folders that are needed; do
 - DPUnity dependency registration lives under `DependencyInjection/ServiceCollectionExtensions.cs`; FoodSocial should follow that naming and placement.
 - DPUnity infrastructure groups concrete adapters under persistence, messaging, clients, and provider folders; FoodSocial should avoid infrastructure files in the project root.
 
+## BFF and Gateway Layering Exception
+
+The four-layer service tree described in "DPUnity-Style Service Tree" applies
+to **domain services** (Identity, UserProfile, Dish, Place, Post) and any
+future service that owns business invariants.
+
+`FoodSocial.Bff` and `FoodSocial.ApiGateway` are **not** domain services and
+**MUST NOT** use the four-layer shape:
+
+- `FoodSocial.Bff` **MUST** be organized by bounded context (vertical slice)
+  because it owns no domain invariants. See
+  `docs/project-discovery/12_backend_structure.md` for the approved BFF
+  folder shape.
+- `FoodSocial.ApiGateway` **MUST** stay a flat collection of middleware
+  and configuration helpers. It owns no business logic and has no layering
+  need.
+
+Both the BFF and the API Gateway still **MUST** follow every other rule in
+this file: `ProblemDetails` errors, async end-to-end I/O, environment-driven
+configuration, no secrets in code, explicit input validation, rate limiting,
+observability, security headers, and the testing rules.
 ## Layer Responsibilities
 
 ### API Layer
