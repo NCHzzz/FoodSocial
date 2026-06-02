@@ -111,6 +111,7 @@ public sealed class EnsureIdentityCommandHandlerTests
     {
         var existingIdentity = new IdentityUser("outbox-repeat-subject", "demo-user", "demo@example.com");
         var store = new InMemoryIdentityUserStore(existingIdentity);
+        store.SeedPendingUserProvisionedOutbox("outbox-repeat-subject");
         var handler = new EnsureIdentityCommandHandler(store, NoOpLogger.Instance);
 
         await handler.HandleAsync(
@@ -123,8 +124,12 @@ public sealed class EnsureIdentityCommandHandlerTests
     private sealed class InMemoryIdentityUserStore(params IdentityUser[] users) : IIdentityUserStore
     {
         private readonly List<IdentityUser> _users = [.. users];
+        private readonly HashSet<string> _subjectsWithPendingUserProvisionedOutbox = new(StringComparer.Ordinal);
 
         public List<UserProvisionedIntegrationEvent> OutboxMessages { get; } = [];
+
+        public void SeedPendingUserProvisionedOutbox(string subject) =>
+            _subjectsWithPendingUserProvisionedOutbox.Add(subject);
 
         public Task<IdentityUser?> FindBySubjectAsync(string subject, CancellationToken cancellationToken)
         {
@@ -165,7 +170,7 @@ public sealed class EnsureIdentityCommandHandlerTests
         }
 
         public Task<bool> HasPendingUserProvisionedOutboxMessageAsync(string subject, CancellationToken cancellationToken) =>
-            Task.FromResult(_users.Any(user => string.Equals(user.Subject, subject, StringComparison.Ordinal)) && OutboxMessages.Count == 0);
+            Task.FromResult(_subjectsWithPendingUserProvisionedOutbox.Contains(subject));
 
         public Task<TResult> ExecuteInTransactionAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken)
         {
