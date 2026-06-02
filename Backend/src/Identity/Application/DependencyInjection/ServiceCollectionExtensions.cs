@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<EnsureIdentityCommandHandler>();
         services.AddScoped<GetCurrentUserQueryHandler>();
+        services.AddScoped<AssignIdentityRoleCommandHandler>();
         services.AddScoped<CompleteUserProfileBootstrapService>();
 
         return services;

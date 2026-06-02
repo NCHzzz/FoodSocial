@@ -1,7 +1,5 @@
 using FoodSocial.Identity.Api.Authorization;
 using FoodSocial.Identity.Api.Contracts;
-using FoodSocial.Identity.Application;
-using FoodSocial.Identity.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,9 +11,9 @@ namespace FoodSocial.Identity.Api.Controllers;
 [ApiController]
 [Route("identity/admin")]
 [Authorize(Policy = IdentityAuthorizationPolicies.AccountAdminOnly)]
-public sealed class IdentityAdminController(IIdentityUserStore identityUserStore) : ControllerBase
+public sealed class IdentityAdminController(AssignIdentityRoleCommandHandler assignIdentityRoleCommandHandler) : ControllerBase
 {
-    private readonly IIdentityUserStore _identityUserStore = identityUserStore ?? throw new ArgumentNullException(nameof(identityUserStore));
+    private readonly AssignIdentityRoleCommandHandler _assignIdentityRoleCommandHandler = assignIdentityRoleCommandHandler ?? throw new ArgumentNullException(nameof(assignIdentityRoleCommandHandler));
 
     /// <summary>
     /// Assigns an application-owned role to a subject.
@@ -45,21 +43,18 @@ public sealed class IdentityAdminController(IIdentityUserStore identityUserStore
             return InvalidRoleAssignmentRequest("The requested role is required.");
         }
 
-        string normalizedRole;
-
         try
         {
-            normalizedRole = IdentityAppRoles.Normalize(request.Role);
+            var result = await _assignIdentityRoleCommandHandler.HandleAsync(
+                new AssignIdentityRoleCommand(request.Subject, request.Role),
+                cancellationToken);
+
+            return Ok(new AssignRoleResponse(result.Subject, result.Role, result.Created));
         }
         catch (ArgumentOutOfRangeException)
         {
             return InvalidRoleAssignmentRequest("The requested role is not supported.");
         }
-
-        var created = await _identityUserStore.EnsureRoleAssignedAsync(request.Subject, normalizedRole, cancellationToken);
-        await _identityUserStore.SaveChangesAsync(cancellationToken);
-
-        return Ok(new AssignRoleResponse(request.Subject, normalizedRole, created));
     }
 
     private ActionResult InvalidRoleAssignmentRequest(string detail) =>
