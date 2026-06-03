@@ -18,6 +18,7 @@ internal static class GatewaySecurityHeadersMiddleware
                 headers["Cross-Origin-Opener-Policy"] = "same-origin";
                 headers["Cross-Origin-Resource-Policy"] = "same-site";
                 headers["X-Permitted-Cross-Domain-Policies"] = "none";
+                headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
                 headers["X-FoodSocial-Edge"] = "api-gateway";
                 return Task.CompletedTask;
             });

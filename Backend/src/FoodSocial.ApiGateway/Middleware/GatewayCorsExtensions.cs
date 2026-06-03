@@ -25,14 +25,21 @@ internal static class GatewayCorsExtensions
             {
                 if (allowedOrigins.Length == 0)
                 {
-                    policy.AllowAnyHeader().AllowAnyMethod();
+                    policy
+                        .WithOrigins("http://localhost:4200", "https://localhost:4200")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
                     return;
                 }
 
                 policy
                     .WithOrigins(allowedOrigins)
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
+                    .WithHeaders(
+                        "Authorization",
+                        "Content-Type",
+                        "X-XSRF-TOKEN",
+                        "X-FoodSocial-Edge")
+                    .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                     .AllowCredentials();
             });
         });
