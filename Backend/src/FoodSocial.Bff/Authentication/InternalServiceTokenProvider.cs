@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Hosting;
 
 namespace FoodSocial.Bff;
 
@@ -11,11 +12,13 @@ public interface IInternalServiceTokenProvider
 internal sealed class KeycloakClientCredentialsTokenProvider(
     HttpClient httpClient,
     IConfiguration configuration,
+    IHostEnvironment environment,
     ILogger<KeycloakClientCredentialsTokenProvider> logger)
     : IInternalServiceTokenProvider
 {
     private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+    private readonly IHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
     private readonly ILogger<KeycloakClientCredentialsTokenProvider> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
     private string? _accessToken;
@@ -26,7 +29,18 @@ internal sealed class KeycloakClientCredentialsTokenProvider(
         var staticToken = _configuration["Keycloak:ServiceClientAccessToken"];
         if (!string.IsNullOrWhiteSpace(staticToken))
         {
-            return staticToken;
+            if (!_environment.IsDevelopment())
+            {
+                _logger.LogError(
+                    "Keycloak:ServiceClientAccessToken is configured in environment '{Environment}' which is not Development. Ignoring the static token and falling through to the dynamic client-credentials flow. Remove the static token from production configuration.",
+                    _environment.EnvironmentName);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Keycloak:ServiceClientAccessToken is configured in Development. Using the static token and skipping the dynamic client-credentials flow. Remove the static token before deploying to non-development environments.");
+                return staticToken;
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(_accessToken) && _expiresAtUtc > DateTimeOffset.UtcNow.AddSeconds(30))
