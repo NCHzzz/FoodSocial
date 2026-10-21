@@ -1,0 +1,41 @@
+﻿
+> foodsocial-web@0.0.0 build
+> ng build
+
+[33mΓ¥»[39m Building...
+[32mΓ£ö[39m Building...
+[1mInitial chunk files[22m[2m | [22m[1mNames[22m              [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-YDNIJMJX.js[39m  [2m | [22m[2m-[22m                  [2m | [22m[36m166.35 kB[39m[2m | [22m               [36m48.27 kB[39m
+[32mchunk-TQ2MDWAM.js[39m  [2m | [22m[2m-[22m                  [2m | [22m [36m87.49 kB[39m[2m | [22m               [36m22.19 kB[39m
+[32mstyles-YO77YZRQ.css[39m[2m | [22m[2mstyles[22m             [2m | [22m [36m25.29 kB[39m[2m | [22m                [36m4.69 kB[39m
+[32mmain-CBAQL6O4.js[39m   [2m | [22m[2mmain[22m               [2m | [22m  [36m8.39 kB[39m[2m | [22m                [36m2.81 kB[39m
+[32mchunk-R7MJZQI5.js[39m  [2m | [22m[2m-[22m                  [2m | [22m  [36m2.66 kB[39m[2m | [22m              [36m893 bytes[39m
+[32mchunk-UG2GHQQF.js[39m  [2m | [22m[2m-[22m                  [2m | [22m  [36m1.86 kB[39m[2m | [22m              [36m679 bytes[39m
+[32mchunk-7UZX4S3T.js[39m  [2m | [22m[2m-[22m                  [2m | [22m  [36m1.10 kB[39m[2m | [22m              [36m384 bytes[39m
+[32mchunk-B5KXNB6V.js[39m  [2m | [22m[2m-[22m                  [2m | [22m  [36m1.07 kB[39m[2m | [22m              [36m452 bytes[39m
+[32mchunk-2NFLSA4Y.js[39m  [2m | [22m[2m-[22m                  [2m | [22m[36m449 bytes[39m[2m | [22m              [36m449 bytes[39m
+
+[1m [22m                  [2m | [22m[1mInitial total[22m      [2m | [22m[1m294.65 kB[22m[2m | [22m               [1m80.82 kB[22m
+
+[1mLazy chunk files[22m   [2m | [22m[1mNames[22m              [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-DW4C3MH5.js[39m  [2m | [22m[2m-[22m                  [2m | [22m [36m38.00 kB[39m[2m | [22m                [36m8.01 kB[39m
+[32mchunk-GOBCB3N3.js[39m  [2m | [22m[2mdiscover-page[22m      [2m | [22m [36m15.24 kB[39m[2m | [22m                [36m4.16 kB[39m
+[32mchunk-YE37F7WR.js[39m  [2m | [22m[2mpost-create-page[22m   [2m | [22m [36m14.68 kB[39m[2m | [22m                [36m3.95 kB[39m
+[32mchunk-ZM4FHAAU.js[39m  [2m | [22m[2mpost-detail-page[22m   [2m | [22m [36m13.95 kB[39m[2m | [22m                [36m3.83 kB[39m
+[32mchunk-PWSOIF5W.js[39m  [2m | [22m[2mprofile-page[22m       [2m | [22m [36m13.43 kB[39m[2m | [22m                [36m3.39 kB[39m
+[32mchunk-YBKSZFEU.js[39m  [2m | [22m[2mpublic-profile-page[22m[2m | [22m [36m11.08 kB[39m[2m | [22m                [36m2.85 kB[39m
+[32mchunk-RHLTELG5.js[39m  [2m | [22m[2m-[22m                  [2m | [22m [36m10.61 kB[39m[2m | [22m                [36m2.39 kB[39m
+[32mchunk-YKAJJOUD.js[39m  [2m | [22m[2msearch-page[22m        [2m | [22m  [36m9.32 kB[39m[2m | [22m                [36m2.66 kB[39m
+[32mchunk-RZ5YR7AR.js[39m  [2m | [22m[2mnotifications-page[22m [2m | [22m  [36m8.83 kB[39m[2m | [22m                [36m2.76 kB[39m
+[32mchunk-4AUZZUFA.js[39m  [2m | [22m[2mposts-page[22m         [2m | [22m  [36m8.76 kB[39m[2m | [22m                [36m2.74 kB[39m
+[32mchunk-YKL3HDE3.js[39m  [2m | [22m[2m-[22m                  [2m | [22m  [36m7.66 kB[39m[2m | [22m                [36m2.46 kB[39m
+[32mchunk-65KSTXBJ.js[39m  [2m | [22m[2mfollowing-page[22m     [2m | [22m  [36m7.42 kB[39m[2m | [22m                [36m2.33 kB[39m
+[32mchunk-MORCKYD6.js[39m  [2m | [22m[2mmoderation-page[22m    [2m | [22m  [36m7.36 kB[39m[2m | [22m                [36m2.38 kB[39m
+[32mchunk-NV2LZZZS.js[39m  [2m | [22m[2msaved-page[22m         [2m | [22m  [36m7.10 kB[39m[2m | [22m                [36m2.22 kB[39m
+[32mchunk-QF6GFCI7.js[39m  [2m | [22m[2m-[22m                  [2m | [22m  [36m5.94 kB[39m[2m | [22m                [36m1.30 kB[39m
+[2m...and 19 more lazy chunks files. Use "--verbose" to show all the files.[22m
+
+Application bundle generation complete. [1.789 seconds] - 2026-06-05T12:02:43.491Z
+
+Output location: C:\FoodSocial\Frontend\dist\foodsocial-web
+

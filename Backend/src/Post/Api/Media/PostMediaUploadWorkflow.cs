@@ -1,17 +1,20 @@
 using FoodSocial.Contracts.Posts;
-using FoodSocial.Post.Application.UseCases.Posts;
+using FoodSocial.Post.Application.UseCases.Media;
+
 using FoodSocial.Post.Api.Observability;
 
 namespace FoodSocial.Post.Api.Media;
 
 public sealed class PostMediaUploadWorkflow(
-    PostService postService,
+    PostMediaUploadUseCase mediaUploadUseCase,
     PostMediaStorage mediaStorage,
+
+
     PostMediaUploadValidator validator,
     PostApiMetrics metrics,
     ILogger<PostMediaUploadWorkflow> logger)
 {
-    private readonly PostService _postService = postService ?? throw new ArgumentNullException(nameof(postService));
+    private readonly PostMediaUploadUseCase _mediaUploadUseCase = mediaUploadUseCase ?? throw new ArgumentNullException(nameof(mediaUploadUseCase));
     private readonly PostMediaStorage _mediaStorage = mediaStorage ?? throw new ArgumentNullException(nameof(mediaStorage));
     private readonly PostMediaUploadValidator _validator = validator ?? throw new ArgumentNullException(nameof(validator));
     private readonly PostApiMetrics _metrics = metrics ?? throw new ArgumentNullException(nameof(metrics));
@@ -46,7 +49,7 @@ public sealed class PostMediaUploadWorkflow(
                 cleanupDueAtUtc,
                 "StoredPendingAttachmentWithDerivativePlaceholder");
 
-            await _postService.RecordMediaUploadAsync(
+            await _mediaUploadUseCase.RecordMediaUploadAsync(
                 new RegisterMediaUploadCommand(
                     uploadId,
                     ownerId,
@@ -71,7 +74,7 @@ public sealed class PostMediaUploadWorkflow(
 
     public async Task<MediaCleanupResponse> CleanupAsync(int? limit, CancellationToken cancellationToken)
     {
-        var uploads = await _postService.ClaimMediaUploadsDueForCleanupAsync(DateTimeOffset.UtcNow, limit, cancellationToken);
+        var uploads = await _mediaUploadUseCase.ClaimMediaUploadsDueForCleanupAsync(DateTimeOffset.UtcNow, limit, cancellationToken);
         _metrics.RecordMediaCleanupClaimed(uploads.Count);
         var deletedUploadIds = new List<Guid>(uploads.Count);
 
@@ -80,7 +83,7 @@ public sealed class PostMediaUploadWorkflow(
             try
             {
                 await _mediaStorage.DeleteUploadAsync(upload.Id);
-                await _postService.MarkMediaUploadDeletedAsync(upload.Id, cancellationToken);
+                await _mediaUploadUseCase.MarkMediaUploadDeletedAsync(upload.Id, cancellationToken);
                 deletedUploadIds.Add(upload.Id);
                 _metrics.RecordMediaCleanupDeleted();
             }

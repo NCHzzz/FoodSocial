@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthSessionService } from '../core/auth/auth-session.service';
@@ -22,6 +22,8 @@ export class AppShellComponent implements OnInit {
   protected readonly session = computed(() => this.authState().session);
   protected readonly sessionLoadFailed = computed(() => this.authState().loadStatus === 'unavailable');
   protected readonly sessionSummary = computed(() => getAuthSessionSummary(this.authState()));
+  protected readonly errorState = signal<string | null>(null);
+
   protected readonly navigationItems = computed(() => {
     if (!this.isAuthenticated()) {
       return GUEST_NAVIGATION_ITEMS;
@@ -37,15 +39,19 @@ export class AppShellComponent implements OnInit {
     void this.authSessionService.loadSession();
   }
 
-  private hasModerationRole(roles: string[]): boolean {
-    return roles.some((role) => role.toLowerCase() === 'moderator' || role.toLowerCase() === 'admin');
-  }
-
   protected startLogin(): void {
     this.authSessionService.startLogin();
   }
 
   protected submitLogout(): void {
     void this.authSessionService.submitLogout();
+  }
+
+  protected clearRouteError(): void {
+    this.errorState.set(null);
+  }
+
+  private hasModerationRole(roles: string[]): boolean {
+    return roles.some((role) => role.toLowerCase() === 'moderator' || role.toLowerCase() === 'admin');
   }
 }

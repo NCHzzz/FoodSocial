@@ -26,8 +26,13 @@ internal static class BffUserProfileEndpoints
         usersGroup.MapDelete("/{userId:guid}/saved/posts/{postId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         usersGroup.MapPut("/{userId:guid}/saved/dishes/{dishId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         usersGroup.MapDelete("/{userId:guid}/saved/dishes/{dishId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
-        usersGroup.MapPut("/{userId:guid}/saved/places/{placeId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+usersGroup.MapPut("/{userId:guid}/saved/places/{placeId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
         usersGroup.MapDelete("/{userId:guid}/saved/places/{placeId:guid}", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+
+        usersGroup.MapPost("/{userId:guid}/block", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        usersGroup.MapDelete("/{userId:guid}/block", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        usersGroup.MapPost("/{userId:guid}/mute", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
+        usersGroup.MapDelete("/{userId:guid}/mute", ForwardProtectedAsync).AddEndpointFilter(BffCsrfEndpointFilter.Instance);
 
         return endpoints;
     }

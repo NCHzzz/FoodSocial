@@ -1,14 +1,25 @@
-using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Hosting;
+
+
 
 namespace FoodSocial.Bff;
 
+/// <summary>
+/// Port at which the BFF obtains a Bearer access token for calling
+/// downstream service APIs (Post, UserProfile, Dish, Place, Identity).
+/// </summary>
 public interface IInternalServiceTokenProvider
 {
     Task<string> GetAccessTokenAsync(CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Production adapter: runs the OAuth2 client_credentials grant against the
+/// Keycloak token endpoint, caches the access token, and refreshes on
+/// expiration. No static-token escape hatch lives in this module — the
+/// launch posture is "no static token in production."
+/// </summary>
 internal sealed class KeycloakClientCredentialsTokenProvider(
     HttpClient httpClient,
     IConfiguration configuration,
@@ -26,20 +37,16 @@ internal sealed class KeycloakClientCredentialsTokenProvider(
 
     public async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken)
     {
-        var staticToken = _configuration["Keycloak:ServiceClientAccessToken"];
-        if (!string.IsNullOrWhiteSpace(staticToken))
+        if (!_environment.IsDevelopment())
         {
-            if (!_environment.IsDevelopment())
+            var staticToken = _configuration["Keycloak:ServiceClientAccessToken"];
+            if (!string.IsNullOrWhiteSpace(staticToken))
             {
                 _logger.LogError(
-                    "Keycloak:ServiceClientAccessToken is configured in environment '{Environment}' which is not Development. Ignoring the static token and falling through to the dynamic client-credentials flow. Remove the static token from production configuration.",
+                    "Keycloak:ServiceClientAccessToken is configured in environment '{Environment}' which is not Development. Refusing to use the static token. Remove the static token from production configuration.",
                     _environment.EnvironmentName);
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "Keycloak:ServiceClientAccessToken is configured in Development. Using the static token and skipping the dynamic client-credentials flow. Remove the static token before deploying to non-development environments.");
-                return staticToken;
+                throw new InvalidOperationException(
+                    $"Keycloak:ServiceClientAccessToken must not be set in environment '{_environment.EnvironmentName}'.");
             }
         }
 
@@ -127,12 +134,61 @@ internal sealed class KeycloakClientCredentialsTokenProvider(
         [property: JsonPropertyName("expires_in")] int ExpiresIn);
 }
 
+/// <summary>
+/// Development-only adapter: returns the static
+/// <c>Keycloak:ServiceClientAccessToken</c> from configuration without ever
+/// calling the Keycloak token endpoint. The launch posture keeps this
+/// adapter out of production wiring; the registration in
+/// <see cref="InternalServiceTokenProviderRegistration"/> rejects it when the
+/// environment is not Development.
+/// </summary>
+internal sealed class StaticInternalServiceTokenProvider(
+    IConfiguration configuration,
+    IHostEnvironment environment,
+    ILogger<StaticInternalServiceTokenProvider> logger)
+    : IInternalServiceTokenProvider
+{
+    private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+    private readonly IHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
+    private readonly ILogger<StaticInternalServiceTokenProvider> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly string _staticToken = configuration["Keycloak:ServiceClientAccessToken"]
+        ?? throw new InvalidOperationException("Keycloak:ServiceClientAccessToken must be set when using StaticInternalServiceTokenProvider.");
+
+    public Task<string> GetAccessTokenAsync(CancellationToken cancellationToken)
+    {
+        if (!_environment.IsDevelopment())
+        {
+            throw new InvalidOperationException(
+                $"StaticInternalServiceTokenProvider must not be used in environment '{_environment.EnvironmentName}'.");
+        }
+
+        _logger.LogDebug("StaticInternalServiceTokenProvider returning the configured Keycloak:ServiceClientAccessToken (Development only).");
+        return Task.FromResult(_staticToken);
+    }
+}
+
 internal static class InternalServiceTokenProviderRegistration
 {
-    public static IServiceCollection AddInternalServiceTokenProvider(this IServiceCollection services)
+    public static IServiceCollection AddInternalServiceTokenProvider(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.AddHttpClient<IInternalServiceTokenProvider, KeycloakClientCredentialsTokenProvider>();
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(environment);
+
+        var staticToken = configuration["Keycloak:ServiceClientAccessToken"];
+        if (!string.IsNullOrWhiteSpace(staticToken))
+        {
+            if (!environment.IsDevelopment())
+            {
+                throw new InvalidOperationException(
+                    $"Keycloak:ServiceClientAccessToken must not be set in environment '{environment.EnvironmentName}'. Use the KeycloakClientCredentialsTokenProvider production adapter instead.");
+            }
+            services.AddSingleton<IInternalServiceTokenProvider>(new StaticInternalServiceTokenProvider(configuration, environment, LoggerFactory.Create(b => b.AddConsole()).CreateLogger<StaticInternalServiceTokenProvider>()));
+        }
+        else
+        {
+            services.AddHttpClient<IInternalServiceTokenProvider, KeycloakClientCredentialsTokenProvider>();
+        }
         return services;
     }
 }

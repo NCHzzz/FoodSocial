@@ -62,7 +62,11 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'not-found',
+    loadComponent: () => import('./features/pages/not-found.page').then((module) => module.NotFoundPage),
+  },
+  {
     path: '**',
-    redirectTo: 'discover',
+    redirectTo: 'not-found',
   },
 ];

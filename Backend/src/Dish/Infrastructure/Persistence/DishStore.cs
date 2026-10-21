@@ -1,4 +1,6 @@
+using FoodSocial.Contracts.Common;
 using FoodSocial.Contracts.Dishes;
+
 using FoodSocial.Dish.Application;
 using FoodSocial.Dish.Domain;
 using FoodSocial.Messaging;
@@ -132,7 +134,7 @@ public sealed class DishStore(DishDbContext dbContext) : IDishStore
             .SingleOrDefaultAsync(dish => dish.NormalizedName == normalizedName, cancellationToken);
 
     private IQueryable<DishRecord> CurrentTenantDishes() =>
-        _dbContext.Dishes.Where(dish => dish.TenantId == DishRecord.DefaultTenantId);
+        _dbContext.Dishes.Where(dish => dish.TenantId == TenantDefaults.Id);
 
     private static IntegrationOutboxMessage CreateOutboxMessage(DishRecord dish, string changeType)
     {

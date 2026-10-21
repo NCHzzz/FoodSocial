@@ -1,7 +1,18 @@
 using Microsoft.Extensions.DependencyInjection;
 using FoodSocial.Post.Application.Mapping;
-using FoodSocial.Post.Application.UseCases;
 using FoodSocial.Post.Application.Validation;
+using FoodSocial.Post.Application.UseCases.Comments;
+
+using FoodSocial.Post.Application.UseCases.Engagement;
+using FoodSocial.Post.Application.UseCases.Media;
+using FoodSocial.Post.Application.UseCases.Notifications;
+
+
+using FoodSocial.Post.Application.UseCases.Publishing;
+using FoodSocial.Post.Application.UseCases.Queries;
+using FoodSocial.Post.Application.UseCases.Reposts;
+using FoodSocial.Post.Application.UseCases.Reports;
+
 
 namespace FoodSocial.Post.Application.DependencyInjection;
 
@@ -20,7 +31,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<PostMediaUploadUseCase>();
         services.AddScoped<PostResponseMapper>();
         services.AddScoped<PostMediaAttachmentValidator>();
-        services.AddScoped<PostService>();
+
+
         return services;
     }
 }

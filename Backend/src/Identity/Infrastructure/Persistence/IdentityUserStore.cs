@@ -1,8 +1,10 @@
 using FoodSocial.Identity.Application;
+using FoodSocial.Contracts.Common;
 using FoodSocial.Contracts.Identity;
 using FoodSocial.Identity.Domain;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+
 
 namespace FoodSocial.Identity.Infrastructure.Persistence;
 
@@ -19,7 +21,7 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
 
         return _dbContext.IdentityUsers.SingleOrDefaultAsync(
-            user => user.TenantId == IdentityUser.DefaultTenantId && user.Subject == subject,
+            user => user.TenantId == TenantDefaults.Id && user.Subject == subject,
             cancellationToken);
     }
 
@@ -29,7 +31,7 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
         ArgumentOutOfRangeException.ThrowIfEqual(identityId, Guid.Empty);
 
         return _dbContext.IdentityUsers.SingleOrDefaultAsync(
-            user => user.TenantId == IdentityUser.DefaultTenantId && user.Id == identityId,
+            user => user.TenantId == TenantDefaults.Id && user.Id == identityId,
             cancellationToken);
     }
 
@@ -61,7 +63,7 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
 
         var assignedRoles = await _dbContext.IdentityRoleAssignments
-            .Where(assignment => assignment.TenantId == IdentityRoleAssignment.DefaultTenantId && assignment.Subject == subject)
+            .Where(assignment => assignment.TenantId == TenantDefaults.Id && assignment.Subject == subject)
             .Select(assignment => assignment.Role)
             .ToListAsync(cancellationToken);
 
@@ -86,7 +88,7 @@ public sealed class IdentityUserStore(IdentityDbContext dbContext) : IIdentityUs
 
         var existingAssignment = await _dbContext.IdentityRoleAssignments
             .SingleOrDefaultAsync(
-                assignment => assignment.TenantId == IdentityRoleAssignment.DefaultTenantId && assignment.Subject == subject && assignment.Role == normalizedRole,
+                assignment => assignment.TenantId == TenantDefaults.Id && assignment.Subject == subject && assignment.Role == normalizedRole,
                 cancellationToken);
 
         if (existingAssignment is not null)

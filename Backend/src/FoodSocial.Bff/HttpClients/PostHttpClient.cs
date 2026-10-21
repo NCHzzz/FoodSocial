@@ -11,25 +11,34 @@ internal sealed class PostHttpClient(HttpClient httpClient, IInternalServiceToke
     private readonly IInternalServiceTokenProvider _serviceTokenProvider = serviceTokenProvider ?? throw new ArgumentNullException(nameof(serviceTokenProvider));
     private readonly ILogger<PostHttpClient> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
+    /// <summary>
+    /// GET-only forward. Use this from deep modules (composers, proxies) that do not
+    /// have an inbound <see cref="HttpRequest"/> in hand. For body-bearing calls,
+    /// use <see cref="ForwardAsync"/> or <see cref="ForwardJsonAsync{TRequest}"/>.
+    /// </summary>
+    public async Task<HttpResponseMessage> ForwardGetAsync(string targetPathAndQuery, Guid identityId = default, IReadOnlyList<string>? roles = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetPathAndQuery);
+        using var request = new HttpRequestMessage(HttpMethod.Get, targetPathAndQuery);
+        await AddInternalServiceHeadersAsync(request, identityId, roles, cancellationToken);
+        return await SendAsync(request, cancellationToken);
+    }
+
     public async Task<HttpResponseMessage> ForwardAsync(HttpRequest sourceRequest, string targetPathAndQuery, Guid identityId = default, IReadOnlyList<string>? roles = null, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(sourceRequest); ArgumentException.ThrowIfNullOrWhiteSpace(targetPathAndQuery);
+        ArgumentNullException.ThrowIfNull(sourceRequest);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetPathAndQuery);
         using var request = new HttpRequestMessage(new HttpMethod(sourceRequest.Method), targetPathAndQuery);
         await AddInternalServiceHeadersAsync(request, identityId, roles, cancellationToken);
         if (RequiresBody(sourceRequest.Method))
         {
             request.Content = new StreamContent(sourceRequest.Body);
-            if (!string.IsNullOrWhiteSpace(sourceRequest.ContentType)) request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(sourceRequest.ContentType);
+            if (!string.IsNullOrWhiteSpace(sourceRequest.ContentType))
+            {
+                request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(sourceRequest.ContentType);
+            }
         }
-        try
-        {
-            return await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        }
-        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
-        {
-            _logger.LogWarning(exception, "Post request to {TargetPathAndQuery} timed out after {Timeout}.", targetPathAndQuery, _httpClient.Timeout);
-            throw new InvalidOperationException($"Post request to '{targetPathAndQuery}' timed out after {_httpClient.Timeout}.", exception);
-        }
+        return await SendAsync(request, cancellationToken);
     }
 
     public async Task<HttpResponseMessage> ForwardJsonAsync<TRequest>(string method, string targetPathAndQuery, TRequest body, Guid identityId, IReadOnlyList<string>? roles, CancellationToken cancellationToken)
@@ -42,13 +51,18 @@ internal sealed class PostHttpClient(HttpClient httpClient, IInternalServiceToke
             Content = JsonContent.Create(body)
         };
         await AddInternalServiceHeadersAsync(request, identityId, roles, cancellationToken);
+        return await SendAsync(request, cancellationToken);
+    }
 
+    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
         try
         {
             return await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         }
         catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
+            var targetPathAndQuery = request.RequestUri?.PathAndQuery ?? string.Empty;
             _logger.LogWarning(exception, "Post request to {TargetPathAndQuery} timed out after {Timeout}.", targetPathAndQuery, _httpClient.Timeout);
             throw new InvalidOperationException($"Post request to '{targetPathAndQuery}' timed out after {_httpClient.Timeout}.", exception);
         }
@@ -101,7 +115,6 @@ internal static class PostHttpClientRegistration
             ?? configuration["Services:post-api:http:0"]
             ?? throw new InvalidOperationException(
                 "Post API base address is not configured. Set an Aspire service reference for 'post-api'.");
-
         return new Uri(discoveredAddress.TrimEnd('/'), UriKind.Absolute);
     }
 }

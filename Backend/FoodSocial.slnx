@@ -68,9 +68,15 @@
   <Folder Name="/tests/Place/Api.Tests/">
     <Project Path="tests/Place/Api.Tests/FoodSocial.Place.Api.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/Place/Domain.Tests/">
+    <Project Path="tests/Place/Domain.Tests/FoodSocial.Place.Domain.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Post/" />
   <Folder Name="/tests/Post/Api.Tests/">
     <Project Path="tests/Post/Api.Tests/FoodSocial.Post.Api.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Post/Domain.Tests/">
+    <Project Path="tests/Post/Domain.Tests/FoodSocial.Post.Domain.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/UserProfile/" />
   <Folder Name="/tests/UserProfile/Api.Tests/">
@@ -78,6 +84,9 @@
   </Folder>
   <Folder Name="/tests/FoodSocial.AppHost.Tests/">
     <Project Path="tests/FoodSocial.AppHost.Tests/FoodSocial.AppHost.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Dish/Domain.Tests/">
+    <Project Path="tests/Dish/Domain.Tests/FoodSocial.Dish.Domain.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/FoodSocial.ApiGateway.Tests/">
     <Project Path="tests/FoodSocial.ApiGateway.Tests/FoodSocial.ApiGateway.Tests.csproj" />

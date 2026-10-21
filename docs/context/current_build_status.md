@@ -16,6 +16,10 @@ This file is a current-state snapshot, not a history log.
 - keep this file short enough to load as working context
 
 ## Snapshot
+- Updated: 2026-06-05
+- Scope of this update: backend code-health cleanup (Phase A) + domain test coverage (Phase D1-D3)
+| Verification: backend build (Release) 0 errors / 0 warnings; 275/275 tests pass across Dish, Place, Identity (Domain + Application + Api), UserProfile, Post, ApiGateway, and BFF test suites; new Domain suites contribute Dish 11, Place 15, Post 17 (43 net new tests). AppHost tests require Docker and were not executed.
+
 
 - Updated: 2026-05-15
 - Scope of this update: backend DPUnity-style layering cleanup and Identity application refactor verification
@@ -29,8 +33,7 @@ This file is a current-state snapshot, not a history log.
 - local orchestration: `Backend/src/FoodSocial.AppHost/`
 - operational starters: `ops/`
 
-Active backend projects:
-
+Active backend projects (after Phase A consolidation):
 - `FoodSocial.AppHost`
 - `FoodSocial.ServiceDefaults`
 - `FoodSocial.Contracts`
@@ -43,17 +46,39 @@ Active backend projects:
 - `Place`
 - `Post`
 
+Active backend test projects (after Phase D additions):
+- `FoodSocial.ApiGateway.Tests`
+- `FoodSocial.Bff.Tests`
+- `FoodSocial.AppHost.Tests`
+- `Identity.Api.Tests`
+- `Identity.Application.Tests`
+- `Identity.Domain.Tests`
+- `Dish.Api.Tests`
+- `Dish.Domain.Tests` (new)
+- `Place.Api.Tests`
+- `Place.Domain.Tests` (new)
+- `Post.Api.Tests`
+- `Post.Domain.Tests` (new)
+- `UserProfile.Api.Tests`
+
+- `Place`
+- `Post`
+
 ## Backend State
 
 - API Gateway is the public HTTP edge for routing, gateway policy, sanitized correlation IDs, spoof-resistant rate limiting, fail-closed non-development CORS, enforced security headers, forwarded-header trust validation, request body limits, BFF readiness checks, YARP tracing, and safe gateway ProblemDetails responses.
 - BFF remains downstream of the API Gateway and owns browser auth/session plus frontend-oriented service facades.
-- BFF exposes narrow browser-facing facades for UserProfile, Dish, Place, Post, recommendation/search-assist, notifications, and moderation review routes while preserving upstream status and safe ProblemDetails behavior.
-- BFF applies Redis-backed anonymous catalog response caching with memory fallback, config-driven rate limiting, browser security headers, production HSTS, and persistent Data Protection key-ring requirements outside development.
-- Local Keycloak browser redirect/origin entries now target the Angular dev server and API Gateway, not direct BFF browser callback ports.
-- Identity owns subject mapping, lifecycle state, app-owned RBAC, trusted service identity behavior, application-level current-user projection, and idempotent pending-bootstrap outbox staging.
-- UserProfile owns profile, follow graph, saved item, and follow-notification behavior.
-- Dish and Place own canonical catalog creation, lifecycle, search, and detail reads.
-- Post owns launch content creation, media upload/cleanup lifecycle, feed/search reads, engagement, reports, moderation review, reposts, and interaction notifications.
+- Post service now follows the DPUnity-style `UseCases/<Capability>/` folder shape: Publishing, Queries, Engagement, Comments, Reposts, Reports, Notifications, Media. Each use case file lives in its capability folder with the matching `FoodSocial.Post.Application.UseCases.<Capability>` namespace.
+- `Post/Domain/PostEntities.cs` (8 entities + 5 enums in one file) split into one type per file: `PostRecord.cs`, `PostMediaRecord.cs`, `PostMediaUploadRecord.cs`, `PostLikeRecord.cs`, `PostRepostRecord.cs`, `PostCommentRecord.cs`, `ContentReportRecord.cs`, `PostNotificationRecord.cs`, plus `PostStatus.cs`, `CommentStatus.cs`, `ReportStatus.cs`, `ReportTargetType.cs`, `NotificationStatus.cs`, `PostMediaUploadStatus.cs`.
+- `Post/Api/Controllers/PostsController.cs` split into per-resource controllers: `PostsController`, `PostCommentsController`, `PostEngagementController`, `PostReportsController`, `PostNotificationsController`, `PostMediaController`, `PostMediaReadController`.
+- `Bff/Endpoints/BffPostEndpoints.cs` split into `BffPostReadEndpoints`, `BffPostWriteEndpoints`, `BffPostModerationEndpoints`. New helpers: `Bff/Session/IBffSessionContext.cs`, `Bff/Session/BffSessionContext.cs`, `Bff/Errors/BffProblemTypes.cs`, `Bff/Errors/BffProblemResults.cs`.
+- `UserProfile/Api/Controllers/UsersController.cs` split into `UserProfilesController`, `UserFollowsController`, `UserSavedItemsController`, `UserNotificationsController`.
+- Magic-string status/role comparisons in BFF + `Post.Infrastructure.Clients.CatalogHttpClients` replaced with typed wire constants in `FoodSocial.Contracts`: `IdentityWireConstants`, `DishWireConstants`, `PlaceWireConstants`.
+- `DefaultTenantId` literal centralized in `FoodSocial.Contracts.Common.TenantDefaults.Id`; all 5 service-owned infrastructure stores now reference it instead of per-entity constants.
+- `UserProfile.Api.Program.cs` standardized to use `builder.AddServiceDefaults()` (was the long form `Microsoft.Extensions.Hosting.ServiceDefaultsExtensions.AddServiceDefaults(builder)`).
+- `IdentityOutboxPublisherBackgroundService` adds ±25% jitter to the 2-second drain delay to avoid thundering-herd when many service instances boot together.
+- BFF endpoints (auth + post + moderation + write + read) all route through the new `IBffSessionContext` for identity-orchestration, lifecycle allow/deny, and moderator-role checks; `BffProblemTypes` and `BffProblemResults` are the canonical ProblemDetails catalog.
+
 - Backend service APIs use shared safe ProblemDetails helpers where implemented, and ServiceDefaults owns common telemetry, health, resilience, and service-discovery baseline behavior.
 - Service-owned EF Core persistence exists for Identity, UserProfile, Dish, Place, and Post.
 - Service-owned migrations exist; target environments must apply them through a controlled migration path.
@@ -70,12 +95,10 @@ Active backend projects:
 - AppHost is local-orchestration-only and must not be treated as the production runtime.
 
 ## Frontend State
+- New xUnit domain test projects added: `Dish.Domain.Tests` (11 tests), `Place.Domain.Tests` (15 tests), `Post.Domain.Tests` (17 tests). Coverage now spans canonical Dish/Place creation, validation, normalization, and lifecycle; Post invariants including media-required, rating bounds, tag normalization, place-id-empty normalization, and `MarkAttached`/`MarkRead` lifecycle helpers.
+- `BffProblemResults` ProblemDetails construction consolidated in a single helper file; earlier inline copies in `BffAuthEndpoints` and `BffPostEndpoints` removed.
+- `ResolveBffIdentity` magic-string role comparison replaced with `IdentityWireConstants.RoleModerator` / `IdentityWireConstants.RoleAdmin` references.
 
-- Angular 21 app lives under `Frontend/`.
-- TailwindCSS v4 is integrated.
-- The app uses standalone bootstrap, route-level feature areas, typed BFF clients, and an auth-aware shell.
-- Frontend API calls use relative `/api/*` routes, and the Angular dev proxy sends `/api`, `/signin-oidc`, and `/signout-callback-oidc` to the API Gateway.
-- Current user-facing surfaces cover discover, search, post creation, post detail/feed interactions, profiles, saved items, notifications, moderation, Dish/Place search-select, and session/login/logout flows.
 
 ## Ops State
 

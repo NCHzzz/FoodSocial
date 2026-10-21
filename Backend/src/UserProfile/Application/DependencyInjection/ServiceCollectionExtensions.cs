@@ -22,6 +22,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<UserFollowService>();
         services.AddScoped<UserSavedItemsService>();
         services.AddScoped<UserNotificationService>();
+        services.AddScoped<UserSafetyService>();
+
         return services;
     }
 }

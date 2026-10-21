@@ -83,4 +83,16 @@ public interface IUserProfileStore
     /// Removes a saved place idempotently for the supplied owner.
     /// </summary>
     Task<UserSavedItemMutationResult> UnsavePlaceAsync(Guid identityId, Guid placeId, CancellationToken cancellationToken);
+
+    /// <summary>Blocks the target identity idempotently.</summary>
+    Task<UserSafetyMutationResult> BlockAsync(Guid actorIdentityId, Guid targetIdentityId, CancellationToken cancellationToken);
+
+    /// <summary>Unblocks the target identity idempotently.</summary>
+    Task<UserSafetyMutationResult> UnblockAsync(Guid actorIdentityId, Guid targetIdentityId, CancellationToken cancellationToken);
+
+    /// <summary>Mutes the target identity idempotently.</summary>
+    Task<UserSafetyMutationResult> MuteAsync(Guid actorIdentityId, Guid targetIdentityId, CancellationToken cancellationToken);
+
+    /// <summary>Unmutes the target identity idempotently.</summary>
+    Task<UserSafetyMutationResult> UnmuteAsync(Guid actorIdentityId, Guid targetIdentityId, CancellationToken cancellationToken);
 }

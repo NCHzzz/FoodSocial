@@ -5,14 +5,15 @@ import { Observable, switchMap } from 'rxjs';
 import { CsrfTokenApi } from '../../auth/infrastructure/csrf-token.api';
 
 import {
-  FollowUserResponse,
-  SaveUserItemResponse,
-  UpdateUserProfileRequest,
-  UserProfileListResponse,
-  UserNotificationListResponse,
-  UserNotificationResponse,
+FollowUserResponse,
+SaveUserItemResponse,
+UpdateUserProfileRequest,
+UserProfileListResponse,
+UserNotificationListResponse,
+UserNotificationResponse,
   UserProfileResponse,
-  UserSavedItemsResponse,
+  UserSafetyMutationResponse,
+UserSavedItemsResponse,
 } from '../user-profile.models';
 
 type SavedItemKind = 'posts' | 'dishes' | 'places';
@@ -104,8 +105,33 @@ export class UserProfileApi {
     );
   }
 
+  block(identityId: string): Observable<UserSafetyMutationResponse> {
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.post<UserSafetyMutationResponse>(`${this.buildUserEndpoint(identityId)}/block`, null, options)),
+    );
+  }
+
+  unblock(identityId: string): Observable<UserSafetyMutationResponse> {
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.delete<UserSafetyMutationResponse>(`${this.buildUserEndpoint(identityId)}/block`, options)),
+    );
+  }
+
+  mute(identityId: string): Observable<UserSafetyMutationResponse> {
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.post<UserSafetyMutationResponse>(`${this.buildUserEndpoint(identityId)}/mute`, null, options)),
+    );
+  }
+
+  unmute(identityId: string): Observable<UserSafetyMutationResponse> {
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.delete<UserSafetyMutationResponse>(`${this.buildUserEndpoint(identityId)}/mute`, options)),
+    );
+  }
+
   private buildUserEndpoint(identityId: string): string {
-    return `${UserProfileApi.usersEndpoint}/${encodeURIComponent(identityId)}`;
+    return `${UserProfileApi.usersEndpoint
+}/${encodeURIComponent(identityId)}`;
   }
 
   private buildSavedItemEndpoint(identityId: string, kind: SavedItemKind, targetId: string): string {

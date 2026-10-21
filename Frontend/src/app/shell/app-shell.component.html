@@ -1,29 +1,25 @@
 <div class="min-h-dvh bg-[#f5f4ed] text-[#141413]">
+  <a
+    class="skip-link absolute -top-10 left-2 z-50 rounded-2xl bg-[#141413] px-4 py-3 text-sm font-semibold text-[#faf9f5] shadow-[0_0_0_1px_#faf9f5] focus:top-2 focus:outline-none"
+    href="#main-content"
+  >
+    Skip to main content
+  </a>
+
   <header class="border-b border-[#f0eee6]/80 bg-[#f5f4ed]/90 backdrop-blur">
     <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
       <div class="flex items-start gap-3">
-        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#c96442] font-serif text-lg font-semibold text-[#faf9f5] shadow-[0_0_0_1px_#c96442]">
-          FS
-        </div>
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#c96442] font-serif text-lg font-semibold text-[#faf9f5] shadow-[0_0_0_1px_#c96442]">FS</div>
         <div>
           <p class="text-sm font-semibold uppercase tracking-[0.24em] text-[#c96442]">Food-first social</p>
-          <a class="inline-flex items-center font-serif text-2xl font-semibold tracking-tight text-[#141413] sm:text-3xl" routerLink="/discover">
-            FoodSocial
-          </a>
-          <p class="mt-1 max-w-xl text-sm text-[#5e5d59] sm:text-base">
-            Discover dishes and places worth trying. Sign in when you want to save, follow, and share your own picks.
-          </p>
+          <a class="inline-flex items-center font-serif text-2xl font-semibold tracking-tight text-[#141413] sm:text-3xl" routerLink="/discover">FoodSocial</a>
+          <p class="mt-1 max-w-xl text-sm text-[#5e5d59] sm:text-base">Discover dishes and places worth trying. Sign in when you want to save, follow, and share your own picks.</p>
         </div>
       </div>
 
       <nav aria-label="Primary" class="flex flex-wrap gap-2">
         @for (item of navigationItems(); track item.route) {
-          <a
-            appShellNavLink
-            [routerLink]="item.route"
-            routerLinkActive="border-[#141413] bg-[#141413] text-[#faf9f5] shadow-[#c2c0b6]"
-            [textContent]="item.label"
-          ></a>
+          <a appShellNavLink [routerLink]="item.route" routerLinkActive="border-[#141413] bg-[#141413] text-[#faf9f5] shadow-[#c2c0b6]" [textContent]="item.label"></a>
         }
       </nav>
 
@@ -41,19 +37,23 @@
         </div>
 
         @if (isAuthenticated()) {
-          <button appUiButton="secondary" type="button" (click)="submitLogout()">
-            <span [textContent]="authState().isLoggingOut ? 'Logging out…' : 'Log out'"></span>
-          </button>
+          <button appUiButton="secondary" type="button" (click)="submitLogout()"><span [textContent]="authState().isLoggingOut ? 'Logging out...' : 'Log out'"></span></button>
         } @else {
-          <button appUiButton="accent" type="button" (click)="startLogin()">
-            Log in
-          </button>
+          <button appUiButton="accent" type="button" (click)="startLogin()">Log in</button>
         }
       </div>
     </div>
   </header>
 
-  <main class="mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-    <router-outlet />
+  <main id="main-content" tabindex="-1" class="mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+    @if (errorState(); as errorMessage) {
+      <section class="rounded-2xl border border-red-200 bg-red-50 px-6 py-5">
+        <p class="text-sm font-semibold text-red-700">Something went wrong</p>
+        <p class="mt-2 text-sm leading-6 text-red-600" [textContent]="errorMessage"></p>
+        <button type="button" class="mt-4 rounded-2xl border border-red-300 bg-red-100 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-200" (click)="clearRouteError()">Dismiss</button>
+      </section>
+    } @else {
+      <router-outlet />
+    }
   </main>
 </div>

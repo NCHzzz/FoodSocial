@@ -45,7 +45,7 @@ internal sealed class HttpPostCatalogReferenceValidator(
             return PostCatalogReferenceValidationResult.Invalid("Place must reference an existing canonical place when provided.");
         }
 
-        if (!string.Equals(place.Status, "Active", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(place.Status, PlaceWireConstants.StatusActive, StringComparison.OrdinalIgnoreCase))
         {
             return PostCatalogReferenceValidationResult.Invalid("Place must reference an active canonical place when provided.");
         }

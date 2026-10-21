@@ -16,12 +16,13 @@ internal static class BffRecommendationEndpoints
 
     private static async Task<IResult> GetDiscoverRecommendationsAsync(
         HttpContext httpContext,
-        IDiscoverRecommendationProvider recommendationProvider,
+        DeterministicDiscoverRecommendationProvider recommendationProvider,
         IOptions<BffRecommendationOptions> options,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(recommendationProvider);
+
         ArgumentNullException.ThrowIfNull(options);
 
         var recommendationOptions = options.Value;

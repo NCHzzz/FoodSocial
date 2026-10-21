@@ -200,12 +200,19 @@ four-layer shape:
 FoodSocial.Bff/
 ├── Authentication/   # OIDC flow, CSRF filter, request conventions, internal service token
 ├── Caching/          # Catalog response cache (Redis + memory fallback)
-├── Endpoints/        # Facades grouped by bounded context (BffDishEndpoints, BffPostEndpoints, ...)
+├── Endpoints/        # Facades grouped by bounded context, one file per resource group
+│                    #   (BffAuthEndpoints, BffUserProfileEndpoints, BffDishEndpoints,
+│                    #    BffPlaceEndpoints, BffPostReadEndpoints, BffPostWriteEndpoints,
+│                    #    BffPostModerationEndpoints, BffRecommendationEndpoints, BffSearchAssistEndpoints)
+├── Errors/           # BffProblemTypes + BffProblemResults: canonical ProblemDetails catalog
 ├── HttpClients/      # Typed downstream clients per service
 ├── RateLimiting/     # BFF-level fixed-window rate limit policies
 ├── Recommendations/  # Discover/assist providers and models
 ├── Results/          # Upstream to browser response translation
-└── Security/         # Data protection, security headers
+├── Security/         # Data protection, security headers
+└── Session/          # IBffSessionContext + BffSessionContext: identity-orchestration + role + lifecycle checks
+```
+
 ```
 
 Rationale:
@@ -216,6 +223,13 @@ Rationale:
   them across four layers.
 - BFF endpoints are short, read-mostly facades over downstream service APIs,
   so they read naturally as vertical slices.
+- For large endpoint files (BFF Post, BFF UserProfile), endpoints are further
+  split by **resource group** (read / write / moderation). The shared session
+  and problem-details helpers are extracted into `Session/` and `Errors/` so
+  every endpoint file uses the same identity-orchestration and ProblemDetails
+  catalog. The session facade owns the cookie/bearer authentication
+  resolution, the identity-ensure call, the suspended/deleted lifecycle
+  guard, and the moderator-role check.
 - The BFF still follows all other rules in `docs/ai/stack-rules/dotnet.md`
   (ProblemDetails, async end-to-end, environment-driven config, no secrets
   in code, explicit input validation, rate limiting, observability, security

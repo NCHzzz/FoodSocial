@@ -80,3 +80,11 @@ export interface UserNotificationListResponse {
   limit: number;
   unreadCount: number;
 }
+
+export interface UserSafetyMutationResponse {
+  targetIdentityId: string;
+  type: 'Block' | 'Mute';
+  isActive: boolean;
+}
+
+

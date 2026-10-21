@@ -184,7 +184,7 @@ internal static class BffAuthEndpoints
             .ToArray();
 
         var state = ensuredIdentity.State;
-        var bootstrapPending = string.Equals(state, "PendingBootstrap", StringComparison.Ordinal)
+        var bootstrapPending = string.Equals(state, IdentityWireConstants.LifecycleStatePendingBootstrap, StringComparison.Ordinal)
             || ensuredIdentity.DownstreamBootstrapPending;
 
         return new CurrentUserResponse(
@@ -218,8 +218,8 @@ internal static class BffAuthEndpoints
     {
         ArgumentNullException.ThrowIfNull(ensuredIdentity);
 
-        return !string.Equals(ensuredIdentity.State, "Suspended", StringComparison.Ordinal)
-            && !string.Equals(ensuredIdentity.State, "Deleted", StringComparison.Ordinal);
+        return !string.Equals(ensuredIdentity.State, IdentityWireConstants.LifecycleStateSuspended, StringComparison.Ordinal)
+            && !string.Equals(ensuredIdentity.State, IdentityWireConstants.LifecycleStateDeleted, StringComparison.Ordinal);
     }
 
     private static bool IsIdentityRefreshAllowed(EnsureIdentityResponse ensuredIdentity) =>

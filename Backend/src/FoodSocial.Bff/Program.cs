@@ -10,7 +10,8 @@ builder.Services.AddProblemDetails();
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-XSRF-TOKEN");
 builder.Services.AddOpenApi();
 builder.Services.AddAuthorization();
-builder.Services.AddInternalServiceTokenProvider();
+builder.Services.AddInternalServiceTokenProvider(builder.Configuration, builder.Environment);
+
 builder.Services.AddBffIdentityOrchestrationClient();
 builder.Services.AddBffUserProfileClient();
 builder.Services.AddBffDishClient();
@@ -20,7 +21,13 @@ builder.Services.AddBffCatalogResponseCache(builder.Configuration);
 builder.Services.AddBffDataProtection(builder.Configuration, builder.Environment);
 builder.Services.AddBffRateLimiting(builder.Configuration);
 builder.Services.Configure<BffRecommendationOptions>(builder.Configuration.GetSection(BffRecommendationOptions.SectionName));
-builder.Services.AddScoped<IDiscoverRecommendationProvider, DeterministicDiscoverRecommendationProvider>();
+builder.Services.AddScoped<DeterministicDiscoverRecommendationProvider>();
+builder.Services.AddScoped<IBffSessionContext, BffSessionContext>();
+builder.Services.AddScoped<FollowingFeedComposer>();
+builder.Services.AddScoped<BffPostDownstreamProxy>();
+
+
+
 builder.Services.AddBffAuthentication(builder.Configuration, builder.Environment);
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -62,9 +69,13 @@ app.MapBffAuthEndpoints();
 app.MapBffUserProfileEndpoints();
 app.MapBffDishEndpoints();
 app.MapBffPlaceEndpoints();
-app.MapBffPostEndpoints();
+app.MapBffPostReadEndpoints();
+app.MapBffPostWriteEndpoints();
+app.MapBffPostModerationEndpoints();
 app.MapBffSearchAssistEndpoints();
 app.MapBffRecommendationEndpoints();
+
+
 
 app.MapDefaultEndpoints();
 

@@ -133,6 +133,18 @@ export class PostApi {
     );
   }
 
+
+  reportUser(userId: string, reason: string, description: string | null = null): Observable<ContentReportResponse> {
+    const request: CreateContentReportRequest = {
+      reporterId: PostApi.emptyGuid,
+      reason,
+      description,
+    };
+
+    return this.csrfTokenApi.withCsrfHeader().pipe(
+      switchMap((options) => this.httpClient.post<ContentReportResponse>("/api/users//report", request, options)),
+    );
+  }
   private buildPostEndpoint(postId: string): string {
     return `${PostApi.postsEndpoint}/${encodeURIComponent(postId)}`;
   }

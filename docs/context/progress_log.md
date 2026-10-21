@@ -65,7 +65,18 @@ Do not append minor churn, repetitive edits, or every small refactor.
 - Added Frontend Security, Observability, Testing sections and 12-point Verification Checklist to `angular-tailwind.md`.
 - Added API versioning strategy and pagination defaults to `dotnet.md`.
 - Added Deferred Design Decisions section (dark mode, animation, breakpoints) to `DESIGN.md`.
-- Created `docs/ai/git-rules.md` to standardize version control practices (commit formatting, pull strategy, push requirements).
-- Removed all OpenSpec references and deleted `openspec/` directory.
-- Deduplicated content across files: migration commands point to `Backend/MIGRATIONS.md`, doc pointers point to `repo-map.md`.
+| Created `docs/ai/git-rules.md` to standardize version control practices (commit formatting, pull strategy, push requirements).
+| Removed all OpenSpec references and deleted `openspec/` directory.
+| Deduplicated content across files: migration commands point to `Backend/MIGRATIONS.md`, doc pointers point to `repo-map.md`.
+| Outbox jitter, DPUnity `UseCases/<Capability>/` subfolders, typed wire constants, and BFF session facade formalized (see entry below for the 2026-06-05 Phase A + D pass).
 
+
+## 2026-06-05
+
+- Completed Phase A code-health cleanup across the backend: Post use cases moved into `UseCases/<Capability>/` subfolders with matching namespaces; `Post/Domain/PostEntities.cs` (8 entities + 5 enums) split into one type per file; `Post/Api/Controllers/PostsController.cs` split into 7 per-resource controllers; `Bff/Endpoints/BffPostEndpoints.cs` split into `BffPostReadEndpoints`, `BffPostWriteEndpoints`, `BffPostModerationEndpoints`; `UserProfile/Api/Controllers/UsersController.cs` split into 4 per-resource controllers; magic-string status/role comparisons in BFF + `CatalogHttpClients` replaced with typed `FoodSocial.Contracts.*WireConstants`; `DefaultTenantId` literal centralized in `FoodSocial.Contracts.Common.TenantDefaults` and consumed by all 5 infrastructure stores; new `Bff/Session/IBffSessionContext` + `Bff/Session/BffSessionContext` + `Bff/Errors/BffProblemTypes` + `Bff/Errors/BffProblemResults` extracted from inline copies.
+- Added `Dish.Domain.Tests` (11 tests), `Place.Domain.Tests` (15 tests), `Post.Domain.Tests` (17 tests) projects and registered them in `FoodSocial.slnx`. Coverage spans Dish/Place creation, validation, Vietnamese diacritic normalization, and lifecycle transitions; Post invariants including media-required, rating bounds, tag normalization, place-id-empty normalization, and `MarkAttached`/`MarkRead` lifecycle helpers.
+- Outbox publisher in Identity gained ±25% jitter on the 2-second drain delay to avoid thundering-herd when many service instances boot together.
+- Standardized `AddServiceDefaults()` call style in `UserProfile.Api.Program.cs` (was the long form).
+- Verification: `dotnet build` 0 errors / 0 warnings; 275/275 tests pass across Dish, Place, Identity (Domain + Application + Api), UserProfile, Post, ApiGateway, and BFF test suites. AppHost tests require Docker and were not executed.
+
+> Deferral note: BFF session + AI gateway + feature-control abstractions remain deferred per `dotnet.md` YAGNI; Phase C features (block/mute, visibility, account notifications, idempotency keys, typo-tolerance) remain blocked on product decisions.

@@ -3,7 +3,8 @@ using FoodSocial.UserProfile.Api.Startup;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Microsoft.Extensions.Hosting.ServiceDefaultsExtensions.AddServiceDefaults(builder);
+builder.AddServiceDefaults();
+
 builder.Services.AddUserProfileApiServices(builder.Configuration, builder.Environment);
 
 var app = builder.Build();

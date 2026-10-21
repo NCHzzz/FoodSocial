@@ -1,4 +1,6 @@
+using FoodSocial.Contracts.Common;
 using FoodSocial.Contracts.UserProfiles;
+
 using FoodSocial.Messaging;
 using FoodSocial.UserProfile.Application;
 using FoodSocial.UserProfile.Domain;
@@ -21,7 +23,7 @@ public sealed partial class UserProfileStore(UserProfileDbContext dbContext) : I
 
         return _dbContext.UserProfileShells
             .AsNoTracking()
-            .Where(shell => shell.TenantId == UserProfileShell.DefaultTenantId && shell.IdentityId == identityId)
+            .Where(shell => shell.TenantId == TenantDefaults.Id && shell.IdentityId == identityId)
             .Select(shell => new UserProfileOwnership(shell.Id, shell.IdentityId, shell.Subject))
             .SingleOrDefaultAsync(cancellationToken);
     }
@@ -33,7 +35,7 @@ public sealed partial class UserProfileStore(UserProfileDbContext dbContext) : I
 
         return _dbContext.UserProfileShells
             .AsNoTracking()
-            .Where(shell => shell.TenantId == UserProfileShell.DefaultTenantId && shell.Subject == subject)
+            .Where(shell => shell.TenantId == TenantDefaults.Id && shell.Subject == subject)
             .Select(shell => new UserProfileOwnership(shell.Id, shell.IdentityId, shell.Subject))
             .SingleOrDefaultAsync(cancellationToken);
     }
@@ -254,7 +256,7 @@ public sealed partial class UserProfileStore(UserProfileDbContext dbContext) : I
     {
         var integrationEvent = UserProfileChangedIntegrationEvent.Create(
             identityId,
-            UserProfileShell.DefaultTenantId,
+            TenantDefaults.Id,
             changeType,
             targetId,
             targetType);
@@ -316,4 +318,85 @@ public sealed partial class UserProfileStore(UserProfileDbContext dbContext) : I
         var sqliteErrorCode = sqliteErrorCodeProperty?.GetValue(exception.InnerException);
         return sqliteErrorCode is int code && code == 19;
     }
+
+
+    /// <inheritdoc />
+    public async Task<UserSafetyMutationResult> BlockAsync(Guid actorIdentityId, Guid targetIdentityId, CancellationToken cancellationToken) =>
+        await ApplySafetyRelationAsync(actorIdentityId, targetIdentityId, RelationshipType.Block, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<UserSafetyMutationResult> UnblockAsync(Guid actorIdentityId, Guid targetIdentityId, CancellationToken cancellationToken) =>
+        await RemoveSafetyRelationAsync(actorIdentityId, targetIdentityId, RelationshipType.Block, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<UserSafetyMutationResult> MuteAsync(Guid actorIdentityId, Guid targetIdentityId, CancellationToken cancellationToken) =>
+        await ApplySafetyRelationAsync(actorIdentityId, targetIdentityId, RelationshipType.Mute, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<UserSafetyMutationResult> UnmuteAsync(Guid actorIdentityId, Guid targetIdentityId, CancellationToken cancellationToken) =>
+        await RemoveSafetyRelationAsync(actorIdentityId, targetIdentityId, RelationshipType.Mute, cancellationToken);
+
+    private async Task<UserSafetyMutationResult> ApplySafetyRelationAsync(Guid actorIdentityId, Guid targetIdentityId, RelationshipType type, CancellationToken cancellationToken)
+    {
+        var actorShell = await _dbContext.UserProfileShells.SingleOrDefaultAsync(shell => shell.IdentityId == actorIdentityId, cancellationToken);
+        var targetShell = await _dbContext.UserProfileShells.SingleOrDefaultAsync(shell => shell.IdentityId == targetIdentityId, cancellationToken);
+        if (actorShell is null || targetShell is null)
+        {
+            return new UserSafetyMutationResult(UserProfileOperationStatus.NotFound, targetIdentityId, type, false, "User profile not found.");
+        }
+
+        if (actorIdentityId == targetIdentityId)
+        {
+            return new UserSafetyMutationResult(UserProfileOperationStatus.Invalid, targetIdentityId, type, false, "You cannot target yourself.");
+        }
+
+        var exists = await _dbContext.UserSafetyRelations.AnyAsync(
+            relation => relation.ActorIdentityId == actorIdentityId && relation.TargetIdentityId == targetIdentityId && relation.Type == type,
+            cancellationToken);
+
+        if (exists)
+        {
+            return new UserSafetyMutationResult(UserProfileOperationStatus.Success, targetIdentityId, type, true, null);
+        }
+
+        _dbContext.UserSafetyRelations.Add(new UserSafetyRelation(actorIdentityId, targetIdentityId, type));
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        {
+            _dbContext.ChangeTracker.Clear();
+            var duplicateExists = await _dbContext.UserSafetyRelations.AnyAsync(
+                relation => relation.ActorIdentityId == actorIdentityId && relation.TargetIdentityId == targetIdentityId && relation.Type == type,
+                cancellationToken);
+            if (duplicateExists)
+            {
+                return new UserSafetyMutationResult(UserProfileOperationStatus.Success, targetIdentityId, type, true, null);
+            }
+
+            throw;
+        }
+        return new UserSafetyMutationResult(UserProfileOperationStatus.Success, targetIdentityId, type, true, null);
+    }
+
+
+
+    private async Task<UserSafetyMutationResult> RemoveSafetyRelationAsync(Guid actorIdentityId, Guid targetIdentityId, RelationshipType type, CancellationToken cancellationToken)
+    {
+        var relation = await _dbContext.UserSafetyRelations.SingleOrDefaultAsync(
+            relation => relation.ActorIdentityId == actorIdentityId && relation.TargetIdentityId == targetIdentityId && relation.Type == type,
+            cancellationToken);
+
+        if (relation is null)
+        {
+            return new UserSafetyMutationResult(UserProfileOperationStatus.Success, targetIdentityId, type, false, null);
+        }
+
+        _dbContext.UserSafetyRelations.Remove(relation);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return new UserSafetyMutationResult(UserProfileOperationStatus.Success, targetIdentityId, type, false, null);
+    }
+
 }

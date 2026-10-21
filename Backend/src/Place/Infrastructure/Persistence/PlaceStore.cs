@@ -1,4 +1,6 @@
+using FoodSocial.Contracts.Common;
 using FoodSocial.Contracts.Places;
+
 using FoodSocial.Place.Application;
 using FoodSocial.Place.Domain;
 using FoodSocial.Messaging;
@@ -147,7 +149,7 @@ public sealed class PlaceStore(PlaceDbContext dbContext) : IPlaceStore
                 cancellationToken);
 
     private IQueryable<PlaceRecord> CurrentTenantPlaces() =>
-        _dbContext.Places.Where(place => place.TenantId == PlaceRecord.DefaultTenantId);
+        _dbContext.Places.Where(place => place.TenantId == TenantDefaults.Id);
 
     private static IntegrationOutboxMessage CreateOutboxMessage(PlaceRecord place, string changeType)
     {

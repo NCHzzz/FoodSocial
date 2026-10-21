@@ -1,4 +1,6 @@
+using FoodSocial.Contracts.Common;
 using FoodSocial.Contracts.Posts;
+
 using FoodSocial.Messaging;
 using FoodSocial.Post.Application;
 using FoodSocial.Post.Domain;
@@ -517,7 +519,7 @@ public sealed partial class PostStore(PostDbContext dbContext) : IPostStore
     }
 
     private IQueryable<PostRecord> CurrentTenantPosts() =>
-        _dbContext.Posts.Where(post => post.TenantId == PostRecord.DefaultTenantId);
+        _dbContext.Posts.Where(post => post.TenantId == TenantDefaults.Id);
 
     private static IntegrationOutboxMessage CreateOutboxMessage(PostRecord post, string changeType)
     {
@@ -542,7 +544,7 @@ public sealed partial class PostStore(PostDbContext dbContext) : IPostStore
     }
 
     private IQueryable<PostMediaUploadRecord> CurrentTenantUploads() =>
-        _dbContext.PostMediaUploads.Where(upload => upload.TenantId == PostRecord.DefaultTenantId);
+        _dbContext.PostMediaUploads.Where(upload => upload.TenantId == TenantDefaults.Id);
 
     private IQueryable<PostCommentRecord> CurrentTenantComments() =>
         from comment in _dbContext.PostComments

@@ -1,9 +1,11 @@
+using FoodSocial.Contracts.Common;
 using FoodSocial.Contracts.UserProfiles;
 using FoodSocial.Messaging;
 using FoodSocial.UserProfile.Application;
 using FoodSocial.UserProfile.Domain;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+
 
 namespace FoodSocial.UserProfile.Infrastructure.Persistence;
 
@@ -20,7 +22,7 @@ public sealed class UserProfileShellStore(UserProfileDbContext dbContext) : IUse
         ArgumentOutOfRangeException.ThrowIfEqual(identityId, Guid.Empty);
 
         return _dbContext.UserProfileShells.SingleOrDefaultAsync(
-            shell => shell.TenantId == UserProfileShell.DefaultTenantId && shell.IdentityId == identityId,
+            shell => shell.TenantId == TenantDefaults.Id && shell.IdentityId == identityId,
             cancellationToken);
     }
 
@@ -30,7 +32,7 @@ public sealed class UserProfileShellStore(UserProfileDbContext dbContext) : IUse
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
 
         return _dbContext.UserProfileShells.SingleOrDefaultAsync(
-            shell => shell.TenantId == UserProfileShell.DefaultTenantId && shell.Subject == subject,
+            shell => shell.TenantId == TenantDefaults.Id && shell.Subject == subject,
             cancellationToken);
     }
 
@@ -108,7 +110,7 @@ public sealed class UserProfileShellStore(UserProfileDbContext dbContext) : IUse
     {
         var integrationEvent = UserProfileChangedIntegrationEvent.Create(
             identityId,
-            UserProfileShell.DefaultTenantId,
+            TenantDefaults.Id,
             changeType,
             targetId,
             targetType);

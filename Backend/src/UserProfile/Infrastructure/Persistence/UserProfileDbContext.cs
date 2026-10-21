@@ -52,7 +52,8 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
     public DbSet<SavedPlace> SavedPlaces => Set<SavedPlace>();
 
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
-    public DbSet<IntegrationOutboxMessage> IntegrationOutboxMessages => Set<IntegrationOutboxMessage>();
+    public DbSet<UserSafetyRelation> UserSafetyRelations => Set<UserSafetyRelation>();
+public DbSet<IntegrationOutboxMessage> IntegrationOutboxMessages => Set<IntegrationOutboxMessage>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -252,7 +253,37 @@ public sealed class UserProfileDbContext(DbContextOptions<UserProfileDbContext> 
             entity.HasIndex(notification => notification.CreatedAtUtc);
             entity.HasOne<UserProfileShell>().WithMany().HasForeignKey(notification => notification.UserProfileShellId).OnDelete(DeleteBehavior.Cascade);
         });
+        modelBuilder.Entity<UserSafetyRelation>(entity =>
+        {
+            entity.ToTable("user_safety_relations");
+            entity.HasKey(relation => relation.Id);
+
+            entity.Property(relation => relation.TenantId)
+                .IsRequired();
+
+            entity.Property(relation => relation.ActorIdentityId)
+                .IsRequired();
+
+            entity.Property(relation => relation.TargetIdentityId)
+                .IsRequired();
+
+            entity.Property(relation => relation.Type)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .IsRequired();
+
+            entity.Property(relation => relation.CreatedAtUtc)
+                .IsRequired();
+
+            entity.HasIndex(relation => new { relation.ActorIdentityId, relation.TargetIdentityId, relation.Type })
+                .IsUnique();
+
+            entity.HasIndex(relation => new { relation.ActorIdentityId, relation.Type });
+
+            entity.HasIndex(relation => new { relation.TargetIdentityId, relation.Type });
+        });
     }
+
 
     private static string SerializeMultiValueList(IReadOnlyCollection<string> values) =>
         values.Count == 0

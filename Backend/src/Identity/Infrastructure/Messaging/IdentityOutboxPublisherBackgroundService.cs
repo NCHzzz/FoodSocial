@@ -44,7 +44,15 @@ public sealed class IdentityOutboxPublisherBackgroundService(
                 _logger.LogError(exception, "Identity outbox drain iteration failed.");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+            var jitteredDelay = ComputeJitteredDelay(TimeSpan.FromSeconds(2));
+            await Task.Delay(jitteredDelay, stoppingToken);
         }
+    }
+
+    private static TimeSpan ComputeJitteredDelay(TimeSpan baseDelay)
+    {
+        // Add +/- 25% jitter to avoid thundering herd when many service instances boot together.
+        var jitterFactor = 0.75 + (Random.Shared.NextDouble() * 0.5);
+        return TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * jitterFactor);
     }
 }

@@ -208,6 +208,9 @@ Infrastructure -> Application -> Domain
 - Distributed transactions across services **MUST NOT** be used.
 - Deletion and retention behavior **MUST** be intentional.
 - Binary media lifecycle **SHOULD** remain explicit: metadata ownership, derivative assets, cleanup signaling, and storage deletion behavior.
+- A canonical `DefaultTenantId` literal **MUST** live in `FoodSocial.Contracts.Common.TenantDefaults.Id` and be consumed by service-owned infrastructure stores. Per-entity `DefaultTenantId` constants are forbidden as they cause drift; a Domain layer **MUST NOT** reference the Contracts layer.
+
+- Binary media lifecycle **SHOULD** remain explicit: metadata ownership, derivative assets, cleanup signaling, and storage deletion behavior.
 
 ## Async, Messaging, and Reliability Rules
 
@@ -275,6 +278,32 @@ Infrastructure -> Application -> Domain
 - Global usings **MAY** be used as a compatibility bridge during large folder moves, but explicit imports are preferred for long-term clarity.
 - Namespace changes **MUST** be deliberate and build-verified.
 - Backend refactors **MUST** run diagnostics, build, and relevant tests before completion.
+
+## Canonical Backend Patterns
+
+The following patterns are the established implementation conventions. Deviate only with a documented exception.
+
+### Typed wire constants for cross-service enums
+
+When a service serializes a domain enum as a string in a wire DTO (e.g. `IdentityLifecycleState`, `IdentityAppRoles`, `DishLifecycleStatus`, `PlaceLifecycleStatus`), the corresponding string literals **MUST** be exposed as `public static class <Service>WireConstants` in `FoodSocial.Contracts` (e.g. `FoodSocial.Contracts.Identity.IdentityWireConstants`, `FoodSocial.Contracts.Dishes.DishWireConstants`, `FoodSocial.Contracts.Places.PlaceWireConstants`). Cross-service consumers (BFF, downstream HTTP clients) **MUST** compare against these constants, never against hard-coded string literals. Renames in the producer stay in sync with all consumers.
+
+### BFF session facade and ProblemDetails catalog
+
+The BFF **MUST** route all authenticated browser endpoints through `FoodSocial.Bff.Session.IBffSessionContext` rather than re-implementing identity-orchestration, lifecycle allow/deny, and moderator-role checks per endpoint file. The implementation **MUST** return a `ResolvedBffSession` envelope whose `Result` (an `IResult`) is non-null exactly when the request must short-circuit. The canonical ProblemDetails type URIs **MUST** live in `FoodSocial.Bff.Errors.BffProblemTypes` and the `IResult` builders in `FoodSocial.Bff.Errors.BffProblemResults`. Inline `Results.Problem(...)` or `Problem(...)` constructions with literal `https://foodsocial/...` URIs are forbidden.
+
+### UseCases/<Capability>/ subfolders
+
+Use case files **MUST** live under `Application/UseCases/<Capability>/`, where `<Capability>` is a noun that names the bounded slice the use case belongs to (e.g. `Identities/`, `Identities/Bootstrap/`, `Posts/Publishing/`, `Posts/Queries/`, `Posts/Engagement/`, `Posts/Comments/`, `Posts/Reposts/`, `Posts/Reports/`, `Posts/Notifications/`, `Posts/Media/`). The file namespace **MUST** match the folder (`FoodSocial.<Service>.Application.UseCases.<Capability>`). One class per file; the class name describes the use case verb, not the folder. Service facades that aggregate use cases may live in a sibling `<Resource>/` folder (see `PostService` in Post) but use cases themselves do not.
+
+### BFF endpoint files split by resource group
+
+BFF endpoint files larger than ~250 lines **MUST** be split by resource group (read / write / moderation / search) into separate `BffXxx<Group>Endpoints` files, each exposing its own `MapBffXxx<Group>Endpoints(IEndpointRouteBuilder)` extension. Each endpoint parameter that is a service (e.g. `IBffSessionContext`) **MUST** be marked `[FromServices]`; otherwise ASP.NET Core minimal APIs will infer it as a Body parameter and the host will fail to start.
+
+### Background service cancellation and jitter
+
+Long-running `BackgroundService` poll loops (e.g. outbox drainers) **MUST** catch `OperationCanceledException` only when `stoppingToken.IsCancellationRequested` is true. Polling delays **SHOULD** apply ±25% jitter to avoid thundering-herd when many service instances boot together.
+
+
 
 ## Verification Checklist
 

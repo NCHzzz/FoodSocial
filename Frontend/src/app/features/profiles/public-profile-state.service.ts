@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, signal, WritableSignal } from '@angular/core';
+﻿import { computed, effect, inject, Injectable, signal, WritableSignal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { AuthSessionService } from '../../core/auth/auth-session.service';
@@ -108,6 +108,26 @@ export class PublicProfileStateService {
   startLogin(): void {
     this.followActionStatusState.set('gated');
     this.authSessionService.startLogin();
+  }
+
+  blockUser(): void {
+    if (!this.isAuthenticated()) { this.followActionStatusState.set('gated'); return; }
+    this.userProfileApi.block(this.identityId).subscribe({ next: () => {}, error: () => this.followActionStatusState.set('error') });
+  }
+
+  unblockUser(): void {
+    if (!this.isAuthenticated()) { this.followActionStatusState.set('gated'); return; }
+    this.userProfileApi.unblock(this.identityId).subscribe({ next: () => {}, error: () => this.followActionStatusState.set('error') });
+  }
+
+  muteUser(): void {
+    if (!this.isAuthenticated()) { this.followActionStatusState.set('gated'); return; }
+    this.userProfileApi.mute(this.identityId).subscribe({ next: () => {}, error: () => this.followActionStatusState.set('error') });
+  }
+
+  unmuteUser(): void {
+    if (!this.isAuthenticated()) { this.followActionStatusState.set('gated'); return; }
+    this.userProfileApi.unmute(this.identityId).subscribe({ next: () => {}, error: () => this.followActionStatusState.set('error') });
   }
 
   summaryName(profile: UserProfileSummaryDto): string {
